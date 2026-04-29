@@ -1,0 +1,407 @@
+/* Job swipe desktop — Figma 24:1560 (Html → Body) */
+.job-swipe {
+  min-height: 100vh;
+  font-family: Manrope, system-ui, sans-serif;
+  background: linear-gradient(90deg, #f8fafc 0%, #f8fafc 100%);
+  color: #0f172a;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.job-swipe * {
+  box-sizing: border-box;
+}
+
+.job-swipe-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  z-index: 100;
+  background: linear-gradient(90deg, #4648d4 0%, #39b8fd 100%);
+}
+
+.job-swipe-layout {
+  display: flex;
+  gap: 32px;
+  align-items: stretch;
+  min-height: 100vh;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px;
+  padding-top: calc(32px + 4px);
+}
+
+.job-swipe-left {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.job-swipe-card {
+  width: 100%;
+  max-width: 576px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 41px;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.job-swipe-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.job-swipe-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.job-swipe-company {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.325px;
+  text-transform: uppercase;
+  color: #4648d4;
+  line-height: 18px;
+}
+
+.job-swipe-badge {
+  background: #e9e6f3;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  line-height: 16px;
+  font-family: Manrope, system-ui, sans-serif;
+}
+
+.job-swipe-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.56px;
+  line-height: 36px;
+  margin: 0;
+  padding-top: 4px;
+}
+
+.job-swipe-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.job-swipe-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f5f2fe;
+  padding: 6px 12px;
+  border-radius: 32px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 18px;
+}
+
+.job-swipe-chip-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.job-swipe-chip-icon svg {
+  display: block;
+}
+
+.job-swipe-sep {
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  margin: 0;
+}
+
+.job-swipe-brief {
+  font-size: 15px;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 24.38px;
+  margin: 0;
+}
+
+.job-swipe-actions-wrap {
+  width: 100%;
+  max-width: 512px;
+  padding-top: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.job-swipe-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 512px;
+}
+
+.job-swipe-icon-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.job-swipe-icon-btn:hover {
+  background: #f8fafc;
+}
+
+.job-swipe-apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 32px;
+  border-radius: 9999px;
+  border: none;
+  background: #4648d4;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 7px rgba(70, 72, 212, 0.25);
+}
+
+.job-swipe-apply:hover {
+  filter: brightness(1.05);
+}
+
+/* Right aside */
+.job-swipe-aside {
+  width: 420px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: min(1024px, calc(100vh - 64px));
+  max-height: calc(100vh - 64px);
+}
+
+.job-swipe-aside-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 21px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.job-swipe-aside-title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+  margin: 0;
+}
+
+.job-swipe-aside-close {
+  width: 40px;
+  height: 40px;
+  margin: -8px -8px -8px 0;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.job-swipe-aside-close:hover {
+  background: #f1f5f9;
+}
+
+.job-swipe-aside-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.job-swipe-section-label {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #0f172a;
+  line-height: 16px;
+  margin: 0 0 12px;
+}
+
+.job-swipe-prose {
+  font-size: 16px;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 26px;
+  margin: 0 0 12px;
+}
+
+.job-swipe-prose:last-child {
+  margin-bottom: 0;
+}
+
+.job-swipe-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #64748b;
+  font-size: 16px;
+  line-height: 26px;
+}
+
+.job-swipe-list li {
+  margin-bottom: 4px;
+}
+
+.job-swipe-list li:last-child {
+  margin-bottom: 0;
+}
+
+.job-swipe-company-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.job-swipe-company-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 32px;
+  background: #e9e6f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.job-swipe-company-name {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  margin: 0 0 4px;
+  font-family: Manrope, system-ui, sans-serif;
+}
+
+.job-swipe-company-meta {
+  font-size: 12px;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 16px;
+  margin: 0 0 4px;
+  font-family: Manrope, system-ui, sans-serif;
+}
+
+.job-swipe-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4648d4;
+  line-height: 16px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.job-swipe-link:hover {
+  text-decoration: underline;
+}
+
+.job-swipe-similar-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 48px;
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.job-swipe-similar-card:hover {
+  background: #f8fafc;
+}
+
+.job-swipe-similar-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  margin: 0;
+  font-family: Manrope, system-ui, sans-serif;
+}
+
+.job-swipe-similar-meta {
+  font-size: 12px;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 16px;
+  margin: 0;
+  font-family: Manrope, system-ui, sans-serif;
+}
+
+.job-swipe-similar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .job-swipe-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .job-swipe-aside {
+    width: 100%;
+    max-height: none;
+    min-height: 400px;
+  }
+}

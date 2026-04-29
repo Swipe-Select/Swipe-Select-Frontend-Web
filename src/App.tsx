@@ -1,41 +1,25 @@
-
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { LoginPage } from "./pages/LoginPage";
+import { OnboardingPage } from "./pages/OnboardingPage";
+import { SignUpPage } from "./pages/SignUpPage";
+import { PostOnboardingPage } from "./pages/PostOnboardingPage";
+import { JobSwipePage } from "./pages/JobSwipePage";
+import { WelcomePage } from "./pages/WelcomePage";
 
 function App() {
   return (
-    <div className="app-container">
-      <div className="hero">
-        <h1 className="title">Swipe Select</h1>
-        <p className="subtitle">
-          Your modern front-end for intelligent matching. Scaffolded and ready to start building your Final Year Project.
-        </p>
-
-        <div className="card">
-          <div className="features-grid">
-            <div className="feature-item">
-              <span className="feature-icon">✨</span>
-              <span>React 18 & Vite</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-icon">🛡️</span>
-              <span>TypeScript Ready</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-icon">🎨</span>
-              <span>Dark Mode Base</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-icon">⚡</span>
-              <span>HMR Enabled</span>
-            </div>
-          </div>
-          
-          <button className="cta-button" onClick={() => alert("Ready to connect with your backend!")}>
-            <span className="pulse-ring"></span>
-            Get Started
-          </button>
-        </div>
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<WelcomePage />} />
+        <Route path="/welcome" element={<WelcomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/onboarding/complete" element={<PostOnboardingPage />} />
+        <Route path="/discover" element={<JobSwipePage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
