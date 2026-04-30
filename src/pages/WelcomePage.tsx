@@ -4,7 +4,7 @@ import "./WelcomePage.css";
 
 export function WelcomePage() {
   return (
-    <div className="welcome-page">
+    <div className="welcome-page page-fill">
       <main className="welcome-main">
         <section className="welcome-copy" aria-label="Intro">
           <h1 className="welcome-title">Ready?</h1>
@@ -21,9 +21,6 @@ export function WelcomePage() {
             <Link to="/signup" className="welcome-action-primary">
               <span>Start Swiping</span>
               <img src={welcomeAssets.startArrow} alt="" width={16} height={16} />
-            </Link>
-            <Link to="/login" className="welcome-action-secondary">
-              Update Profile
             </Link>
           </div>
         </section>

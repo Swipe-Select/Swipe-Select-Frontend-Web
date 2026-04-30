@@ -1,29 +1,50 @@
-import { useCallback, useState } from "react";
+import { type DragEvent, useCallback, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { BRAND_LOGO_SRC, BRAND_NAME } from "../brand";
+import { BRAND_NAME } from "../brand";
 import { onboardingAssets as ast } from "../figma/onboardingAssets";
+import { extractResumePdf, savePreferences } from "../api/onboarding";
+import { useAuth } from "../context/AuthContext";
 import "./OnboardingPage.css";
 
-type GenderId = "female" | "male" | "nonbinary" | "unspecified";
+type GenderId = "female" | "male" | "nonbinary";
+
+function workPrefLabel(w: "remote" | "hybrid" | "office") {
+  if (w === "remote") return "Remote";
+  if (w === "hybrid") return "Hybrid";
+  return "In Person";
+}
 
 export function OnboardingPage() {
   const navigate = useNavigate();
+  const { session, setSession } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [resumeBusy, setResumeBusy] = useState(false);
+  const [resumeErr, setResumeErr] = useState<string | null>(null);
+  const [resumeOk, setResumeOk] = useState(false);
+  const [prefsBusy, setPrefsBusy] = useState(false);
   const [step, setStep] = useState(0);
   const [gender, setGender] = useState<GenderId>("female");
   const [notif, setNotif] = useState({
     appStatus: true,
     jobRec: true,
-    appInfo: true,
-    dm: true,
-    interview: true,
-    security: true,
-    marketing: false,
+    appInfo: false,
   });
   const [roles, setRoles] = useState<string[]>(["Software Engineer", "Product Manager"]);
   const [workPref, setWorkPref] = useState<"remote" | "hybrid" | "office">("hybrid");
   const [employment, setEmployment] = useState<string[]>(["Full Time"]);
   const [experience, setExperience] = useState<string[]>(["Entry Level Professional", "Mid-Level Professional"]);
-
+  const [personalFullName, setPersonalFullName] = useState("");
+  const [personalEmail, setPersonalEmail] = useState("");
+  const [personalDialCode, setPersonalDialCode] = useState("+1");
+  const [personalPhone, setPersonalPhone] = useState("");
+  const [workTitle, setWorkTitle] = useState("");
+  const [workEmployer, setWorkEmployer] = useState("");
+  const [workStartMonth, setWorkStartMonth] = useState("");
+  const [workPresentRole, setWorkPresentRole] = useState(true);
+  const [workEndMonth, setWorkEndMonth] = useState("");
+  const [workLocation, setWorkLocation] = useState("");
+  const [workDescription, setWorkDescription] = useState("");
   const next = useCallback(() => {
     setStep((s) => Math.min(s + 1, 12));
   }, []);
@@ -31,9 +52,94 @@ export function OnboardingPage() {
     setStep((s) => Math.max(s - 1, 0));
   }, []);
 
-  const finish = useCallback(() => {
-    navigate("/onboarding/complete");
-  }, [navigate]);
+  const submitResumePdf = useCallback(
+    async (file: File) => {
+      if (!session?.token) {
+        navigate("/login", { replace: true });
+        return;
+      }
+      setResumeErr(null);
+      const lowerName = file.name?.toLowerCase() ?? "";
+      const okType =
+        file.type === "application/pdf" ||
+        file.type === "application/octet-stream" ||
+        lowerName.endsWith(".pdf");
+      if (!okType) {
+        setResumeErr("Please upload a PDF file. DOCX/DOC support is planned; use PDF for extraction.");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setResumeErr("File is too large. Maximum upload size is 5 MB.");
+        return;
+      }
+      setResumeBusy(true);
+      const { ok, json } = await extractResumePdf(file, session.token);
+      setResumeBusy(false);
+      if (!ok || !json.success || !("data" in json && json.data)) {
+        const msg =
+          json && typeof json === "object" && "message" in json
+            ? String((json as { message?: string }).message)
+            : "Upload failed";
+        setResumeErr(msg);
+        return;
+      }
+      setResumeOk(true);
+      if (session) {
+        setSession({ ...session, onboardingStep: 1 });
+      }
+    },
+    [session, navigate, setSession],
+  );
+
+  const finish = useCallback(async () => {
+    if (!session?.token) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    setPrefsBusy(true);
+    const { ok, json } = await savePreferences(
+      {
+        gender,
+        jobTitles: roles,
+        targetCountries: [],
+        baseLocation: "",
+        workLocations: [],
+        workMode: [workPrefLabel(workPref)],
+        jobTypes: employment,
+        experienceLevel: experience,
+        onboardingStep: 2,
+      },
+      session.token,
+    );
+    setPrefsBusy(false);
+    if (!ok || !('success' in json) || !json.success) {
+      const msg =
+        json && typeof json === 'object' && 'message' in json
+          ? String((json as { message?: string }).message)
+          : 'Could not save your preferences.';
+      alert(msg);
+      return;
+    }
+    const prefsData =
+      json.success && typeof json === 'object' && 'data' in json ? (json.data as { onboardingStep?: number }) : {};
+    const nextStep = prefsData.onboardingStep ?? 2;
+    if (session) {
+      setSession({
+        ...session,
+        onboardingStep: nextStep,
+      });
+    }
+    navigate('/onboarding/complete');
+  }, [
+    navigate,
+    session,
+    setSession,
+    gender,
+    roles,
+    workPref,
+    employment,
+    experience,
+  ]);
 
   const toggleRole = (name: string) => {
     setRoles((r) => (r.includes(name) ? r.filter((x) => x !== name) : [...r, name]));
@@ -49,7 +155,9 @@ export function OnboardingPage() {
 
   const footer = (variant: "default" | "narrow" = "default") => (
     <footer className={`onb-footer${variant === "narrow" ? " onb-footer--padded" : ""}`}>
-      <p className="onb-footer-copy">© 2024 {BRAND_NAME}. All rights reserved.</p>
+      <p className="onb-footer-copy">
+        © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
+      </p>
       <nav className="onb-footer-links" aria-label="Legal">
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Service</a>
@@ -58,22 +166,28 @@ export function OnboardingPage() {
     </footer>
   );
 
-  const switchRow = (
-    title: string,
-    desc: string,
+  const notificationSwitchRow = (
+    icon: ReactNode,
+    heading: string,
+    line: string,
     key: keyof typeof notif,
-    disabled?: boolean,
   ) => (
-    <div className="onb-notif-row">
-      <div>
-        <p style={{ margin: 0, fontSize: 16, color: "#0f172a" }}>{title}</p>
-        <p style={{ margin: "4px 0 0", fontSize: 16, color: "#64748b", lineHeight: 1.5 }}>{desc}</p>
+    <div className="onb-notif-row onb-notif-row--prefs">
+      <div className="onb-notif-pref-copy">
+        <div className="onb-notif-icon-wrap" aria-hidden>
+          {icon}
+        </div>
+        <div>
+          <p className="onb-notif-heading">{heading}</p>
+          <p className="onb-notif-line">{line}</p>
+        </div>
       </div>
       <button
         type="button"
-        className={`onb-switch ${notif[key] ? "onb-switch--on" : "onb-switch--off"} ${disabled ? "onb-switch--disabled" : ""}`}
-        onClick={() => !disabled && setNotif((n) => ({ ...n, [key]: !n[key] }))}
+        className={`onb-switch ${notif[key] ? "onb-switch--on" : "onb-switch--off"}`}
+        onClick={() => setNotif((n) => ({ ...n, [key]: !n[key] }))}
         aria-pressed={notif[key]}
+        aria-label={heading}
       >
         <span className="onb-switch-knob" />
       </button>
@@ -81,15 +195,9 @@ export function OnboardingPage() {
   );
 
   return (
-    <div className="onb">
+    <div className="onb page-fill">
       {step === 0 && (
         <>
-          <header className="onb-topbar">
-            <div className="onb-brand-row">
-              <img src={BRAND_LOGO_SRC} alt="" width={32} height={32} />
-              <span className="onb-brand-text">{BRAND_NAME}</span>
-            </div>
-          </header>
           <div className="onb-gender-layout">
             <div className="onb-gender-main">
               <div className="onb-gender-inner">
@@ -102,10 +210,9 @@ export function OnboardingPage() {
                 <div className="onb-identity-grid">
                   {(
                     [
-                      ["female", "Female"],
                       ["male", "Male"],
+                      ["female", "Female"],
                       ["nonbinary", "Non-binary"],
-                      ["unspecified", "Prefer not to say"],
                     ] as const
                   ).map(([id, title]) => (
                     <button
@@ -125,7 +232,11 @@ export function OnboardingPage() {
                   <button type="button" className="onb-btn onb-btn-ghost" onClick={back} disabled>
                     Back
                   </button>
-                  <button type="button" className="onb-btn onb-btn-primary" onClick={next}>
+                  <button
+                    type="button"
+                    className="onb-btn onb-btn-primary onb-btn-primary--brand"
+                    onClick={next}
+                  >
                     Continue
                   </button>
                 </div>
@@ -138,33 +249,6 @@ export function OnboardingPage() {
 
       {step === 1 && (
         <>
-          <header className="onb-resume-header-bar">
-            <div className="onb-brand-row">
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 9999,
-                  background: "rgba(70,72,212,0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <img src={ast.resume.brandMark} alt="" width={20} height={19} />
-              </div>
-              <span className="onb-brand-text--purple">{BRAND_NAME}</span>
-            </div>
-            <div className="onb-flex-gap" style={{ color: "#64748b", fontSize: 14 }}>
-              <button type="button" className="onb-btn onb-btn-ghost" style={{ fontWeight: 400 }}>
-                Help
-              </button>
-              <span style={{ width: 1, height: 24, background: "#e2e8f0" }} />
-              <button type="button" className="onb-btn onb-btn-ghost" style={{ fontWeight: 400 }}>
-                Save & Exit
-              </button>
-            </div>
-          </header>
           <div className="onb-resume-wrap">
             <div className="onb-resume-grid">
               <div className="onb-card">
@@ -174,20 +258,58 @@ export function OnboardingPage() {
                     We&apos;ll automatically extract your details and set up your professional profile.
                   </p>
                 </div>
-                <div className="onb-dropzone">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void submitResumePdf(f);
+                    e.target.value = "";
+                  }}
+                />
+                <div
+                  className="onb-dropzone"
+                  onDragOver={(e: DragEvent<HTMLDivElement>) => e.preventDefault()}
+                  onDrop={(e: DragEvent<HTMLDivElement>) => {
+                    e.preventDefault();
+                    const f = e.dataTransfer.files?.[0];
+                    if (f) void submitResumePdf(f);
+                  }}
+                >
                   <div className="onb-drop-icon-wrap">
                     <img src={ast.resume.uploadCloud} alt="" width={37} height={27} />
                   </div>
                   <p style={{ fontSize: 20, fontWeight: 600, margin: "0 0 8px" }}>Drag and drop your resume here</p>
-                  <p className="onb-muted-sm" style={{ marginBottom: 32 }}>
-                    Supported formats: PDF, DOCX, DOC, TXT (Max size: 10MB)
+                  <p className="onb-muted-sm" style={{ marginBottom: resumeErr ? 12 : resumeOk ? 12 : 32 }}>
+                    PDF only — required for AI extraction (Max 5 MB, matches backend)
                   </p>
+                  {resumeBusy ? (
+                    <p style={{ margin: "0 0 12px", fontSize: 14, color: "#4648d4" }}>Uploading &amp; extracting…</p>
+                  ) : null}
+                  {resumeErr ? (
+                    <p role="alert" style={{ margin: "0 0 16px", fontSize: 14, color: "#b91c1c" }}>
+                      {resumeErr}
+                    </p>
+                  ) : null}
+                  {resumeOk ? (
+                    <p style={{ margin: "0 0 16px", fontSize: 14, color: "#15803d" }}>
+                      Resume parsed and saved to your profile.
+                    </p>
+                  ) : null}
                   <div className="onb-or-row">
                     <div className="onb-or-line" />
                     <span className="onb-or-text">OR</span>
                     <div className="onb-or-line" />
                   </div>
-                  <button type="button" className="onb-btn onb-btn-primary" style={{ background: "#fff", color: "#0f172a", border: "1px solid #e2e8f0" }}>
+                  <button
+                    type="button"
+                    disabled={resumeBusy}
+                    className="onb-btn onb-btn-primary"
+                    style={{ background: "#fff", color: "#0f172a", border: "1px solid #e2e8f0" }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     Browse Files
                   </button>
                 </div>
@@ -208,7 +330,12 @@ export function OnboardingPage() {
                       Don&apos;t have a resume ready to upload?
                     </span>
                   </div>
-                  <button type="button" className="onb-btn onb-flex-gap" style={{ color: "#4648d4", fontSize: 14 }}>
+                  <button
+                    type="button"
+                    className="onb-btn onb-flex-gap"
+                    style={{ color: "#4648d4", fontSize: 14 }}
+                    onClick={() => next()}
+                  >
                     Fill out manually
                     <img src={ast.resume.chevronLink} alt="" width={12} height={12} />
                   </button>
@@ -311,7 +438,12 @@ export function OnboardingPage() {
                 <img src={ast.resume.backArrow} alt="" width={13} height={13} />
                 Back
               </button>
-              <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap" onClick={next}>
+              <button
+                type="button"
+                className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap"
+                disabled={resumeBusy}
+                onClick={next}
+              >
                 Continue
                 <img src={ast.resume.forwardArrow} alt="" width={13} height={13} />
               </button>
@@ -336,26 +468,21 @@ export function OnboardingPage() {
                     <img src={ast.personal.userIcon} alt="" width={16} height={16} />
                     <h3>Basic Details</h3>
                   </div>
-                  <div className="onb-field-grid">
+                  <div className="onb-personal-fields">
                     <div>
-                      <label className="onb-label">First Name</label>
-                      <input className="onb-input" defaultValue="Jane" />
-                    </div>
-                    <div>
-                      <label className="onb-label">Last Name</label>
-                      <input className="onb-input" defaultValue="Doe" />
-                    </div>
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <label className="onb-label">
-                        Pronouns <span style={{ color: "#64748b" }}>(Optional)</span>
+                      <label className="onb-label" htmlFor="onb-full-name">
+                        Full name
                       </label>
-                      <div style={{ position: "relative" }}>
-                        <input className="onb-input" defaultValue="Select pronouns" />
-                        <img src={ast.personal.chevronSm} alt="" style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)" }} width={10} height={6} />
-                      </div>
-                      <p className="onb-muted-sm" style={{ margin: "4px 0 0 8px" }}>
-                        We use this to address you correctly.
-                      </p>
+                      <input
+                        id="onb-full-name"
+                        name="fullName"
+                        className="onb-input"
+                        type="text"
+                        autoComplete="name"
+                        placeholder="e.g. Jane Doe"
+                        value={personalFullName}
+                        onChange={(e) => setPersonalFullName(e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -364,25 +491,91 @@ export function OnboardingPage() {
                     <img src={ast.personal.mail} alt="" width={24} height={18} />
                     <h3>Contact Information</h3>
                   </div>
-                  <div className="onb-field-grid">
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <label className="onb-label">Work Email</label>
+                  <div className="onb-personal-fields">
+                    <div>
+                      <label className="onb-label" htmlFor="onb-work-email">
+                        Work Email
+                      </label>
                       <div style={{ position: "relative" }}>
-                        <input className="onb-input" style={{ paddingLeft: 41 }} defaultValue="jane@company.com" />
-                        <img src={ast.personal.mail} alt="" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} width={17} height={13} />
+                        <input
+                          id="onb-work-email"
+                          name="email"
+                          className="onb-input"
+                          style={{ paddingLeft: 41 }}
+                          type="email"
+                          autoComplete="email"
+                          placeholder="name@company.com"
+                          value={personalEmail}
+                          onChange={(e) => setPersonalEmail(e.target.value)}
+                        />
+                        <img
+                          src={ast.personal.mail}
+                          alt=""
+                          style={{
+                            position: "absolute",
+                            left: 16,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            pointerEvents: "none",
+                          }}
+                          width={17}
+                          height={13}
+                        />
                       </div>
                       <p className="onb-muted-sm" style={{ margin: "4px 0 0 8px" }}>
                         We&apos;ll send verification details here.
                       </p>
                     </div>
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <label className="onb-label">Phone Number</label>
-                      <div style={{ display: "flex", gap: 12 }}>
-                        <div style={{ position: "relative", width: 112 }}>
-                          <input className="onb-input" defaultValue="🇺🇸 +1" readOnly />
-                          <img src={ast.personal.phoneChevron} alt="" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }} width={9} height={6} />
-                        </div>
-                        <input className="onb-input" style={{ flex: 1, color: "rgba(100,116,139,0.5)" }} defaultValue="(555) 000-0000" />
+                    <div>
+                      <label className="onb-label" htmlFor="onb-phone-local">
+                        Phone Number
+                      </label>
+                      <div className="onb-phone-row">
+                        <label htmlFor="onb-phone-dial" className="onb-visually-hidden">
+                          Country dial code
+                        </label>
+                        <select
+                          id="onb-phone-dial"
+                          className="onb-input onb-select"
+                          value={personalDialCode}
+                          onChange={(e) => setPersonalDialCode(e.target.value)}
+                          aria-label="Country dial code"
+                        >
+                          <option value="+1">US +1</option>
+                          <option value="+44">UK +44</option>
+                          <option value="+61">AU +61</option>
+                          <option value="+91">IN +91</option>
+                          <option value="+49">DE +49</option>
+                          <option value="+33">FR +33</option>
+                          <option value="+86">CN +86</option>
+                          <option value="+81">JP +81</option>
+                          <option value="+52">MX +52</option>
+                          <option value="+55">BR +55</option>
+                          <option value="+34">ES +34</option>
+                          <option value="+39">IT +39</option>
+                          <option value="+31">NL +31</option>
+                          <option value="+46">SE +46</option>
+                          <option value="+47">NO +47</option>
+                          <option value="+65">SG +65</option>
+                          <option value="+971">AE +971</option>
+                          <option value="+966">SA +966</option>
+                          <option value="+27">ZA +27</option>
+                          <option value="+234">NG +234</option>
+                          <option value="+254">KE +254</option>
+                          <option value="+92">PK +92</option>
+                          <option value="+880">BD +880</option>
+                        </select>
+                        <input
+                          id="onb-phone-local"
+                          name="phone"
+                          className="onb-input onb-phone-row-input"
+                          type="tel"
+                          autoComplete="tel-national"
+                          inputMode="tel"
+                          placeholder="(555) 000-0000"
+                          value={personalPhone}
+                          onChange={(e) => setPersonalPhone(e.target.value)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -413,71 +606,50 @@ export function OnboardingPage() {
                   Notification Settings
                 </h2>
                 <p className="onb-sub" style={{ marginTop: 8, maxWidth: 645, margin: "8px auto 0" }}>
-                  Manage how you receive alerts and updates from {BRAND_NAME} across different channels.
+                  Choose how {BRAND_NAME} keeps you updated.
                 </p>
               </div>
-              <div className="onb-notif-cat">
-                <div className="onb-notif-cat-head">
-                  <p style={{ margin: 0, fontWeight: 400, fontSize: 16 }}>Job Alerts</p>
-                  <p className="onb-muted-sm" style={{ margin: "4px 0 0" }}>
-                    Updates regarding your applications and matching opportunities.
-                  </p>
-                </div>
-                {switchRow(
-                  "Application Status Updates",
-                  "Get notified immediately when an employer reviews or updates your application status.",
+              <div className="onb-notif-list">
+                {notificationSwitchRow(
+                  <svg width={22} height={22} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path
+                      d="M9 5H7a2 2 0 00-2 2v11a3 3 0 003 3h8a3 3 0 003-3V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                      stroke="#6366f1"
+                      strokeWidth={1.6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>,
+                  "Application Statuses",
+                  "Stay informed about application statuses.",
                   "appStatus",
                 )}
-                {switchRow(
+                {notificationSwitchRow(
+                  <svg width={22} height={22} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path
+                      d="M7 10v12M7 11.5v-1a2.5 2.5 0 012.5-2.5H12a8 8 0 018 8 .5.5 0 01-.5.5H15a2 2 0 00-2-2v-5.5"
+                      stroke="#6366f1"
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>,
                   "Job Recommendations",
-                  "Receive daily or weekly roundups of jobs that strongly match your profile and preferences.",
+                  "Receive job recommendations that fit your profile.",
                   "jobRec",
                 )}
-                {switchRow(
-                  "Application Information Requests",
-                  "Get alerted if a recruiter requests additional documents or information for a pending application.",
+                {notificationSwitchRow(
+                  <svg width={22} height={22} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <circle cx={12} cy={12} r={10} stroke="#6366f1" strokeWidth={1.6} />
+                    <path d="M12 16v-4M12 8h.02" stroke="#6366f1" strokeWidth={1.8} strokeLinecap="round" />
+                  </svg>,
+                  "Application Info Alerts",
+                  "Get alerted if an application needs more info.",
                   "appInfo",
                 )}
               </div>
-              <div className="onb-notif-cat">
-                <div className="onb-notif-cat-head">
-                  <p style={{ margin: 0, fontSize: 16 }}>Messages & Communication</p>
-                  <p className="onb-muted-sm" style={{ margin: "4px 0 0" }}>
-                    Control notifications for direct messages and network activity.
-                  </p>
-                </div>
-                {switchRow(
-                  "Direct Messages",
-                  "Receive an email when an employer or connection sends you a direct message.",
-                  "dm",
-                )}
-                {switchRow(
-                  "Interview Invitations",
-                  "Critical alerts sent via email and SMS when you receive an interview request.",
-                  "interview",
-                )}
-              </div>
-              <div className="onb-notif-cat">
-                <div className="onb-notif-cat-head">
-                  <p style={{ margin: 0, fontSize: 16 }}>System & Security</p>
-                  <p className="onb-muted-sm" style={{ margin: "4px 0 0" }}>
-                    Important updates regarding your account security and billing.
-                  </p>
-                </div>
-                {switchRow(
-                  "Security Alerts",
-                  "Notifications about new device logins, password changes, and security events. (Cannot be disabled)",
-                  "security",
-                  true,
-                )}
-                {switchRow(
-                  "Marketing & Promotions",
-                  "Occasional updates on new features, tips for job hunting, and promotional offers.",
-                  "marketing",
-                )}
-              </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, paddingTop: 25, borderTop: "1px solid #e2e8f0" }}>
-                <button type="button" className="onb-btn onb-btn-ghost" style={{ fontSize: 14 }}>
+                <button type="button" className="onb-btn onb-btn-ghost" style={{ fontSize: 14 }} onClick={back}>
                   Cancel
                 </button>
                 <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand" style={{ padding: "10px 32px", fontSize: 14 }} onClick={next}>
@@ -493,100 +665,130 @@ export function OnboardingPage() {
       {step === 4 && (
         <div className="onb-we-layout">
           <div className="onb-we-main onb-scroll">
-            <div style={{ padding: 40, maxWidth: 768 }}>
+            <div className="onb-we-inner">
               <h2 className="onb-h2">Work Experience</h2>
-              <p className="onb-sub" style={{ marginTop: 4 }}>
+              <p className="onb-sub onb-we-lead">
                 Detail your professional roles, duties, and achievements.
               </p>
-              <div style={{ marginTop: 24, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 32, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-                <div style={{ background: "rgba(249,250,251,0.5)", borderBottom: "1px solid #e2e8f0", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div className="onb-flex-gap">
-                    <img src={ast.workExp.grip} alt="" width={8} height={13} />
-                    <span style={{ fontSize: 16 }}>Senior Frontend Developer</span>
-                  </div>
-                  <div className="onb-flex-gap">
-                    <button type="button" className="onb-btn" style={{ padding: 6, borderRadius: 9999 }}>
-                      <img src={ast.workExp.edit} alt="" width={13} height={15} />
-                    </button>
-                    <button type="button" className="onb-btn" style={{ padding: 6, borderRadius: 9999 }}>
-                      <img src={ast.workExp.trash} alt="" width={12} height={14} />
-                    </button>
+
+              <div className="onb-we-card">
+                <div className="onb-we-card-toolbar">
+                  <label className="onb-visually-hidden" htmlFor="work-exp-title-inline">
+                    Job title
+                  </label>
+                  <div className="onb-flex-gap onb-we-job-title-row">
+                    <img src={ast.workExp.grip} alt="" width={8} height={13} className="onb-we-grip-icon" aria-hidden />
+                    <input
+                      id="work-exp-title-inline"
+                      className="onb-input onb-we-field-control onb-we-title-field"
+                      value={workTitle}
+                      onChange={(e) => setWorkTitle(e.target.value)}
+                      placeholder="e.g. Senior Frontend Developer"
+                      autoComplete="organization-title"
+                    />
                   </div>
                 </div>
-                <div style={{ padding: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 24px" }}>
-                  <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.55px", color: "#64748b", margin: "0 0 4px" }}>JOB TITLE</p>
-                    <div className="onb-input" style={{ fontSize: 14 }}>
-                      Senior Frontend Developer
-                    </div>
+
+                <div className="onb-we-card-grid">
+                  <div className="onb-we-field">
+                    <label className="onb-we-field-label" htmlFor="work-exp-employer">
+                      Employer
+                    </label>
+                    <input
+                      id="work-exp-employer"
+                      className="onb-input onb-we-field-control"
+                      value={workEmployer}
+                      onChange={(e) => setWorkEmployer(e.target.value)}
+                      placeholder="e.g. TechNova Solutions"
+                      autoComplete="organization"
+                    />
                   </div>
-                  <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.55px", color: "#64748b", margin: "0 0 4px" }}>EMPLOYER</p>
-                    <div className="onb-input" style={{ fontSize: 14 }}>
-                      TechNova Solutions
-                    </div>
+
+                  <div className="onb-we-field">
+                    <label className="onb-we-field-label" htmlFor="work-exp-start">
+                      Start date
+                    </label>
+                    <input
+                      id="work-exp-start"
+                      className="onb-input onb-we-field-control"
+                      type="month"
+                      value={workStartMonth}
+                      onChange={(e) => setWorkStartMonth(e.target.value)}
+                    />
                   </div>
-                  <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.55px", color: "#64748b", margin: "0 0 4px" }}>START DATE</p>
-                    <div className="onb-input" style={{ fontSize: 14 }}>
-                      March 2021
-                    </div>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.55px", color: "#64748b", margin: "0 0 4px" }}>END DATE</p>
-                    <div className="onb-flex-gap">
-                      <div className="onb-input" style={{ flex: 1, fontSize: 14, color: "#64748b" }}>
-                        Present
-                      </div>
-                      <label className="onb-flex-gap" style={{ fontSize: 14 }}>
-                        <span style={{ width: 18, height: 18, borderRadius: 4, background: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <img src={ast.workExp.checkSm} alt="" width={12} height={12} />
-                        </span>
-                        Present
+
+                  <div className="onb-we-field">
+                    <span className="onb-we-field-label">End date</span>
+                    <div className="onb-we-end-wrap">
+                      {!workPresentRole ? (
+                        <>
+                          <label className="onb-visually-hidden" htmlFor="work-exp-end">
+                            End date month
+                          </label>
+                        <input
+                          id="work-exp-end"
+                          type="month"
+                          className="onb-input onb-we-field-control onb-we-end-month"
+                          value={workEndMonth}
+                          onChange={(e) => setWorkEndMonth(e.target.value)}
+                        />
+                        </>
+                      ) : null}
+                      <label className="onb-we-inline-check">
+                        <input
+                          type="checkbox"
+                          checked={workPresentRole}
+                          onChange={(e) => {
+                            const next = e.target.checked;
+                            setWorkPresentRole(next);
+                            if (next) setWorkEndMonth("");
+                          }}
+                        />
+                        <span>I currently work here</span>
                       </label>
                     </div>
                   </div>
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.55px", color: "#64748b", margin: "0 0 4px" }}>LOCATION</p>
-                    <div className="onb-input" style={{ fontSize: 14 }}>
-                      San Francisco, CA (Remote)
-                    </div>
+
+                  <div className="onb-we-field onb-we-field--full">
+                    <label className="onb-we-field-label" htmlFor="work-exp-location">
+                      Location
+                    </label>
+                    <input
+                      id="work-exp-location"
+                      className="onb-input onb-we-field-control"
+                      value={workLocation}
+                      onChange={(e) => setWorkLocation(e.target.value)}
+                      placeholder="e.g. San Francisco, CA (Remote)"
+                      autoComplete="address-level2"
+                    />
                   </div>
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.55px", color: "#64748b", margin: "0 0 4px" }}>DESCRIPTION</p>
-                    <div style={{ border: "1px solid #e2e8f0", borderRadius: 24, padding: "12px 17px", fontSize: 14, lineHeight: 1.6, background: "#fff" }}>
-                      • Led a team of 5 developers to rebuild the core customer portal using React and TypeScript.
-                      <br />• Reduced initial load time by 45% through aggressive code splitting and asset optimization.
-                      <br />• Implemented a comprehensive design system ensuring UI consistency across 3 major product lines.
-                    </div>
+
+                  <div className="onb-we-field onb-we-field--full">
+                    <label className="onb-we-field-label" htmlFor="work-exp-desc">
+                      Description
+                    </label>
+                    <textarea
+                      id="work-exp-desc"
+                      className="onb-input onb-we-textarea"
+                      rows={5}
+                      value={workDescription}
+                      onChange={(e) => setWorkDescription(e.target.value)}
+                      placeholder="Briefly describe highlights, achievements, tech stack..."
+                    />
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                className="onb-btn"
-                style={{
-                  marginTop: 24,
-                  width: "100%",
-                  border: "2px dashed #c7c4d7",
-                  borderRadius: 9999,
-                  padding: "18px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  color: "#64748b",
-                  fontSize: 16,
-                }}
-              >
+
+              <button type="button" className="onb-btn onb-we-add">
                 <img src={ast.workExp.add} alt="" width={14} height={14} />
                 Add Work Experience
               </button>
-              <div className="onb-btn-row" style={{ marginTop: 32 }}>
+
+              <div className="onb-btn-row onb-we-actions">
                 <button type="button" className="onb-btn onb-btn-ghost" onClick={back}>
                   Back
                 </button>
-                <button type="button" className="onb-btn onb-btn-primary" onClick={next}>
+                <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand" onClick={next}>
                   Continue
                 </button>
               </div>
@@ -643,12 +845,6 @@ export function OnboardingPage() {
 
       {step === 6 && (
         <>
-          <header className="onb-topbar onb-topbar--blur" style={{ top: 4 }}>
-            <div className="onb-brand-row">
-              <img src={ast.roles.logo} alt="" width={20} height={19} />
-              <span className="onb-brand-text--purple">{BRAND_NAME}</span>
-            </div>
-          </header>
           <div className="onb-roles">
             <div className="onb-roles-head">
               <div>
@@ -694,7 +890,7 @@ export function OnboardingPage() {
           </div>
           <footer className="onb-footer" style={{ position: "relative" }}>
             <p className="onb-footer-copy" style={{ fontSize: 14 }}>
-              © 2024 {BRAND_NAME}. All rights reserved.
+              © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
             </p>
             <nav className="onb-footer-links">
               <a href="#">Privacy Policy</a>
@@ -707,14 +903,14 @@ export function OnboardingPage() {
 
       {step === 7 && (
         <div className="onb-country">
-          <header className="onb-country-head">
+          <div className="onb-country-head">
             <div className="onb-flex-gap">
               <button type="button" className="onb-btn" style={{ width: 40, height: 40, border: "1px solid #e2e8f0", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={back}>
                 <img src={ast.country.back} alt="" width={13} height={13} />
               </button>
               <span style={{ fontWeight: 600, fontSize: 20, fontFamily: "Inter, sans-serif" }}>Application Setup</span>
             </div>
-          </header>
+          </div>
           <div className="onb-country-body">
             <div className="onb-country-list">
               <h3 style={{ margin: "0 0 4px", fontSize: 18, fontFamily: "Inter, sans-serif", fontWeight: 600 }}>Available Countries</h3>
@@ -815,18 +1011,26 @@ export function OnboardingPage() {
       )}
 
       {step === 8 && (
-        <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-          <header className="onb-country-head" style={{ boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}>
-            <div className="onb-brand-row">
-              <div style={{ width: 32, height: 32, borderRadius: 32, background: "#4648d4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <img src={ast.location.brand} alt="" width={17} height={16} />
-              </div>
-              <span style={{ fontWeight: 600, fontSize: 20, letterSpacing: "-0.5px" }}>{BRAND_NAME}</span>
-            </div>
-            <button type="button" className="onb-btn">
-              <img src={ast.location.close} alt="Close" width={20} height={20} />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: "1 1 auto",
+            minHeight: 0,
+            width: "100%",
+          }}
+        >
+          <div
+            className="onb-country-head"
+            style={{
+              boxShadow: "0 1px 1px rgba(0,0,0,0.05)",
+              justifyContent: "flex-end",
+            }}
+          >
+            <button type="button" className="onb-btn" aria-label="Close">
+              <img src={ast.location.close} alt="" width={20} height={20} />
             </button>
-          </header>
+          </div>
           <div className="onb-loc-split">
             <div className="onb-loc-side">
               <div style={{ padding: 32, flex: 1, overflowY: "auto" }}>
@@ -919,14 +1123,11 @@ export function OnboardingPage() {
 
       {step === 9 && (
         <>
-          <header className="onb-topbar" style={{ justifyContent: "space-between" }}>
-            <span className="onb-brand-text--purple" style={{ fontSize: 18 }}>
-              {BRAND_NAME}
-            </span>
+          <div className="onb-step-help-bar">
             <button type="button" className="onb-btn" style={{ padding: 8, borderRadius: 8 }}>
               <img src={ast.target.help} alt="Help" width={17} height={17} />
             </button>
-          </header>
+          </div>
           <div className="onb-target onb-main-pad">
             <div style={{ borderBottom: "1px solid #e2e8f0", paddingBottom: 25, marginBottom: 32 }}>
               <h1 className="onb-h1" style={{ fontSize: 24, letterSpacing: "-0.24px" }}>
@@ -1085,7 +1286,7 @@ export function OnboardingPage() {
               <a href="#">Help Center</a>
             </nav>
             <p className="onb-footer-copy" style={{ fontSize: 12 }}>
-              © 2024 {BRAND_NAME}. All rights reserved.
+              © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
             </p>
           </footer>
         </>
@@ -1205,8 +1406,13 @@ export function OnboardingPage() {
                   <img src={ast.experience.back} alt="" width={16} height={16} />
                   Back
                 </button>
-                <button type="button" className="onb-btn onb-btn-primary onb-flex-gap" onClick={finish}>
-                  Continue to Profile
+                <button
+                  type="button"
+                  className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap"
+                  disabled={prefsBusy}
+                  onClick={() => void finish()}
+                >
+                  {prefsBusy ? "Saving…" : "Continue to Profile"}
                   <img src={ast.experience.forward} alt="" width={16} height={16} />
                 </button>
               </div>

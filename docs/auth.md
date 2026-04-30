@@ -1,6 +1,6 @@
 # Auth — Swipe Select
 
-Covers the three screens a user sees before they ever reach onboarding: the landing/welcome page, the sign-up form, and the sign-in form.
+Covers the three screens users see **before onboarding**: landing, sign-up, and sign-in (**email + password**; Google OAuth is **not shown** in the current UI).
 
 ---
 
@@ -11,6 +11,8 @@ Covers the three screens a user sees before they ever reach onboarding: the land
 | `/` or `/welcome` | `WelcomePage` | `src/pages/WelcomePage.tsx` |
 | `/signup` | `SignUpPage` | `src/pages/SignUpPage.tsx` |
 | `/login` | `LoginPage` | `src/pages/LoginPage.tsx` |
+
+**Protected client routes** (must be signed in — see `ProtectedRoute` in `src/App.tsx`): `/onboarding`, `/onboarding/complete`, `/discover`. Logged-out visits redirect to **`/login`**.
 
 ---
 
@@ -24,9 +26,8 @@ The public landing page. Split into two sections:
 - Headline: "Ready?"
 - Social proof line: "1.5 million users are waiting for you"
 - Short description of the AI-driven matching engine
-- Two CTAs:
+- Primary CTA:
   - **Start Swiping** → `/signup`
-  - **Update Profile** → `/login`
 
 **Right — visual preview**
 - Stacked card mockup showing a sample job match (98% match, Senior Product Designer at Google)
@@ -56,18 +57,16 @@ Two-column layout with a sticky header and footer.
 - Heading: "Create your account"
 - Fields: Full Name, Work Email, Password
 - Primary **Sign Up** submit button
-- Divider: "or continue with"
-- **Google** OAuth button
 - Legal disclaimer linking to Terms of Service and Privacy Policy
 
-**On submit:** `handleSubmit` prevents default and navigates to `/onboarding`.
+**On submit:** `POST /api/auth/register` via `AuthContext.register`; on success the JWT is persisted and navigation goes to **`/onboarding`** (blocked if registration fails).
 
 **Footer**
 - Copyright line
 - Help Center · Contact Support links
 
 **Styles:** `src/pages/SignUpPage.css`  
-**Assets:** `src/figma/authAssets.ts` (`signUpAssets` — featureInsights, featureNetwork, featureCoaching, google logo)
+**Assets:** `src/figma/authAssets.ts` (`signUpAssets` — featureInsights, featureNetwork, featureCoaching)
 
 ---
 
@@ -80,12 +79,6 @@ Single centered card layout.
 - Headline: "Welcome Back"
 - Subline: "Sign in to your Swipe Select account"
 
-**Google OAuth**
-- Full-width "Continue with Google" button
-
-**Divider**
-- "OR SIGN IN WITH EMAIL"
-
 **Email/password form**
 - Email address field (autocomplete: email)
 - Password field with show/hide toggle (controlled by `showPassword` state)
@@ -95,8 +88,10 @@ Single centered card layout.
 **Card footer**
 - "Don't have an account? Join Now" → `/signup`
 
+**After successful login:** navigate to **`/discover`** if `onboardingStep >= 2` (saved with the session payload), otherwise **`/onboarding`**.
+
 **Styles:** `src/pages/LoginPage.css`  
-**Assets:** `src/figma/authAssets.ts` (`loginAssets` — google logo, passwordToggle icon)
+**Assets:** `src/figma/authAssets.ts` (`loginAssets` — passwordToggle icon)
 
 ---
 
@@ -104,8 +99,8 @@ Single centered card layout.
 
 | Page | Local state | Purpose |
 |---|---|---|
-| `LoginPage` | `showPassword: boolean` | Toggles `input type` between `password` and `text` |
-| `SignUpPage` | — | Stateless; uses `useNavigate` to redirect on submit |
+| `LoginPage` | `showPassword: boolean`, `email`, `password`, `pending`, `error` | Form + feedback |
+| `SignUpPage` | `name`, `email`, `password`, `pending`, `error` | Controlled fields + API errors |
 | `WelcomePage` | — | Fully static |
 
 ---
@@ -114,15 +109,17 @@ Single centered card layout.
 
 ```
 / (WelcomePage)
-  ├── Start Swiping ──────────────────→ /signup
-  └── Update Profile ─────────────────→ /login
+  ├── Start Swiping ─────────────────→ /signup
+  └── Apply (card preview) ─────────→ /signup
 
-/signup
-  ├── Submit form ────────────────────→ /onboarding
-  └── Log In link ────────────────────→ /login
+/signup (after successful registration)
+  ├── Session stored → /onboarding
+  └── Log In link ───────────────────→ /login
 
-/login
-  └── Join Now link ──────────────────→ /signup
+/login (after successful sign-in)
+  ├── onboarding incomplete → /onboarding
+  ├── onboarding complete (step ≥ 2) → /discover
+  └── Join Now link ─────────────────→ /signup
 ```
 
 ---

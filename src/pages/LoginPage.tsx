@@ -1,41 +1,72 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { BRAND_LOGO_SRC, BRAND_NAME } from "../brand";
+import { type FormEvent, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { BRAND_NAME } from "../brand";
 import { loginAssets } from "../figma/authAssets";
+import { GoogleSignInButton } from "../components/GoogleSignInButton";
+import { useAuth } from "../context/AuthContext";
+import { readSession } from "../auth/storage";
 import "./LoginPage.css";
 
+const HAS_GOOGLE = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
+
+function landingAfterAuth() {
+  const s = readSession();
+  const step = s?.onboardingStep ?? 0;
+  return step >= 2 ? "/discover" : "/onboarding";
+}
+
 export function LoginPage() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setPending(true);
+    try {
+      const msg = await login({ email: email.trim(), password });
+      if (msg) {
+        setError(msg);
+        return;
+      }
+      navigate(landingAfterAuth());
+    } catch {
+      setError(
+        "Unable to reach the server. Confirm the backend is running and VITE_API_URL matches its address.",
+      );
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
-    <div className="login-page">
-      <div className="login-top-accent" aria-hidden />
+    <div className="login-page page-fill">
       <div className="login-canvas">
         <div className="login-card">
           <div className="login-card-header">
-            <img
-              className="login-brand-logo"
-              src={BRAND_LOGO_SRC}
-              alt={`${BRAND_NAME} logo`}
-              width={56}
-              height={56}
-            />
             <h1>Welcome Back</h1>
             <p>Sign in to your {BRAND_NAME} account</p>
           </div>
 
-          <button type="button" className="login-google">
-            <img src={loginAssets.google} alt="" width={24} height={24} />
-            <span>Continue with Google</span>
-          </button>
+          {HAS_GOOGLE ? (
+            <>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <GoogleSignInButton uxMode="login" width={356} onSignedIn={() => navigate(landingAfterAuth())} />
+              </div>
+              <div className="login-divider" role="presentation">
+                <div className="login-divider-inner">
+                  <span className="login-divider-label">OR SIGN IN WITH EMAIL</span>
+                </div>
+              </div>
+            </>
+          ) : null}
 
-          <div className="login-divider" role="presentation">
-            <div className="login-divider-inner">
-              <span className="login-divider-label">OR SIGN IN WITH EMAIL</span>
-            </div>
-          </div>
-
-          <form className="login-form" noValidate>
+          <form className="login-form" onSubmit={handleSubmit}>
             <div className="login-field">
               <label htmlFor="login-email">Email address</label>
               <div className="login-input-wrap">
@@ -45,6 +76,10 @@ export function LoginPage() {
                   type="email"
                   autoComplete="email"
                   placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={pending}
                 />
               </div>
             </div>
@@ -63,6 +98,10 @@ export function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={pending}
                 />
                 <button
                   type="button"
@@ -75,9 +114,15 @@ export function LoginPage() {
               </div>
             </div>
 
+            {error ? (
+              <p role="alert" style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>
+                {error}
+              </p>
+            ) : null}
+
             <div className="login-submit-wrap">
-              <button type="submit" className="login-submit">
-                Sign In to {BRAND_NAME}
+              <button type="submit" className="login-submit" disabled={pending}>
+                {pending ? "Signing in…" : `Sign In to ${BRAND_NAME}`}
               </button>
             </div>
           </form>

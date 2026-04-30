@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { BRAND_LOGO_SRC, BRAND_NAME } from "../brand";
 import { onboardingAssets } from "../figma/onboardingAssets";
 import "./PostOnboardingPage.css";
 
@@ -9,14 +8,7 @@ export function PostOnboardingPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="post-onb">
-      <header className="post-onb-header">
-        <div className="post-onb-brand">
-          <img src={BRAND_LOGO_SRC} alt="" width={32} height={32} />
-          <span className="post-onb-brand-name">{BRAND_NAME}</span>
-        </div>
-      </header>
-
+    <div className="post-onb page-fill">
       <main className="post-onb-main">
         <div className="post-onb-card">
           <div className="post-onb-hero">

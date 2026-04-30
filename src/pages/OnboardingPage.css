@@ -8,7 +8,7 @@
   --onb-brand-hover: #3d3fbb;
   --onb-white: #ffffff;
   --onb-muted-border: #c7c4d7;
-  min-height: 100vh;
+  min-height: 100dvh;
   font-family: Manrope, system-ui, sans-serif;
   background: linear-gradient(90deg, var(--onb-bg) 0%, var(--onb-bg) 100%),
     linear-gradient(90deg, #fff 0%, #fff 100%);
@@ -174,7 +174,7 @@
 }
 
 .onb-main-pad {
-  padding-top: 64px;
+  padding-top: 24px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -185,8 +185,8 @@
 .onb-gender-layout {
   display: flex;
   flex: 1;
-  padding-top: 64px;
-  min-height: calc(100vh - 120px);
+  padding-top: 24px;
+  min-height: calc(100dvh - 120px);
 }
 
 .onb-gender-main {
@@ -207,7 +207,7 @@
 
 .onb-identity-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
@@ -252,7 +252,7 @@
 
 /* Resume */
 .onb-resume-wrap {
-  padding: 128px 64px 100px;
+  padding: 32px 64px 100px;
   position: relative;
 }
 
@@ -323,21 +323,6 @@
   color: var(--onb-slate-600);
 }
 
-.onb-resume-header-bar {
-  position: absolute;
-  top: 4px;
-  left: 0;
-  right: 0;
-  height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
-  background: var(--onb-white);
-  border-bottom: 1px solid var(--onb-slate-200);
-  z-index: 15;
-}
-
 .onb-resume-bottom {
   position: fixed;
   bottom: 0;
@@ -395,6 +380,24 @@
   }
 }
 
+.onb-personal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.onb-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .onb-label {
   font-size: 16px;
   margin-bottom: 8px;
@@ -408,6 +411,47 @@
   padding: 13px 17px;
   font-size: 16px;
   font-family: inherit;
+  background: var(--onb-white);
+  color: #0f172a;
+}
+
+.onb-input::placeholder {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+.onb-phone-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.onb-phone-row .onb-select {
+  flex: 0 0 auto;
+  min-width: min(148px, 42vw);
+  max-width: 200px;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.onb-select {
+  appearance: auto;
+}
+
+.onb-phone-row-input {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .onb-phone-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .onb-phone-row .onb-select {
+    max-width: none;
+  }
 }
 
 .onb-section-head {
@@ -447,6 +491,51 @@
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
 }
 
+.onb-notif-list {
+  border: 1px solid var(--onb-slate-200);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.onb-notif-row--prefs {
+  align-items: center;
+}
+
+.onb-notif-pref-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.onb-notif-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: rgba(99, 102, 241, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.onb-notif-heading {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--onb-slate-900);
+  line-height: 1.3;
+}
+
+.onb-notif-line {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--onb-slate-600);
+  line-height: 1.45;
+}
+
 .onb-notif-cat {
   border: 1px solid var(--onb-slate-200);
   border-radius: 16px;
@@ -465,8 +554,12 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding: 20px 24px;
+  padding: 18px 20px;
   border-top: 1px solid var(--onb-slate-200);
+}
+
+.onb-notif-list .onb-notif-row:first-of-type {
+  border-top: none;
 }
 
 .onb-switch {
@@ -507,24 +600,211 @@
 /* Work experience */
 .onb-we-layout {
   display: flex;
-  min-height: calc(100vh - 0px);
-  padding: 64px 64px 40px;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   max-width: 1280px;
   margin: 0 auto;
+  padding: clamp(12px, 3vw, 24px) clamp(12px, 4vw, 64px) clamp(24px, 5vw, 40px);
+  box-sizing: border-box;
 }
 
 .onb-we-main {
   flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
   background: #f8fafc;
   border: 1px solid var(--onb-slate-200);
   border-radius: 0;
-  padding-bottom: 80px;
+  overflow-x: hidden;
+  padding-bottom: clamp(48px, 10vh, 80px);
 }
 
-@media (max-width: 1024px) {
+.onb-we-inner {
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto;
+  padding: clamp(16px, 4vw, 40px) clamp(12px, 3vw, 24px);
+  box-sizing: border-box;
+}
+
+.onb-we-lead {
+  margin-top: 4px;
+}
+
+.onb-we-card {
+  margin-top: 24px;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(16px, 4vw, 32px);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.onb-we-card-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: clamp(12px, 3vw, 16px) clamp(14px, 3vw, 24px);
+  background: rgba(249, 250, 251, 0.5);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.onb-we-job-title-row {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+}
+
+.onb-we-grip-icon {
+  flex-shrink: 0;
+}
+
+.onb-we-title-field {
+  font-weight: 600;
+}
+
+.onb-we-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(16px, 3vw, 20px) clamp(16px, 3vw, 24px);
+  padding: clamp(16px, 3vw, 24px);
+}
+
+.onb-we-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.onb-we-field--full {
+  grid-column: 1 / -1;
+}
+
+.onb-we-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.55px;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0 0 6px;
+}
+
+.onb-we-field-control {
+  font-size: 14px;
+  width: 100%;
+  background: var(--onb-white);
+  color: #0f172a;
+}
+
+.onb-we-field-control::placeholder {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+
+.onb-we-end-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.onb-we-end-month {
+  max-width: 100%;
+}
+
+.onb-we-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #0f172a;
+  cursor: pointer;
+  user-select: none;
+}
+
+.onb-we-inline-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--onb-brand);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+@media (min-width: 480px) {
+  .onb-we-end-wrap {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .onb-we-inline-check {
+    margin-left: auto;
+  }
+
+  .onb-we-end-month {
+    flex: 1 1 160px;
+    min-width: 0;
+  }
+}
+
+.onb-we-textarea.onb-input {
+  border-radius: 16px;
+  min-height: 120px;
+  resize: vertical;
+  max-width: 100%;
+  line-height: 1.55;
+}
+
+.onb-we-add {
+  margin-top: 24px;
+  width: 100%;
+  border: 2px dashed #c7c4d7;
+  border-radius: 9999px;
+  padding: clamp(14px, 3vw, 18px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: clamp(14px, 3.5vw, 16px);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.onb-we-add:hover {
+  background: rgba(100, 116, 139, 0.06);
+}
+
+.onb-we-actions {
+  margin-top: clamp(24px, 5vw, 32px);
+}
+
+@media (max-width: 720px) {
+  .onb-we-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .onb-we-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .onb-we-actions .onb-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
   .onb-we-layout {
-    flex-direction: column;
-    padding: 24px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 }
 
@@ -598,7 +878,7 @@
 
 /* Role grid */
 .onb-roles {
-  padding: 130px 24px 120px;
+  padding: 48px 24px 80px;
   position: relative;
 }
 
@@ -695,7 +975,7 @@
 .onb-loc-split {
   display: flex;
   flex: 1;
-  min-height: calc(100vh - 64px);
+  min-height: 0;
 }
 
 .onb-loc-side {
@@ -733,13 +1013,23 @@
   padding: 16px;
 }
 
-/* Target locations — base padding; .onb-target.onb-main-pad extends top to clear fixed .onb-topbar */
+.onb-step-help-bar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px clamp(16px, 3vw, 32px);
+  background: var(--onb-white);
+  border-bottom: 1px solid var(--onb-slate-200);
+}
+
+/* Target locations */
 .onb-target {
-  padding: 36px 48px 48px;
+  padding: 48px;
 }
 
 .onb-target.onb-main-pad {
-  padding-top: calc(64px + 36px);
+  padding: 48px;
 }
 
 .onb-target-grid {

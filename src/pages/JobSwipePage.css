@@ -1,12 +1,13 @@
 /* Job swipe desktop — Figma 24:1560 (Html → Body) */
 .job-swipe {
-  min-height: 100vh;
-  font-family: Manrope, system-ui, sans-serif;
-  background: linear-gradient(90deg, #f8fafc 0%, #f8fafc 100%);
-  color: #0f172a;
   position: relative;
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  font-family: Manrope, system-ui, sans-serif;
+  background: linear-gradient(90deg, #f8fafc 0%, #f8fafc 100%);
+  color: #0f172a;
   box-sizing: border-box;
 }
 
@@ -14,26 +15,17 @@
   box-sizing: border-box;
 }
 
-.job-swipe-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  z-index: 100;
-  background: linear-gradient(90deg, #4648d4 0%, #39b8fd 100%);
-}
-
 .job-swipe-layout {
   display: flex;
   gap: 32px;
   align-items: stretch;
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
   padding: 32px 24px;
-  padding-top: calc(32px + 4px);
+  padding-top: 32px;
 }
 
 .job-swipe-left {
@@ -216,8 +208,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: min(1024px, calc(100vh - 64px));
-  max-height: calc(100vh - 64px);
+  min-height: min(1024px, calc(100dvh - 64px));
+  max-height: calc(100dvh - 64px);
 }
 
 .job-swipe-aside-header {

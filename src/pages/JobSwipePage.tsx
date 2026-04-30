@@ -87,9 +87,7 @@ export function JobSwipePage() {
   const navigate = useNavigate();
 
   return (
-    <div className="job-swipe" data-name="Html → Body">
-      <div className="job-swipe-progress" aria-hidden />
-
+    <div className="job-swipe page-fill" data-name="Html → Body">
       <div className="job-swipe-layout">
         <div className="job-swipe-left">
           <article className="job-swipe-card">

@@ -1,6 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;600;700;800&display=swap");
 
 :root {
+  --app-navbar-height: 64px;
+  --app-navbar-bg: #ffffff;
+  --app-navbar-border: #4648d4;
   --brand-primary: #2563eb;
   --brand-primary-hover: #1d4ed8;
   --primary: #f43f5e;
@@ -11,19 +14,57 @@
   --text-muted: #94a3b8;
 }
 
-* {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+  overflow-x: clip;
+}
+
 body {
-  min-height: 100vh;
   margin: 0;
-  overflow-x: hidden;
+  min-height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 #root {
-  min-height: 100vh;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+/* Fills viewport under #root — children handle overflow via .page-fill */
+.app-viewport {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+/* Every route fills the viewport; scroll appears only when content exceeds it */
+.page-fill {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   width: 100%;
 }

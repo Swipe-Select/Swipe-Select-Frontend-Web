@@ -1,37 +1,49 @@
 import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { BRAND_LOGO_SRC, BRAND_NAME } from "../brand";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { BRAND_NAME } from "../brand";
+import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { signUpAssets } from "../figma/authAssets";
+import { useAuth } from "../context/AuthContext";
 import "./SignUpPage.css";
+
+const HAS_GOOGLE = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
 
 export function SignUpPage() {
   const navigate = useNavigate();
+  const { register } = useAuth();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    navigate("/onboarding");
+    setError(null);
+    setPending(true);
+    try {
+      const msg = await register({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+      });
+      if (msg) {
+        setError(msg);
+        return;
+      }
+      navigate("/onboarding");
+    } catch {
+      setError(
+        "Unable to reach the server. Confirm the backend is running and VITE_API_URL matches its address.",
+      );
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
-    <div className="signup-page">
-      <header className="signup-header">
-        <div className="signup-brand">
-          <img
-            className="signup-brand-logo"
-            src={BRAND_LOGO_SRC}
-            alt=""
-            width={36}
-            height={36}
-            aria-hidden
-          />
-          <p className="signup-brand-name">{BRAND_NAME}</p>
-        </div>
-        <p className="signup-header-cta">
-          <span>Already have an account?</span>
-          <Link to="/login">Log In</Link>
-        </p>
-      </header>
-
+    <div className="signup-page page-fill">
       <div className="signup-main">
         <aside className="signup-left" aria-label="Product benefits">
           <div className="signup-left-inner">
@@ -41,8 +53,8 @@ export function SignUpPage() {
               confidence
             </h2>
             <p className="signup-left-lead">
-              Join people using {BRAND_NAME} to explore options quickly and land on
-              what fits—without the noise.
+              Join people using {BRAND_NAME} to explore options quickly and land on what fits—without the
+              noise.
             </p>
             <div className="signup-features">
               <div className="signup-feature">
@@ -52,8 +64,7 @@ export function SignUpPage() {
                 <div className="signup-feature-body">
                   <h3>Tailored for you</h3>
                   <p>
-                    Preferences and context shape what you see next, so every swipe
-                    feels relevant.
+                    Preferences and context shape what you see next, so every swipe feels relevant.
                   </p>
                 </div>
               </div>
@@ -64,8 +75,7 @@ export function SignUpPage() {
                 <div className="signup-feature-body">
                   <h3>Swipe-ready flow</h3>
                   <p>
-                    Move through choices in a fast, intentional way—built around how
-                    you actually decide.
+                    Move through choices in a fast, intentional way—built around how you actually decide.
                   </p>
                 </div>
               </div>
@@ -76,8 +86,7 @@ export function SignUpPage() {
                 <div className="signup-feature-body">
                   <h3>Clear outcomes</h3>
                   <p>
-                    See why options match before you commit, so you always know what
-                    you&apos;re selecting.
+                    See why options match before you commit, so you always know what you&apos;re selecting.
                   </p>
                 </div>
               </div>
@@ -92,7 +101,7 @@ export function SignUpPage() {
               <p>Start your {BRAND_NAME} journey today.</p>
             </div>
 
-            <form className="signup-form-fields" noValidate onSubmit={handleSubmit}>
+            <form className="signup-form-fields" onSubmit={handleSubmit}>
               <div className="signup-field">
                 <label htmlFor="signup-full-name">Full Name</label>
                 <input
@@ -101,6 +110,11 @@ export function SignUpPage() {
                   type="text"
                   autoComplete="name"
                   placeholder="e.g. Jane Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  minLength={2}
+                  disabled={pending}
                 />
               </div>
               <div className="signup-field">
@@ -111,6 +125,10 @@ export function SignUpPage() {
                   type="email"
                   autoComplete="email"
                   placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={pending}
                 />
               </div>
               <div className="signup-field">
@@ -121,25 +139,36 @@ export function SignUpPage() {
                   type="password"
                   autoComplete="new-password"
                   placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  disabled={pending}
                 />
               </div>
-              <button type="submit" className="signup-submit">
-                Sign Up
+              {error ? (
+                <p role="alert" style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>
+                  {error}
+                </p>
+              ) : null}
+              <button type="submit" className="signup-submit" disabled={pending}>
+                {pending ? "Creating account…" : "Sign Up"}
               </button>
             </form>
 
-            <div className="signup-divider" role="presentation">
-              <span>or continue with</span>
-            </div>
-
-            <button type="button" className="signup-google">
-              <img src={signUpAssets.google} alt="" width={16} height={16} />
-              Google
-            </button>
+            {HAS_GOOGLE ? (
+              <>
+                <div className="signup-divider" role="presentation">
+                  <span>or continue with</span>
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <GoogleSignInButton uxMode="signup" onSignedIn={() => navigate("/onboarding")} />
+                </div>
+              </>
+            ) : null}
 
             <p className="signup-legal">
-              By signing up, you agree to our{" "}
-              <a href="#terms">Terms of Service</a> and{" "}
+              By signing up, you agree to our <a href="#terms">Terms of Service</a> and{" "}
               <a href="#privacy">Privacy Policy</a>.
             </p>
           </div>

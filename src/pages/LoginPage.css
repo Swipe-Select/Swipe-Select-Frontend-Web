@@ -1,5 +1,4 @@
 .login-page {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -9,26 +8,13 @@
   color: #0f172a;
 }
 
-.login-top-accent {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--brand-primary) 0%,
-    #0369a1 100%
-  );
-  z-index: 1;
-}
-
 .login-canvas {
   flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 172.5px 32px;
+  padding: clamp(24px, 8vmin, 96px) 32px;
   box-sizing: border-box;
 }
 
@@ -70,13 +56,6 @@
   line-height: 24px;
   margin: 0;
   color: #64748b;
-}
-
-.login-brand-logo {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  display: block;
 }
 
 .login-google {

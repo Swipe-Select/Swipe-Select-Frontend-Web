@@ -1,6 +1,6 @@
 # Onboarding — Swipe Select
 
-Documents every step of the multi-screen onboarding flow that runs after sign-up.
+Documents every step of the multi-screen onboarding flow that runs **after sign-up** when the user has a valid session. **`/onboarding` is protected** — unauthenticated users are sent to **`/login`**.
 
 ---
 
@@ -42,14 +42,14 @@ step 12 → Experience Level
 |---|---|---|---|
 | `step` | `number` | `0` | Current step index |
 | `gender` | `GenderId` | `"female"` | Identity selection |
-| `notif` | `Record<string, boolean>` | See below | Notification toggle map |
+| `notif` | `Record<string, boolean>` — keys: `appStatus`, `jobRec`, `appInfo` | Defaults: first two `true`, `appInfo` `false` |
 | `roles` | `string[]` | `["Software Engineer", "Product Manager"]` | Selected job roles |
 | `workPref` | `"remote" \| "hybrid" \| "office"` | `"hybrid"` | Work environment preference |
 | `employment` | `string[]` | `["Full Time"]` | Employment model selection |
 | `experience` | `string[]` | `["Entry Level Professional", "Mid-Level Professional"]` | Experience level selection |
 
-**Default notification state:**  
-`appStatus: true`, `jobRec: true`, `appInfo: true`, `dm: true`, `interview: true`, `security: true`, `marketing: false`
+**Default notification state (three toggles only):**  
+`appStatus: true`, `jobRec: true`, `appInfo: false`
 
 ---
 
@@ -60,11 +60,10 @@ step 12 → Experience Level
 **Headline:** "How do you identify?"  
 **Sub-copy:** Explains the information is private by default.
 
-**Options (2 × 2 grid):**
-- Female
+**Options (single row of three on desktop; stacked on narrow view):**
 - Male
+- Female
 - Non-binary
-- Prefer not to say
 
 Each card shows a radio icon (on/off asset) and a label. The selected card gets an indigo border and indigo label colour. Subtitle descriptions ("Identify as female", etc.) have been **removed**.
 
@@ -82,9 +81,9 @@ Each card shows a radio icon (on/off asset) and a label. The selected card gets 
 
 **Left card:**
 - Drag-and-drop zone with cloud-upload icon
-- Supported formats: PDF, DOCX, DOC, TXT (Max 10 MB)
+- **Implementation note:** the backend (`POST /api/onboarding/resume-extract`) accepts **PDF only**, max **5 MB**; UI copy should match.
 - "Browse Files" button
-- "Don't have a resume ready? Fill out manually" banner
+- "Don't have a resume ready? Fill out manually" banner (skips extraction; user can still complete onboarding)
 
 **Right card — "Why build your profile?"**
 - Three feature rows with icons (fast setup, connections, AI matching)
@@ -102,18 +101,18 @@ Collects basic profile fields (name, location, contact, etc.).
 
 ### Step 3 — Notifications
 
-**Headline:** Notification preferences  
-Organised into three categories, each with toggle switches:
+**Headline:** Notification settings  
+Single list of **three** toggles only (no grouped “Job / Messages / Security” sections):
 
-| Category | Toggles |
+| Toggle | Description line |
 |---|---|
-| Job Activity | Application Status Updates · Job Recommendations · Application Info |
-| Messages | Direct Messages · Interview Invitations |
-| System & Security | Security Alerts (forced ON, disabled) · Marketing & Promotions |
+| Application Statuses | Stay informed about application statuses. |
+| Job Recommendations | Receive job recommendations that fit your profile. |
+| Application Info Alerts | Get alerted if an application needs more info. |
 
-**Buttons:** Cancel · **Save Preferences** (brand purple `#4648d4`)
+Each row: icon in a soft indigo circle · title · description · switch. Defaults: first two on, third off.
 
----
+**Buttons:** Cancel (go back) · **Save Preferences** (brand purple `#4648d4`) → continues to step 4
 
 ### Step 4 — Work Experience
 
@@ -284,7 +283,7 @@ Centered card with:
 
 **Two action buttons:**
 - **Explore Jobs** → `/discover`
-- **View Profile** → `/` (welcome)
+- **View Profile** → `/` (**Welcome** — there is no standalone profile route yet; users remain authenticated)
 
 **Footer buttons:** Back · **Finish** → `/discover`
 
@@ -293,7 +292,7 @@ Centered card with:
 ## Navigation flow
 
 ```
-/signup ──────────────────────────────→ step 0 (Identity)
+/signup (success) or /login (success, onboarding not finished) → step 0 (Identity)
   → step 1 (Resume Upload)
   → step 2 (Personal Info)
   → step 3 (Notifications)
@@ -308,7 +307,7 @@ Centered card with:
   → step 12 (Experience Level)
   → /onboarding/complete
        ├── Explore Jobs / Finish ──────→ /discover
-       └── View Profile ───────────────→ /
+       └── View Profile ───────────────→ / (welcome — there is no dedicated profile URL yet)
 ```
 
 ---

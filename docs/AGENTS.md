@@ -26,8 +26,9 @@ This file is the authoritative reference for any AI agent or developer working o
 
 ```
 src/
-  App.tsx                    # Root router — all routes defined here
-  main.tsx                   # Vite entry point
+  App.tsx                    # Root router (`ProtectedRoute` on onboarding + discover)
+  components/ProtectedRoute.tsx   # JWT gate for private routes
+  main.tsx                   # Vite entry (`AuthProvider` wrapper)
   brand.ts                   # BRAND_NAME, BRAND_LOGO_SRC constants
   figma/
     authAssets.ts            # Login & Sign-up SVG/image URLs
@@ -50,16 +51,18 @@ docs/
 
 ## Routes
 
-| Path | Component | Description |
-|---|---|---|
-| `/` | `WelcomePage` | Public landing page |
-| `/welcome` | `WelcomePage` | Alias for `/` |
-| `/login` | `LoginPage` | Sign-in form |
-| `/signup` | `SignUpPage` | Registration form → redirects to `/onboarding` on submit |
-| `/onboarding` | `OnboardingPage` | 13-step profile setup flow (steps 0–12) |
-| `/onboarding/complete` | `PostOnboardingPage` | Completion / next-steps screen |
-| `/discover` | `JobSwipePage` | Job card swipe interface |
-| `*` | redirect | Any unknown path → `/` |
+| Path | Component | Auth | Description |
+|---|---|---|---|
+| `/` | `WelcomePage` | Public | Landing page |
+| `/welcome` | `WelcomePage` | Public | Alias for `/` |
+| `/login` | `LoginPage` | Public | Email/password sign-in |
+| `/signup` | `SignUpPage` | Public | Registration → session then `/onboarding` on success |
+| `/onboarding` | `OnboardingPage` | **Required** | Steps 0–12 |
+| `/onboarding/complete` | `PostOnboardingPage` | **Required** | Completion screen |
+| `/discover` | `JobSwipePage` | **Required** | Job swipe UI |
+| `*` | redirect | Public | Unknown path → `/` |
+
+`ProtectedRoute` checks JWT in React context / `localStorage`; missing token → redirect to `/login`.
 
 ---
 
@@ -86,6 +89,12 @@ docs/
 See `docs/onboarding.md` for full step-by-step detail.
 
 ---
+
+## Connectivity & known quirks
+
+- **`View Profile`** on `/onboarding/complete` navigates to **`/`** (Welcome). There is **no `/profile` route yet** — copy on that button describes “completed profile”; product may add a dedicated profile route later.
+- **Google OAuth** is wired in **`AuthContext` / backend** but the **Google button + `GoogleOAuthProvider` were removed from the UI** temporarily; flows are **email + password only** in-app.
+- **Backend vs docs:** onboarding **resume extraction** accepts **PDF, 5 MB**; older copy sometimes mentioned DOCX/10 MB — **`docs/onboarding.md`** aligns with implementation.
 
 ## Brand & design conventions
 

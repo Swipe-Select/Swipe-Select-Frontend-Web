@@ -1,15 +1,19 @@
 .welcome-page {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: #f8fafc;
   font-family: "Manrope", system-ui, sans-serif;
   color: #0f172a;
 }
 
 .welcome-main {
+  flex: 1;
+  box-sizing: border-box;
   max-width: 1440px;
   margin: 0 auto;
-  min-height: 100vh;
-  padding: 64px;
+  width: 100%;
+  min-height: 0;
+  padding: clamp(28px, 4vmin, 64px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -62,8 +66,7 @@
   align-items: center;
 }
 
-.welcome-action-primary,
-.welcome-action-secondary {
+.welcome-action-primary {
   text-decoration: none;
   border-radius: 9999px;
   padding: 17px 40px;
@@ -74,9 +77,6 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-}
-
-.welcome-action-primary {
   background: #4648d4;
   color: #ffffff;
   box-shadow: 0 8px 15px rgba(70, 72, 212, 0.4);
@@ -84,16 +84,6 @@
 
 .welcome-action-primary:hover {
   background: #3d3fbc;
-}
-
-.welcome-action-secondary {
-  background: #ffffff;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
-}
-
-.welcome-action-secondary:hover {
-  background: #f1f5f9;
 }
 
 .welcome-visual {
@@ -379,8 +369,7 @@
     align-items: stretch;
   }
 
-  .welcome-action-primary,
-  .welcome-action-secondary {
+  .welcome-action-primary {
     width: 100%;
   }
 
