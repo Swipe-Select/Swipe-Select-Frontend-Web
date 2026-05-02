@@ -1,4 +1,4 @@
-import { type DragEvent, useCallback, useRef, useState } from "react";
+import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { BRAND_NAME } from "../brand";
@@ -8,12 +8,76 @@ import { useAuth } from "../context/AuthContext";
 import "./OnboardingPage.css";
 
 type GenderId = "female" | "male" | "nonbinary";
+type OnboardingEntryMode = "resume" | "manual" | null;
 
 function workPrefLabel(w: "remote" | "hybrid" | "office") {
   if (w === "remote") return "Remote";
   if (w === "hybrid") return "Hybrid";
   return "In Person";
 }
+
+const COUNTRY_OPTIONS = [
+  "Argentina",
+  "Australia",
+  "Austria",
+  "Bangladesh",
+  "Belgium",
+  "Brazil",
+  "Canada",
+  "Chile",
+  "China",
+  "Colombia",
+  "Czech Republic",
+  "Denmark",
+  "Egypt",
+  "Finland",
+  "France",
+  "Germany",
+  "Greece",
+  "Hong Kong",
+  "Hungary",
+  "India",
+  "Indonesia",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Japan",
+  "Kenya",
+  "Malaysia",
+  "Mexico",
+  "Netherlands",
+  "New Zealand",
+  "Nigeria",
+  "Norway",
+  "Pakistan",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Saudi Arabia",
+  "Singapore",
+  "South Africa",
+  "South Korea",
+  "Spain",
+  "Sweden",
+  "Switzerland",
+  "Thailand",
+  "Turkey",
+  "United Arab Emirates",
+  "United Kingdom",
+  "United States",
+  "Vietnam",
+];
+
+const VISA_STATUS_OPTIONS = [
+  "Citizen / Permanent Resident",
+  "Requires Visa Sponsorship",
+  "Work Visa Holder",
+  "Student Visa",
+  "Dependent Visa",
+  "Other / Prefer not to say",
+];
 
 export function OnboardingPage() {
   const navigate = useNavigate();
@@ -22,8 +86,10 @@ export function OnboardingPage() {
   const [resumeBusy, setResumeBusy] = useState(false);
   const [resumeErr, setResumeErr] = useState<string | null>(null);
   const [resumeOk, setResumeOk] = useState(false);
+  const [entryMode, setEntryMode] = useState<OnboardingEntryMode>(null);
   const [prefsBusy, setPrefsBusy] = useState(false);
   const [step, setStep] = useState(0);
+  const [stepError, setStepError] = useState<string | null>(null);
   const [gender, setGender] = useState<GenderId>("female");
   const [notif, setNotif] = useState({
     appStatus: true,
@@ -45,10 +111,286 @@ export function OnboardingPage() {
   const [workEndMonth, setWorkEndMonth] = useState("");
   const [workLocation, setWorkLocation] = useState("");
   const [workDescription, setWorkDescription] = useState("");
+  const [countrySearch, setCountrySearch] = useState("");
+  const [selectedCountries, setSelectedCountries] = useState<string[]>(["United States", "United Kingdom"]);
+  const [locationSearch, setLocationSearch] = useState("");
+  const [selectedBaseLocation, setSelectedBaseLocation] = useState("New York, New York, US");
+  const [locationBusy, setLocationBusy] = useState(false);
+  const [locationErr, setLocationErr] = useState<string | null>(null);
+  const [locationResults, setLocationResults] = useState<
+    Array<{ label: string; city: string; region: string; source: "photon" | "nominatim" }>
+  >([]);
+  const [targetLocations, setTargetLocations] = useState<Array<{ city: string; country: string }>>([
+    { city: "Lahore", country: "Pakistan" },
+    { city: "Dubai", country: "United Arab Emirates" },
+  ]);
+  const [showAddTargetLocationForm, setShowAddTargetLocationForm] = useState(false);
+  const [newTargetCity, setNewTargetCity] = useState("");
+  const [newTargetCountry, setNewTargetCountry] = useState("");
+  const [countryVisaStatus, setCountryVisaStatus] = useState<Record<string, string>>({
+    "United States": "Citizen / Permanent Resident",
+    "United Kingdom": "Requires Visa Sponsorship",
+  });
+  const filteredCountries = COUNTRY_OPTIONS.filter((country) =>
+    country.toLowerCase().includes(countrySearch.trim().toLowerCase()),
+  );
+  const popularLocations = useMemo(
+    () => [
+    { city: "San Francisco", region: "California, US" },
+    { city: "New York", region: "New York, US" },
+    { city: "London", region: "United Kingdom" },
+    { city: "Austin", region: "Texas, US" },
+    { city: "Seattle", region: "Washington, US" },
+    ],
+    [],
+  );
+  const filteredPopularLocations = useMemo(
+    () =>
+      popularLocations.filter(({ city, region }) => {
+    const query = locationSearch.trim().toLowerCase();
+    if (!query) return true;
+    return city.toLowerCase().includes(query) || region.toLowerCase().includes(query);
+      }),
+    [locationSearch, popularLocations],
+  );
+  const sourcePriority: Record<"photon" | "nominatim", number> = {
+    photon: 2,
+    nominatim: 1,
+  };
+
+  const scoreLocationMatch = useCallback(
+    (
+      query: string,
+      candidate: { label: string; city: string; region: string; source: "photon" | "nominatim" },
+    ) => {
+      const city = candidate.city.toLowerCase();
+      const label = candidate.label.toLowerCase();
+      const qLower = query.toLowerCase();
+
+      if (city === qLower) return 100;
+      if (city.startsWith(qLower)) return 80;
+      if (label.includes(qLower)) return 50;
+      return 10;
+    },
+    [],
+  );
+
+  const finalizeLocationResults = useCallback(
+    (
+      query: string,
+      rawResults: Array<{
+        label: string;
+        city: string;
+        region: string;
+        source: "photon" | "nominatim";
+      }>,
+    ) => {
+      const deduped = Array.from(
+        new Map(rawResults.map((entry) => [entry.label.toLowerCase(), entry])).values(),
+      );
+      const scored = deduped
+        .map((entry) => ({ entry, score: scoreLocationMatch(query, entry) }))
+        .sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          const sourceDelta = sourcePriority[b.entry.source] - sourcePriority[a.entry.source];
+          if (sourceDelta !== 0) return sourceDelta;
+          return a.entry.label.length - b.entry.label.length;
+        })
+        .map((item) => item.entry);
+
+      return scored.slice(0, 8);
+    },
+    [scoreLocationMatch],
+  );
+
+  useEffect(() => {
+    const q = locationSearch.trim();
+    if (q.length < 2) {
+      setLocationResults([]);
+      setLocationErr(null);
+      setLocationBusy(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setLocationBusy(true);
+      setLocationErr(null);
+      try {
+        const fetchPhoton = async (queryText: string) => {
+          const photonParams = new URLSearchParams({ q: queryText, limit: "8" });
+          const res = await fetch(`https://photon.komoot.io/api/?${photonParams.toString()}`, {
+            signal: controller.signal,
+            headers: { Accept: "application/json" },
+          });
+          if (!res.ok) return [] as Array<{ label: string; city: string; region: string; source: "photon" }>;
+          const json = (await res.json()) as {
+            features?: Array<{
+              properties?: {
+                name?: string;
+                city?: string;
+                county?: string;
+                state?: string;
+                country?: string;
+                postcode?: string;
+              };
+            }>;
+          };
+          return (json.features ?? [])
+            .map((feature) => {
+              const p = feature.properties;
+              const city = p?.city || p?.name || p?.county || "Unknown City";
+              const regionParts = [p?.state, p?.country, p?.postcode].filter(Boolean);
+              const region = regionParts.length ? regionParts.join(", ") : "Unknown Region";
+              const label = [city, region].filter(Boolean).join(", ");
+              return { label, city, region, source: "photon" as const };
+            })
+            .filter((entry) => entry.label.trim().length > 0);
+        };
+
+        const fetchNominatim = async (queryText: string) => {
+          const params = new URLSearchParams({
+            format: "jsonv2",
+            addressdetails: "1",
+            limit: "8",
+            q: queryText,
+          });
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+            signal: controller.signal,
+            headers: { Accept: "application/json" },
+          });
+          if (!res.ok) return [] as Array<{ label: string; city: string; region: string; source: "nominatim" }>;
+          const json = (await res.json()) as Array<{
+            display_name?: string;
+            address?: {
+              city?: string;
+              town?: string;
+              village?: string;
+              county?: string;
+              state?: string;
+              country?: string;
+              postcode?: string;
+            };
+          }>;
+          return json
+            .map((entry) => {
+              const city =
+                entry.address?.city ||
+                entry.address?.town ||
+                entry.address?.village ||
+                entry.address?.county ||
+                "Unknown City";
+              const regionParts = [entry.address?.state, entry.address?.country, entry.address?.postcode].filter(Boolean);
+              const region = regionParts.length ? regionParts.join(", ") : "Unknown Region";
+              const label = entry.display_name || `${city}, ${region}`;
+              return { label, city, region, source: "nominatim" as const };
+            })
+            .filter((entry) => entry.label.trim().length > 0);
+        };
+
+        const combinedResults = [...(await fetchPhoton(q)), ...(await fetchNominatim(q))];
+        setLocationResults(finalizeLocationResults(q, combinedResults));
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setLocationErr("Could not load locations right now. You can still use your typed location.");
+        setLocationResults([]);
+      } finally {
+        setLocationBusy(false);
+      }
+    }, 350);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [locationSearch, finalizeLocationResults]);
   const next = useCallback(() => {
-    setStep((s) => Math.min(s + 1, 12));
-  }, []);
+    setStep((currentStep) => {
+      if (currentStep === 1) {
+        if (resumeOk) {
+          setStepError(null);
+          return 5;
+        }
+        if (entryMode === "manual") {
+          setStepError(null);
+          return 2;
+        }
+        setStepError("Upload and parse your resume, or choose fill out manually.");
+        return currentStep;
+      }
+
+      if (currentStep === 2) {
+        const hasName = personalFullName.trim().length > 1;
+        const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalEmail.trim());
+        const hasPhone = personalPhone.trim().length >= 6;
+        if (!hasName || !hasEmail || !hasPhone) {
+          setStepError("Please complete your full name, valid email, and phone number before continuing.");
+          return currentStep;
+        }
+      }
+
+      if (currentStep === 4) {
+        const hasTitle = workTitle.trim().length > 1;
+        const hasEmployer = workEmployer.trim().length > 1;
+        const hasStart = Boolean(workStartMonth);
+        const hasEnd = workPresentRole || Boolean(workEndMonth);
+        const hasLocation = workLocation.trim().length > 1;
+        const hasDescription = workDescription.trim().length > 10;
+        if (!hasTitle || !hasEmployer || !hasStart || !hasEnd || !hasLocation || !hasDescription) {
+          setStepError("Please complete your work experience details before continuing.");
+          return currentStep;
+        }
+      }
+
+      if (currentStep === 6 && roles.length === 0) {
+        setStepError("Select at least one role to continue.");
+        return currentStep;
+      }
+
+      if (currentStep === 7 && selectedCountries.length === 0) {
+        setStepError("Select at least one country to continue.");
+        return currentStep;
+      }
+
+      if (currentStep === 9 && targetLocations.length === 0) {
+        setStepError("Add at least one target location before continuing.");
+        return currentStep;
+      }
+
+      if (currentStep === 11 && employment.length === 0) {
+        setStepError("Select at least one employment model to continue.");
+        return currentStep;
+      }
+
+      if (currentStep === 12 && experience.length === 0) {
+        setStepError("Select at least one experience level to continue.");
+        return currentStep;
+      }
+
+      setStepError(null);
+      return Math.min(currentStep + 1, 12);
+    });
+  }, [
+    entryMode,
+    resumeOk,
+    personalFullName,
+    personalEmail,
+    personalPhone,
+    workTitle,
+    workEmployer,
+    workStartMonth,
+    workPresentRole,
+    workEndMonth,
+    workLocation,
+    workDescription,
+    roles.length,
+    selectedCountries.length,
+    targetLocations.length,
+    employment.length,
+    experience.length,
+  ]);
   const back = useCallback(() => {
+    setStepError(null);
     setStep((s) => Math.max(s - 1, 0));
   }, []);
 
@@ -73,19 +415,27 @@ export function OnboardingPage() {
         return;
       }
       setResumeBusy(true);
-      const { ok, json } = await extractResumePdf(file, session.token);
-      setResumeBusy(false);
-      if (!ok || !json.success || !("data" in json && json.data)) {
-        const msg =
-          json && typeof json === "object" && "message" in json
-            ? String((json as { message?: string }).message)
-            : "Upload failed";
-        setResumeErr(msg);
-        return;
-      }
-      setResumeOk(true);
-      if (session) {
-        setSession({ ...session, onboardingStep: 1 });
+      try {
+        const { ok, json } = await extractResumePdf(file, session.token);
+        if (!ok || !json.success || !("data" in json && json.data)) {
+          const msg =
+            json && typeof json === "object" && "message" in json
+              ? String((json as { message?: string }).message)
+              : "Upload failed";
+          setResumeErr(msg);
+          return;
+        }
+        setResumeOk(true);
+        setEntryMode("resume");
+        setStepError(null);
+        setStep(5);
+        if (session) {
+          setSession({ ...session, onboardingStep: 1 });
+        }
+      } catch {
+        setResumeErr("Resume upload failed. Please try again.");
+      } finally {
+        setResumeBusy(false);
       }
     },
     [session, navigate, setSession],
@@ -96,17 +446,24 @@ export function OnboardingPage() {
       navigate("/login", { replace: true });
       return;
     }
+    const normalizeList = (values: string[]) =>
+      Array.from(new Set(values.map((value) => value.trim()).filter((value) => value.length > 0)));
+    const normalizedWorkLocations = normalizeList(
+      targetLocations.map(({ city, country }) => `${city.trim()}, ${country.trim()}`),
+    );
+    const normalizedBaseLocation = selectedBaseLocation.trim();
+
     setPrefsBusy(true);
     const { ok, json } = await savePreferences(
       {
         gender,
-        jobTitles: roles,
-        targetCountries: [],
-        baseLocation: "",
-        workLocations: [],
+        jobTitles: normalizeList(roles),
+        targetCountries: normalizeList(selectedCountries),
+        baseLocation: normalizedBaseLocation,
+        workLocations: normalizedWorkLocations,
         workMode: [workPrefLabel(workPref)],
-        jobTypes: employment,
-        experienceLevel: experience,
+        jobTypes: normalizeList(employment),
+        experienceLevel: normalizeList(experience),
         onboardingStep: 2,
       },
       session.token,
@@ -139,6 +496,9 @@ export function OnboardingPage() {
     workPref,
     employment,
     experience,
+    selectedCountries,
+    selectedBaseLocation,
+    targetLocations,
   ]);
 
   const toggleRole = (name: string) => {
@@ -151,6 +511,43 @@ export function OnboardingPage() {
 
   const toggleExperience = (name: string) => {
     setExperience((r) => (r.includes(name) ? r.filter((x) => x !== name) : [...r, name]));
+  };
+
+  const addCountry = (country: string) => {
+    setSelectedCountries((current) => (current.includes(country) ? current : [...current, country]));
+    setCountryVisaStatus((current) =>
+      current[country] ? current : { ...current, [country]: "Requires Visa Sponsorship" },
+    );
+  };
+
+  const removeCountry = (country: string) => {
+    setSelectedCountries((current) => current.filter((entry) => entry !== country));
+  };
+  const addTargetLocation = () => {
+    const cityRaw = newTargetCity.trim();
+    const countryRaw = newTargetCountry.trim();
+    if (!cityRaw || !countryRaw) return;
+    setTargetLocations((current) => {
+      const exists = current.some(
+        (entry) =>
+          entry.city.toLowerCase() === cityRaw.toLowerCase() &&
+          entry.country.toLowerCase() === countryRaw.toLowerCase(),
+      );
+      if (exists) return current;
+      return [...current, { city: cityRaw, country: countryRaw }];
+    });
+    setNewTargetCity("");
+    setNewTargetCountry("");
+    setShowAddTargetLocationForm(false);
+  };
+
+  const removeTargetLocation = (city: string, country: string) => {
+    setTargetLocations((current) =>
+      current.filter(
+        (entry) =>
+          !(entry.city.toLowerCase() === city.toLowerCase() && entry.country.toLowerCase() === country.toLowerCase()),
+      ),
+    );
   };
 
   const footer = (variant: "default" | "narrow" = "default") => (
@@ -196,6 +593,24 @@ export function OnboardingPage() {
 
   return (
     <div className="onb page-fill">
+      {stepError ? (
+        <div
+          role="alert"
+          style={{
+            margin: "16px auto 0",
+            maxWidth: 960,
+            width: "calc(100% - 48px)",
+            border: "1px solid #fecaca",
+            background: "#fef2f2",
+            color: "#991b1b",
+            borderRadius: 12,
+            padding: "10px 14px",
+            fontSize: 14,
+          }}
+        >
+          {stepError}
+        </div>
+      ) : null}
       {step === 0 && (
         <>
           <div className="onb-gender-layout">
@@ -313,33 +728,39 @@ export function OnboardingPage() {
                     Browse Files
                   </button>
                 </div>
-                <div
-                  style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 32,
-                    padding: 17,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <div className="onb-flex-gap">
-                    <img src={ast.resume.docPdf} alt="" width={18} height={19} />
-                    <span className="onb-muted-sm" style={{ fontWeight: 500 }}>
-                      Don&apos;t have a resume ready to upload?
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="onb-btn onb-flex-gap"
-                    style={{ color: "#4648d4", fontSize: 14 }}
-                    onClick={() => next()}
+                {!resumeOk ? (
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 32,
+                      padding: 17,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
                   >
-                    Fill out manually
-                    <img src={ast.resume.chevronLink} alt="" width={12} height={12} />
-                  </button>
-                </div>
+                    <div className="onb-flex-gap">
+                      <img src={ast.resume.docPdf} alt="" width={18} height={19} />
+                      <span className="onb-muted-sm" style={{ fontWeight: 500 }}>
+                        Don&apos;t have a resume ready to upload?
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="onb-btn onb-flex-gap"
+                      style={{ color: "#4648d4", fontSize: 14 }}
+                      onClick={() => {
+                        setEntryMode("manual");
+                        setStepError(null);
+                        setStep(2);
+                      }}
+                    >
+                      Fill out manually
+                      <img src={ast.resume.chevronLink} alt="" width={12} height={12} />
+                    </button>
+                  </div>
+                ) : null}
               </div>
               <div className="onb-card">
                 <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Why build your profile?</h3>
@@ -441,7 +862,7 @@ export function OnboardingPage() {
               <button
                 type="button"
                 className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap"
-                disabled={resumeBusy}
+                disabled={resumeBusy || (!resumeOk && entryMode !== "manual")}
                 onClick={next}
               >
                 Continue
@@ -912,38 +1333,54 @@ export function OnboardingPage() {
             </div>
           </div>
           <div className="onb-country-body">
-            <div className="onb-country-list">
+            <div className="onb-country-list onb-country-panel">
               <h3 style={{ margin: "0 0 4px", fontSize: 18, fontFamily: "Inter, sans-serif", fontWeight: 600 }}>Available Countries</h3>
               <p className="onb-muted-sm" style={{ fontFamily: "Inter, sans-serif" }}>
                 Select countries you are applying to.
               </p>
               <div style={{ position: "relative", marginTop: 12 }}>
-                <input className="onb-input" style={{ borderRadius: 6, background: "#f1f5f9", paddingLeft: 40, fontFamily: "Inter, sans-serif", fontSize: 14 }} placeholder="Search countries..." />
+                <input
+                  className="onb-input"
+                  style={{ borderRadius: 6, background: "#f1f5f9", paddingLeft: 40, fontFamily: "Inter, sans-serif", fontSize: 14 }}
+                  placeholder="Search countries..."
+                  value={countrySearch}
+                  onChange={(e) => setCountrySearch(e.target.value)}
+                />
                 <img src={ast.country.search} alt="" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} width={18} height={18} />
               </div>
               <div style={{ marginTop: 8, maxHeight: 280, overflowY: "auto" }}>
-                {["Canada", "Australia", "Germany"].map((c) => (
-                  <div key={c} className="onb-flex-gap" style={{ justifyContent: "space-between", padding: 13, borderRadius: 6 }}>
-                    <div className="onb-flex-gap">
-                      <div style={{ width: 32, height: 32, borderRadius: 9999, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <img src={ast.country.flag} alt="" width={12} height={12} />
-                      </div>
-                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500 }}>{c}</span>
-                    </div>
-                    <img src={ast.country.plus} alt="" width={14} height={14} />
-                  </div>
-                ))}
-                {["United States", "United Kingdom"].map((c) => (
-                  <div key={c} className="onb-flex-gap" style={{ justifyContent: "space-between", padding: 12, opacity: 0.5 }}>
-                    <div className="onb-flex-gap">
-                      <div style={{ width: 32, height: 32, borderRadius: 9999, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <img src={ast.country.flag} alt="" width={12} height={12} />
-                      </div>
-                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500 }}>{c}</span>
-                    </div>
-                    <img src={ast.country.done} alt="" width={10} height={8} />
-                  </div>
-                ))}
+                {filteredCountries.map((c) => {
+                  const isSelected = selectedCountries.includes(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`onb-btn onb-flex-gap onb-country-select-row${isSelected ? " onb-country-select-row--selected" : ""}`}
+                      style={{
+                        width: "100%",
+                        justifyContent: "space-between",
+                        padding: 13,
+                        borderRadius: 8,
+                        border: isSelected ? "1px solid #c7d2fe" : "1px solid transparent",
+                        background: isSelected ? "#eef2ff" : "transparent",
+                      }}
+                      onClick={() => (isSelected ? removeCountry(c) : addCountry(c))}
+                      aria-pressed={isSelected}
+                      aria-label={isSelected ? `Remove ${c}` : `Add ${c}`}
+                    >
+                      <span className="onb-flex-gap">
+                        <span style={{ width: 32, height: 32, borderRadius: 9999, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <img src={ast.country.flag} alt="" width={12} height={12} />
+                        </span>
+                        <span style={{ fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500 }}>{c}</span>
+                      </span>
+                      <span className="onb-flex-gap" style={{ color: isSelected ? "#4648d4" : "#64748b", fontSize: 12, fontWeight: 600 }}>
+                        {isSelected ? "Selected" : "Select"}
+                        <img src={isSelected ? ast.country.done : ast.country.plus} alt="" width={14} height={14} />
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="onb-country-detail">
@@ -957,53 +1394,84 @@ export function OnboardingPage() {
                 <div className="onb-flex-gap">
                   <button
                     type="button"
-                    className="onb-btn onb-btn-primary onb-btn-primary--brand"
+                    className="onb-btn onb-btn-primary onb-btn-primary--brand onb-country-cta"
                     style={{ borderRadius: 6, padding: "8px 24px", fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500, boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}
                     onClick={next}
+                    disabled={selectedCountries.length === 0}
                   >
                     Save & Continue
                   </button>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                {[
-                  ["United States", "Citizen / Permanent Resident", ast.country.infoBlue, "#eff6ff", "#dbeafe", "#1e3a8a"],
-                  ["United Kingdom", "Requires Visa Sponsorship", ast.country.infoAmber, "#fffbeb", "#fef3c7", "#78350f"],
-                ].map(([name, visa, infoImg, bg, border, color]) => (
-                  <div key={name as string} style={{ flex: "1 1 340px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 21, boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}>
+                {selectedCountries.map((name) => {
+                  const visa = countryVisaStatus[name] ?? "Requires Visa Sponsorship";
+                  const isCitizen = visa === "Citizen / Permanent Resident";
+                  const infoImg = isCitizen ? ast.country.infoBlue : ast.country.infoAmber;
+                  const bg = isCitizen ? "#eff6ff" : "#fffbeb";
+                  const border = isCitizen ? "#dbeafe" : "#fef3c7";
+                  const color = isCitizen ? "#1e3a8a" : "#78350f";
+                  return (
+                  <div key={name} className="onb-country-selected-card" style={{ flex: "1 1 340px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 21, boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}>
                     <div className="onb-flex-gap" style={{ justifyContent: "space-between", marginBottom: 24 }}>
                       <div className="onb-flex-gap">
                         <div style={{ width: 48, height: 48, borderRadius: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <img src={ast.country.countryIcon} alt="" width={17} height={17} />
                         </div>
                         <div>
-                          <p style={{ margin: 0, fontWeight: 600, fontSize: 18, fontFamily: "Inter, sans-serif" }}>{name as string}</p>
+                          <p style={{ margin: 0, fontWeight: 600, fontSize: 18, fontFamily: "Inter, sans-serif" }}>{name}</p>
                           <p className="onb-muted-sm" style={{ margin: 0, fontSize: 12 }}>
                             Added recently
                           </p>
                         </div>
                       </div>
-                      <button type="button" className="onb-btn" style={{ width: 32, height: 32 }}>
+                      <button type="button" className="onb-btn" style={{ width: 32, height: 32 }} onClick={() => removeCountry(name)} aria-label={`Remove ${name}`}>
                         <img src={ast.country.close} alt="" width={13} height={15} />
                       </button>
                     </div>
                     <p style={{ fontSize: 12, fontWeight: 500, letterSpacing: "0.6px", color: "#64748b", margin: "0 0 6px", fontFamily: "Inter, sans-serif" }}>VISA STATUS</p>
                     <div style={{ position: "relative", marginBottom: 16 }}>
-                      <div className="onb-input" style={{ borderRadius: 6, background: "#f1f5f9", fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500 }}>
-                        {visa as string}
-                      </div>
-                      <img src={ast.country.chevronDn} alt="" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }} width={12} height={7} />
+                      <select
+                        className="onb-input onb-select"
+                        style={{ borderRadius: 6, background: "#f1f5f9", fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500, paddingRight: 36 }}
+                        value={visa}
+                        onChange={(e) =>
+                          setCountryVisaStatus((current) => ({ ...current, [name]: e.target.value }))
+                        }
+                        aria-label={`${name} visa status`}
+                      >
+                        {VISA_STATUS_OPTIONS.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="onb-flex-gap" style={{ alignItems: "flex-start", background: bg as string, border: `1px solid ${border}`, borderRadius: 6, padding: 13 }}>
-                      <img src={infoImg as string} alt="" width={18} height={18} />
-                      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: color as string, fontFamily: "Inter, sans-serif" }}>
-                        {name === "United States"
-                          ? "As a citizen, you do not require sponsorship to work in the United States. Your application will reflect this status."
-                          : "Employers will be notified that you require sponsorship (e.g., Skilled Worker Visa). This may affect eligibility for certain roles."}
+                    <div className="onb-flex-gap" style={{ alignItems: "flex-start", background: bg, border: `1px solid ${border}`, borderRadius: 6, padding: 13 }}>
+                      <img src={infoImg} alt="" width={18} height={18} />
+                      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color, fontFamily: "Inter, sans-serif" }}>
+                        {isCitizen
+                          ? `You marked ${name} as citizen/permanent resident, so your profile will show that sponsorship is not required there.`
+                          : `You marked ${name} as requiring visa support or a non-citizen status, so employers can assess sponsorship eligibility accordingly.`}
                       </p>
                     </div>
                   </div>
-                ))}
+                )})}
+                {selectedCountries.length === 0 ? (
+                  <div
+                    style={{
+                      width: "100%",
+                      border: "1px dashed #cbd5e1",
+                      borderRadius: 12,
+                      padding: 16,
+                      background: "#f8fafc",
+                      color: "#64748b",
+                      fontSize: 14,
+                    }}
+                  >
+                    No countries selected yet. Add at least one country to continue.
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1027,14 +1495,20 @@ export function OnboardingPage() {
               justifyContent: "flex-end",
             }}
           >
-            <button type="button" className="onb-btn" aria-label="Close">
+            <button type="button" className="onb-btn" aria-label="Close" onClick={() => navigate("/onboarding/complete")}>
               <img src={ast.location.close} alt="" width={20} height={20} />
             </button>
           </div>
           <div className="onb-loc-split">
             <div className="onb-loc-side">
               <div style={{ padding: 32, flex: 1, overflowY: "auto" }}>
-                <button type="button" className="onb-btn" style={{ width: 40, height: 40, border: "1px solid #e2e8f0", borderRadius: 9999, marginBottom: 16 }}>
+                <button
+                  type="button"
+                  className="onb-btn"
+                  style={{ width: 40, height: 40, border: "1px solid #e2e8f0", borderRadius: 9999, marginBottom: 16 }}
+                  onClick={back}
+                  aria-label="Back"
+                >
                   <img src={ast.location.backCircle} alt="" width={16} height={16} />
                 </button>
                 <h1 className="onb-h1">Where are you based?</h1>
@@ -1042,18 +1516,32 @@ export function OnboardingPage() {
                   We use this to find relevant opportunities near you.
                 </p>
                 <div style={{ position: "relative", marginTop: 24 }}>
-                  <input className="onb-input" style={{ borderRadius: 12, background: "#f1f5f9", padding: "17px 16px 17px 48px", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "none" }} placeholder="Search city or zip code" />
+                  <input
+                    className="onb-input"
+                    style={{ borderRadius: 12, background: "#f1f5f9", padding: "17px 16px 17px 48px", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "none" }}
+                    placeholder="Search city, area, or country"
+                    value={locationSearch}
+                    onChange={(e) => setLocationSearch(e.target.value)}
+                  />
                   <img src={ast.location.search} alt="" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} width={18} height={18} />
                 </div>
                 <p style={{ margin: "32px 0 16px", fontWeight: 700, fontSize: 16 }}>Popular locations</p>
-                {[
-                  ["San Francisco", "California, US", false, ast.location.pin],
-                  ["New York", "New York, US", true, ast.location.pinSel],
-                  ["London", "United Kingdom", false, ast.location.pinAlt],
-                  ["Austin", "Texas, US", false, ast.location.pin],
-                  ["Seattle", "Washington, US", false, ast.location.pin],
-                ].map(([city, region, sel, icon]) => (
-                  <div key={city as string} className={`onb-loc-chip${sel ? " onb-loc-chip--sel" : ""}`}>
+                {filteredPopularLocations.map(({ city, region }) => {
+                  const key = `${city}, ${region}`;
+                  const sel = selectedBaseLocation === key;
+                  const icon = sel
+                    ? ast.location.pinSel
+                    : region === "United Kingdom"
+                      ? ast.location.pinAlt
+                      : ast.location.pin;
+                  return (
+                  <button
+                    key={city}
+                    type="button"
+                    className={`onb-loc-chip${sel ? " onb-loc-chip--sel" : ""}`}
+                    onClick={() => setSelectedBaseLocation(key)}
+                    aria-pressed={sel}
+                  >
                     <div className="onb-flex-gap">
                       <div
                         style={{
@@ -1074,19 +1562,119 @@ export function OnboardingPage() {
                       </div>
                     </div>
                     <img src={sel ? ast.location.checkSel : ast.location.checkCircle} alt="" width={16} height={16} />
-                  </div>
-                ))}
+                  </button>
+                )})}
+                {locationSearch.trim().length >= 2 ? (
+                  <>
+                    <p style={{ margin: "24px 0 12px", fontWeight: 700, fontSize: 16 }}>
+                      Global location matches
+                    </p>
+                    {locationBusy ? (
+                      <p className="onb-muted-sm" style={{ margin: "0 0 12px" }}>
+                        Searching locations...
+                      </p>
+                    ) : null}
+                    <button
+                      type="button"
+                      className={`onb-loc-chip${selectedBaseLocation === locationSearch.trim() ? " onb-loc-chip--sel" : ""}`}
+                      onClick={() => setSelectedBaseLocation(locationSearch.trim())}
+                      aria-pressed={selectedBaseLocation === locationSearch.trim()}
+                      disabled={!locationSearch.trim()}
+                    >
+                      <div className="onb-flex-gap">
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 32,
+                            background: "rgba(70,72,212,0.12)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <img src={ast.location.pinSel} alt="" width={18} height={19} />
+                        </div>
+                        <div>
+                          <p style={{ margin: 0, fontSize: 16, color: "#4648d4" }}>{locationSearch.trim()}</p>
+                          <p style={{ margin: 0, fontSize: 14, color: "#64748b" }}>Use exactly what I typed</p>
+                        </div>
+                      </div>
+                      <img
+                        src={selectedBaseLocation === locationSearch.trim() ? ast.location.checkSel : ast.location.checkCircle}
+                        alt=""
+                        width={16}
+                        height={16}
+                      />
+                    </button>
+                    {locationErr ? (
+                      <p role="alert" style={{ margin: "0 0 12px", color: "#b91c1c", fontSize: 13 }}>
+                        {locationErr}
+                      </p>
+                    ) : null}
+                    {!locationBusy && !locationErr && locationResults.length === 0 ? (
+                      <p className="onb-muted-sm" style={{ margin: "0 0 12px" }}>
+                        No direct matches found for this query.
+                      </p>
+                    ) : null}
+                    {locationResults.map(({ label, city, region }, idx) => {
+                      const key = `${city}, ${region}`;
+                      const sel = selectedBaseLocation === key || selectedBaseLocation === label;
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          className={`onb-loc-chip${sel ? " onb-loc-chip--sel" : ""}`}
+                          onClick={() => setSelectedBaseLocation(label)}
+                          aria-pressed={sel}
+                        >
+                          <div className="onb-flex-gap">
+                            <div
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 32,
+                                background: sel ? "rgba(70,72,212,0.2)" : "#efecf8",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <img src={sel ? ast.location.pinSel : ast.location.pin} alt="" width={18} height={19} />
+                            </div>
+                            <div>
+                              <p style={{ margin: 0, fontSize: 16, color: sel ? "#4648d4" : "#0f172a" }}>
+                                {idx === 0 ? `Detected: ${city}` : city}
+                              </p>
+                              <p style={{ margin: 0, fontSize: 14, color: sel ? "rgba(70,72,212,0.7)" : "#64748b" }}>
+                                {region}
+                              </p>
+                            </div>
+                          </div>
+                          <img src={sel ? ast.location.checkSel : ast.location.checkCircle} alt="" width={16} height={16} />
+                        </button>
+                      );
+                    })}
+                  </>
+                ) : null}
               </div>
               <div style={{ borderTop: "1px solid #e2e8f0", padding: "33px 32px 32px" }}>
                 <button
                   type="button"
                   className="onb-btn onb-flex-gap"
                   style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 48, padding: "13px", marginBottom: 16, fontWeight: 600, justifyContent: "center" }}
+                  onClick={() => setSelectedBaseLocation("Current Location")}
                 >
                   <img src={ast.location.locate} alt="" width={22} height={22} />
                   Use current location
                 </button>
-                <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand" style={{ width: "100%", borderRadius: 48, padding: "13px" }} onClick={next}>
+                <button
+                  type="button"
+                  className="onb-btn onb-btn-primary onb-btn-primary--brand"
+                  style={{ width: "100%", borderRadius: 48, padding: "13px" }}
+                  onClick={next}
+                  disabled={!selectedBaseLocation}
+                >
                   Continue
                 </button>
               </div>
@@ -1139,40 +1727,84 @@ export function OnboardingPage() {
             </div>
             <div className="onb-target-grid">
               <div>
-                <div className="onb-flex-gap" style={{ justifyContent: "space-between", marginBottom: 16 }}>
+                <div className="onb-flex-gap onb-target-head-row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Selected Locations</h3>
-                  <button type="button" className="onb-btn onb-flex-gap" style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 13px", boxShadow: "0 1px 1px rgba(0,0,0,0.05)", color: "#4648d4", fontWeight: 600, fontSize: 14 }}>
+                  <button
+                    type="button"
+                    className="onb-btn onb-flex-gap onb-target-add-btn"
+                    style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 13px", boxShadow: "0 1px 1px rgba(0,0,0,0.05)", color: "#4648d4", fontWeight: 600, fontSize: 14 }}
+                    onClick={() => setShowAddTargetLocationForm((current) => !current)}
+                    aria-expanded={showAddTargetLocationForm}
+                  >
                     <img src={ast.target.add} alt="" width={9} height={9} />
                     Add location
                   </button>
                 </div>
+                {showAddTargetLocationForm ? (
+                  <div className="onb-target-add-form">
+                    <input
+                      className="onb-input"
+                      placeholder="City"
+                      value={newTargetCity}
+                      onChange={(e) => setNewTargetCity(e.target.value)}
+                    />
+                    <input
+                      className="onb-input"
+                      placeholder="Country"
+                      value={newTargetCountry}
+                      onChange={(e) => setNewTargetCountry(e.target.value)}
+                    />
+                    <div className="onb-flex-gap onb-target-add-actions">
+                      <button type="button" className="onb-btn onb-btn-ghost" onClick={() => setShowAddTargetLocationForm(false)}>
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="onb-btn onb-btn-primary onb-btn-primary--brand"
+                        style={{ borderRadius: 12, padding: "10px 18px" }}
+                        onClick={addTargetLocation}
+                        disabled={!newTargetCity.trim() || !newTargetCountry.trim()}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-                  {[
-                    ["Lahore", "Pakistan", "Primary"],
-                    ["Dubai", "United Arab Emirates", null],
-                  ].map(([city, country, badge], i) => (
-                    <div key={city as string} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderTop: i ? "1px solid #e2e8f0" : undefined }}>
-                      <div className="onb-flex-gap">
+                  {targetLocations.map(({ city, country }, i) => {
+                    const badge = i === 0 ? "Primary" : null;
+                    return (
+                    <div key={`${city}-${country}`} className="onb-target-list-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderTop: i ? "1px solid #e2e8f0" : undefined }}>
+                      <div className="onb-flex-gap onb-target-list-main">
                         <img src={ast.target.pin} alt="" width={26} height={26} />
                         <div>
-                          <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{city as string}</p>
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{city}</p>
                           <p className="onb-muted-sm" style={{ margin: 0, fontSize: 12 }}>
-                            {country as string}
+                            {country}
                           </p>
                         </div>
                       </div>
-                      <div className="onb-flex-gap">
+                      <div className="onb-flex-gap onb-target-list-meta">
                         {badge && (
                           <span style={{ background: "#efecf8", borderRadius: 8, padding: "2px 8px", fontSize: 12, color: "#64748b" }}>
-                            {badge as string}
+                            {badge}
                           </span>
                         )}
-                        <button type="button" className="onb-btn" style={{ padding: 6, borderRadius: 8 }}>
+                        <button
+                          type="button"
+                          className="onb-btn"
+                          style={{ padding: 6, borderRadius: 8 }}
+                          onClick={() => removeTargetLocation(city, country)}
+                          aria-label={`Remove ${city}, ${country}`}
+                        >
                           <img src={ast.workExp.trash} alt="" width={12} height={14} />
                         </button>
                       </div>
                     </div>
-                  ))}
+                  )})}
+                  {targetLocations.length === 0 ? (
+                    <div style={{ padding: 20, color: "#64748b", fontSize: 14 }}>No locations selected yet. Add one to continue.</div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1180,7 +1812,12 @@ export function OnboardingPage() {
               <button type="button" className="onb-btn onb-btn-ghost" onClick={back}>
                 Back
               </button>
-              <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand" onClick={next}>
+              <button
+                type="button"
+                className="onb-btn onb-btn-primary onb-btn-primary--brand"
+                onClick={next}
+                disabled={targetLocations.length === 0}
+              >
                 Continue
               </button>
             </div>
