@@ -1,6 +1,6 @@
 # Auth — Swipe Select
 
-Covers the three screens users see **before onboarding**: landing, sign-up, and sign-in (**email + password**; Google OAuth is **not shown** in the current UI).
+Covers the three screens users see **before onboarding**: landing, sign-up, and sign-in. **Email + password** is always available. **Google sign-in** appears on login (and optionally sign-up) when **`VITE_GOOGLE_CLIENT_ID`** is set in the environment (see `.env.example`).
 
 ---
 
@@ -59,7 +59,7 @@ Two-column layout with a sticky header and footer.
 - Primary **Sign Up** submit button
 - Legal disclaimer linking to Terms of Service and Privacy Policy
 
-**On submit:** `POST /api/auth/register` via `AuthContext.register`; on success the JWT is persisted and navigation goes to **`/onboarding`** (blocked if registration fails).
+**On submit:** `POST /api/auth/register` via `AuthContext.register`; on success the session is persisted (see **Session & backend user data** below) and navigation goes to **`/onboarding`** (blocked if registration fails).
 
 **Footer**
 - Copyright line
@@ -88,10 +88,30 @@ Single centered card layout.
 **Card footer**
 - "Don't have an account? Join Now" → `/signup`
 
-**After successful login:** navigate to **`/discover`** if `onboardingStep >= 2` (saved with the session payload), otherwise **`/onboarding`**.
+**After successful login:** navigate to **`/discover`** if `onboardingStep >= 13` (saved with the session payload; matches backend jobs gate), otherwise **`/onboarding`**.
 
 **Styles:** `src/pages/LoginPage.css`  
 **Assets:** `src/figma/authAssets.ts` (`loginAssets` — passwordToggle icon)
+
+---
+
+## Session & backend user data
+
+The client keeps auth state in **`localStorage`** under the key **`swipe-select-session`**, typed as **`AuthUserPayload`** in `src/api/types.ts`.
+
+| Field | Source |
+|---|---|
+| `token`, `_id`, `name`, `email`, `onboardingStep` | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/google` |
+| `profile`, `preferences` | Same auth responses **when the backend includes them** (mirrors the `User` document). Also merged from **`GET /api/auth/profile`** on app load (`refreshSession` in `AuthContext`). |
+
+Implementation:
+
+- **`normalizeAuthPayload`** (`src/auth/normalizeSession.ts`) — runs on successful register/login/Google; copies **`profile`** and **`preferences`** from the API `data` object when present.
+- **`mergeProfileIntoSession`** — runs after **`GET /api/auth/profile`**; updates identity fields plus **`profile`** / **`preferences`** without replacing the JWT.
+
+Onboarding can further update session from API responses: **`OnboardingPage`** sets **`profile`** after **`POST /api/onboarding/resume-extract`** and **`preferences`** (and **`onboardingStep`**) after **`POST /api/onboarding/preferences`**.
+
+The backend does **not** expose a separate “patch profile” endpoint for manual onboarding fields beyond what resume extract and preferences save; see `docs/onboarding.md` for contract notes.
 
 ---
 
@@ -118,7 +138,7 @@ Single centered card layout.
 
 /login (after successful sign-in)
   ├── onboarding incomplete → /onboarding
-  ├── onboarding complete (step ≥ 2) → /discover
+  ├── onboarding complete (step ≥ 13) → /discover
   └── Join Now link ─────────────────→ /signup
 ```
 

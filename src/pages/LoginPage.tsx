@@ -4,6 +4,7 @@ import { BRAND_NAME } from "../brand";
 import { loginAssets } from "../figma/authAssets";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { useAuth } from "../context/AuthContext";
+import { ONBOARDING_COMPLETE_STEP } from "../auth/onboardingStep";
 import { readSession } from "../auth/storage";
 import "./LoginPage.css";
 
@@ -12,7 +13,7 @@ const HAS_GOOGLE = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
 function landingAfterAuth() {
   const s = readSession();
   const step = s?.onboardingStep ?? 0;
-  return step >= 2 ? "/discover" : "/onboarding";
+  return step >= ONBOARDING_COMPLETE_STEP ? "/discover" : "/onboarding";
 }
 
 export function LoginPage() {

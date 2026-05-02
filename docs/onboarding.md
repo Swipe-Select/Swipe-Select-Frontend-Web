@@ -1,5 +1,24 @@
 # Onboarding — Swipe Select
 
+## Current Status (May 2026)
+
+This document contains legacy step details below. The current frontend behavior on `web-auth` differs in these important ways:
+
+- Resume upload success advances to the "You're almost ready to swipe" path and does not require the old "A little about you" progression.
+- "Fill out manually" routes into the manual onboarding path, and submit/continue actions are guarded by per-step validation.
+- `finish()` sends normalized preference data to `POST /api/onboarding/preferences`, including:
+  - `jobTitles`
+  - `targetCountries`
+  - `baseLocation` (from selected base location, not hardcoded empty)
+  - `workLocations` (from selected target locations)
+  - `workMode`, `jobTypes`, `experienceLevel`
+  - **`onboardingStep: 13`** — matches the backend jobs gate (`onboardingStep >= 13` for `GET /api/jobs/recommended`); see `src/auth/onboardingStep.ts`.
+- **Client session:** after a successful **resume extract**, **`profile`** in `localStorage` is updated from the API response **`data`**. After a successful **preferences** save, **`preferences`** and **`onboardingStep`** are updated from the response **`data`** (`AuthContext` / `src/auth/normalizeSession.ts` types in `src/api/types.ts`).
+- The application setup UI (country selection and selected-country section) was refreshed with improved interaction behavior and subtle motion.
+- Location UX is now general place search + explicit typed fallback behavior (not ZIP-only behavior).
+
+Important contract note: manual frontend currently submits onboarding preferences only. Full `profile` arrays (e.g., `skills`, `education`, `workExperience`, `projects`, `certifications`, `interests`) are not written by this endpoint in the backend contract. The identity-step `gender` value is also not sent to the API (the backend preferences schema has no `gender` field); resume extraction may still set `profile.gender` when the PDF includes it.
+
 Documents every step of the multi-screen onboarding flow that runs **after sign-up** when the user has a valid session. **`/onboarding` is protected** — unauthenticated users are sent to **`/login`**.
 
 ---

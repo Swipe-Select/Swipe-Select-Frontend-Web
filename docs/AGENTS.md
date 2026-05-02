@@ -28,7 +28,11 @@ This file is the authoritative reference for any AI agent or developer working o
 src/
   App.tsx                    # Root router (`ProtectedRoute` on onboarding + discover)
   components/ProtectedRoute.tsx   # JWT gate for private routes
-  main.tsx                   # Vite entry (`AuthProvider` wrapper)
+  main.tsx                   # Vite entry (`AuthProvider`, optional `GoogleOAuthProvider`)
+  api/types.ts               # `AuthUserPayload`, `UserProfile`, `UserPreferences` (mirror backend User)
+  api/jobs.ts                # GET recommended, POST refresh & swipe
+  auth/onboardingStep.ts     # ONBOARDING_COMPLETE_STEP (= 13)
+  auth/normalizeSession.ts   # `normalizeAuthPayload`, `mergeProfileIntoSession`, profile/prefs guards
   brand.ts                   # BRAND_NAME, BRAND_LOGO_SRC constants
   figma/
     authAssets.ts            # Login & Sign-up SVG/image URLs
@@ -92,8 +96,11 @@ See `docs/onboarding.md` for full step-by-step detail.
 
 ## Connectivity & known quirks
 
+- **`onboardingStep`:** finishing onboarding calls `POST /api/onboarding/preferences` with **`onboardingStep: 13`** (see `src/auth/onboardingStep.ts`). Login/Google redirect to **`/discover`** only when **`onboardingStep >= 13`**, matching the backend jobs API gate.
+- **Session rehydration:** `AuthProvider` calls **`GET /api/auth/profile`** on load when a token exists (`refreshSession` in `AuthContext`), merges **`onboardingStep`**, name, email, and full **`profile`** / **`preferences`** into `localStorage` via `mergeProfileIntoSession` (`src/auth/normalizeSession.ts`). Register/login/Google responses also persist **`profile`** and **`preferences`** when the API returns them (`normalizeAuthPayload`). After resume extract and after saving preferences, `OnboardingPage` updates those objects in session from the response **`data`**.
+- **`/discover`:** `JobSwipePage` uses **`GET /api/jobs/recommended`**, **`POST /api/jobs/refresh`**, and **`POST /api/jobs/:jobId/swipe`** (`src/api/jobs.ts`). **`401`** clears the session and sends the user to **`/login`**. Pass / save / apply map to **`pass`**, **`like`**, **`apply`**.
 - **`View Profile`** on `/onboarding/complete` navigates to **`/`** (Welcome). There is **no `/profile` route yet** — copy on that button describes “completed profile”; product may add a dedicated profile route later.
-- **Google OAuth** is wired in **`AuthContext` / backend** but the **Google button + `GoogleOAuthProvider` were removed from the UI** temporarily; flows are **email + password only** in-app.
+- **Google OAuth:** wired in **`AuthContext`** and the backend; the **Google** button shows on login/sign-up when **`VITE_GOOGLE_CLIENT_ID`** is set (`GoogleOAuthProvider` in `src/main.tsx`).
 - **Backend vs docs:** onboarding **resume extraction** accepts **PDF, 5 MB**; older copy sometimes mentioned DOCX/10 MB — **`docs/onboarding.md`** aligns with implementation.
 
 ## Brand & design conventions

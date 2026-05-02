@@ -2,19 +2,22 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
 import { flushSync } from 'react-dom';
 import type { AuthUserPayload } from '../api/types';
-import { loginUser, loginWithGoogle, registerUser } from '../api/auth';
-import { normalizeAuthPayload } from '../auth/normalizeSession';
+import { fetchUserProfile, loginUser, loginWithGoogle, registerUser } from '../api/auth';
+import { mergeProfileIntoSession, normalizeAuthPayload } from '../auth/normalizeSession';
 import { clearSession, readSession, writeSession } from '../auth/storage';
 
 type AuthCtx = {
   session: AuthUserPayload | null;
   setSession: (s: AuthUserPayload | null) => void;
+  /** Re-fetch `GET /api/auth/profile` and merge into session (updates onboardingStep, name, etc.). */
+  refreshSession: () => Promise<void>;
   register: (payload: {
     name: string;
     email: string;
@@ -52,6 +55,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     writeSession(s);
     setSessionState(s);
   }, []);
+
+  const refreshSession = useCallback(async () => {
+    const s = readSession();
+    if (!s?.token?.trim()) return;
+    const { ok, status, json } = await fetchUserProfile(s.token);
+    if (status === 401) {
+      clearSession();
+      setSessionState(null);
+      return;
+    }
+    if (!ok || !json || typeof json !== 'object' || !('success' in json)) return;
+    if (!(json as { success: boolean }).success) return;
+    const data = (json as { data?: unknown }).data;
+    if (!data || typeof data !== 'object') return;
+    const next = mergeProfileIntoSession(s, data);
+    writeSession(next);
+    setSessionState(next);
+  }, []);
+
+  useEffect(() => {
+    void refreshSession();
+  }, [refreshSession]);
 
   const register = useCallback(
     async (payload: { name: string; email: string; password: string }) => {
@@ -107,12 +132,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       setSession,
+      refreshSession,
       register,
       login,
       googleLogin: googleLoginFn,
       logout,
     }),
-    [session, setSession, register, login, googleLoginFn, logout],
+    [session, setSession, refreshSession, register, login, googleLoginFn, logout],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

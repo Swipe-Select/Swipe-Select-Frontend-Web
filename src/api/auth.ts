@@ -21,3 +21,11 @@ export async function loginWithGoogle(idToken: string) {
     body: JSON.stringify({ idToken }),
   });
 }
+
+/** Current user document (no token in body). */
+export async function fetchUserProfile(token: string) {
+  return apiJson<Record<string, unknown>>('/api/auth/profile', {
+    method: 'GET',
+    token,
+  });
+}

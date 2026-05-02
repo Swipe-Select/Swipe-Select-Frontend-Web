@@ -385,6 +385,134 @@
   gap: 12px;
 }
 
+.job-swipe-toolbar {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 24px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.job-swipe-refresh {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4648d4;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.job-swipe-refresh:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.job-swipe-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.job-swipe-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #64748b;
+  padding: 48px 24px;
+}
+
+.job-swipe-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.job-swipe-empty-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.job-swipe-empty-copy {
+  margin: 0;
+  font-size: 15px;
+  color: #64748b;
+  line-height: 24px;
+}
+
+.job-swipe-empty-cta {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  border-radius: 9999px;
+  background: #4648d4;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.job-swipe-empty-cta:hover {
+  filter: brightness(1.05);
+}
+
+.job-swipe-empty-cta--btn {
+  /* same as link variant */
+}
+
+.job-swipe-banner {
+  width: 100%;
+  max-width: 576px;
+  margin: 0 auto 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f5f2fe;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.job-swipe-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.job-swipe-skill-pill {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4648d4;
+  background: #f5f2fe;
+  padding: 4px 10px;
+  border-radius: 9999px;
+}
+
+.job-swipe-similar-card--static {
+  cursor: default;
+}
+
+.job-swipe-similar-card--static:hover {
+  background: #fff;
+}
+
 @media (max-width: 1100px) {
   .job-swipe-layout {
     flex-direction: column;

@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { BRAND_NAME } from "../brand";
 import { onboardingAssets as ast } from "../figma/onboardingAssets";
 import { extractResumePdf, savePreferences } from "../api/onboarding";
+import { ONBOARDING_COMPLETE_STEP } from "../auth/onboardingStep";
+import { asUserPreferences, asUserProfile } from "../auth/normalizeSession";
 import { useAuth } from "../context/AuthContext";
 import "./OnboardingPage.css";
 
@@ -430,7 +432,12 @@ export function OnboardingPage() {
         setStepError(null);
         setStep(5);
         if (session) {
-          setSession({ ...session, onboardingStep: 1 });
+          const profile = asUserProfile(json.data);
+          setSession({
+            ...session,
+            onboardingStep: 1,
+            ...(profile !== undefined ? { profile } : {}),
+          });
         }
       } catch {
         setResumeErr("Resume upload failed. Please try again.");
@@ -456,7 +463,6 @@ export function OnboardingPage() {
     setPrefsBusy(true);
     const { ok, json } = await savePreferences(
       {
-        gender,
         jobTitles: normalizeList(roles),
         targetCountries: normalizeList(selectedCountries),
         baseLocation: normalizedBaseLocation,
@@ -464,7 +470,7 @@ export function OnboardingPage() {
         workMode: [workPrefLabel(workPref)],
         jobTypes: normalizeList(employment),
         experienceLevel: normalizeList(experience),
-        onboardingStep: 2,
+        onboardingStep: ONBOARDING_COMPLETE_STEP,
       },
       session.token,
     );
@@ -478,12 +484,16 @@ export function OnboardingPage() {
       return;
     }
     const prefsData =
-      json.success && typeof json === 'object' && 'data' in json ? (json.data as { onboardingStep?: number }) : {};
-    const nextStep = prefsData.onboardingStep ?? 2;
+      json.success && typeof json === 'object' && 'data' in json
+        ? (json.data as { onboardingStep?: number; preferences?: unknown })
+        : {};
+    const nextStep = prefsData.onboardingStep ?? ONBOARDING_COMPLETE_STEP;
+    const preferences = asUserPreferences(prefsData.preferences);
     if (session) {
       setSession({
         ...session,
         onboardingStep: nextStep,
+        ...(preferences !== undefined ? { preferences } : {}),
       });
     }
     navigate('/onboarding/complete');
@@ -491,7 +501,6 @@ export function OnboardingPage() {
     navigate,
     session,
     setSession,
-    gender,
     roles,
     workPref,
     employment,
