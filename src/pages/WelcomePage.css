@@ -13,7 +13,7 @@
   margin: 0 auto;
   width: 100%;
   min-height: 0;
-  padding: clamp(28px, 4vmin, 64px);
+  padding: clamp(20px, 2.2vmin, 36px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -54,7 +54,7 @@
 
 .welcome-description {
   max-width: 512px;
-  margin: 42px 0 48px;
+  margin: 24px 0 28px;
   color: #64748b;
   font-size: 18px;
   line-height: 28px;
@@ -91,31 +91,18 @@
   min-width: 0;
   max-width: 540px;
   position: relative;
-  padding-bottom: 108px;
+  padding-bottom: 48px;
 }
 
-.welcome-card-back {
-  position: absolute;
-  inset: 48px 7.5% -48px;
-  border-radius: 32px;
-  background: #dbd8e4;
-  border: 1px solid #c7c4d7;
-  opacity: 0.4;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.welcome-card-middle {
-  position: absolute;
-  inset: 24px 4% -24px;
-  border-radius: 32px;
-  background: #efecf8;
-  border: 1px solid #c7c4d7;
-  opacity: 0.7;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-}
-
-.welcome-card-front {
+.welcome-card-stack {
+  --swipeProgress: 0;
   position: relative;
+  min-height: 590px;
+}
+
+.welcome-card {
+  position: absolute;
+  inset: 0;
   border-radius: 32px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
@@ -124,6 +111,100 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  transition: transform var(--motion-duration-section, 240ms) var(--motion-ease-standard, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity var(--motion-duration-section, 240ms) ease, box-shadow var(--motion-duration-section, 240ms) ease;
+}
+
+.welcome-card-layer-1 {
+  transform: translateY(calc(18px - (var(--swipeProgress) * 10px)))
+    scale(calc(0.97 + (var(--swipeProgress) * 0.02)));
+  opacity: calc(0.78 + (var(--swipeProgress) * 0.12));
+  z-index: 2;
+}
+
+.welcome-card-layer-2 {
+  transform: translateY(calc(34px - (var(--swipeProgress) * 8px)))
+    scale(calc(0.94 + (var(--swipeProgress) * 0.02)));
+  opacity: calc(0.55 + (var(--swipeProgress) * 0.12));
+  z-index: 1;
+}
+
+.welcome-card-front {
+  --dragX: 0px;
+  --dragRotate: 0deg;
+  --passOpacity: 0;
+  --applyOpacity: 0;
+  transform: translateX(var(--dragX)) rotate(var(--dragRotate));
+  z-index: 3;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.17);
+}
+
+.welcome-card-front.is-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+.welcome-card-front.is-returning {
+  transition: transform var(--motion-duration-section, 240ms) var(--motion-ease-standard, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.welcome-card-front.is-swiping-left {
+  animation: welcomeSwipeLeft var(--motion-duration-route, 280ms) var(--motion-ease-standard, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
+}
+
+.welcome-card-front.is-swiping-right {
+  animation: welcomeSwipeRight var(--motion-duration-route, 280ms) var(--motion-ease-standard, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
+}
+
+@keyframes welcomeSwipeLeft {
+  from {
+    transform: translateX(var(--dragX)) rotate(var(--dragRotate));
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-150%) rotate(-16deg);
+    opacity: 0;
+  }
+}
+
+.welcome-swipe-cue {
+  position: absolute;
+  top: 28px;
+  border: 2px solid currentColor;
+  border-radius: 12px;
+  padding: 6px 14px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  pointer-events: none;
+}
+
+.welcome-swipe-cue-pass {
+  left: 24px;
+  color: #e11d48;
+  transform: rotate(-11deg);
+  opacity: var(--passOpacity);
+}
+
+.welcome-swipe-cue-apply {
+  right: 24px;
+  color: #16a34a;
+  transform: rotate(11deg);
+  opacity: var(--applyOpacity);
+}
+
+@keyframes welcomeSwipeRight {
+  from {
+    transform: translateX(var(--dragX)) rotate(var(--dragRotate));
+    opacity: 1;
+  }
+  to {
+    transform: translateX(150%) rotate(16deg);
+    opacity: 0;
+  }
 }
 
 .welcome-match-badge {
@@ -262,6 +343,7 @@
   background: #ffffff;
   border: 1px solid #e2e8f0;
   color: #64748b;
+  cursor: pointer;
 }
 
 .welcome-btn-pass:hover {
@@ -273,10 +355,17 @@
   color: #ffffff;
   border: 1px solid transparent;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 
 .welcome-btn-apply:hover {
   background: #3d3fbc;
+}
+
+.welcome-btn-pass:disabled,
+.welcome-btn-apply:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .welcome-floating-hint {
@@ -296,7 +385,7 @@
 
 @media (max-width: 1280px) {
   .welcome-main {
-    padding: 48px 32px;
+    padding: 28px 24px;
     gap: 36px;
   }
 
@@ -327,7 +416,7 @@
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
-    padding: 40px 20px 80px;
+    padding: 24px 16px 28px;
   }
 
   .welcome-copy,
@@ -375,6 +464,15 @@
 
   .welcome-card-front {
     padding: 24px;
+  }
+
+  .welcome-swipe-cue {
+    top: 22px;
+    font-size: 16px;
+  }
+
+  .welcome-card-stack {
+    min-height: 560px;
   }
 
   .welcome-card-body h2 {

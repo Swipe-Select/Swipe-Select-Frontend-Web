@@ -1,6 +1,8 @@
 # Swipe Select — Web frontend
 
-React (Vite) client for **Swipe Select**. It talks **only** to the **Swipe-Select-Backend** API (not the Python scraper). See **`docs/AGENTS.md`** for structure, routes, and integration rules.
+React (Vite) client for **Swipe Select**. It uses the **Swipe-Select-Backend** API only (not the Python scraper). See **`docs/AGENTS.md`** for structure and integration.
+
+**Shipped in this repo:** email/password auth with **`localStorage`** session and **`GET /api/auth/profile`** rehydration; optional Google sign-in via env; **Welcome** swipeable job cards; **route slide transitions**; onboarding steps **0–12** with resume extract, preferences save, completion at **`onboardingStep: 13`**; **Discover** job swipe (`GET/POST` jobs API); **navbar Logout** after onboarding complete.
 
 ## Quick links
 

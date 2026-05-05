@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(24px, 8vmin, 96px) 32px;
+  padding: clamp(14px, 4vmin, 44px) 24px;
   box-sizing: border-box;
 }
 
@@ -25,10 +25,10 @@
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.04);
-  padding: 41px;
+  padding: 30px;
   display: flex;
   flex-direction: column;
-  gap: 31px;
+  gap: 20px;
   box-sizing: border-box;
 }
 

@@ -11,8 +11,18 @@ import "./OnboardingPage.css";
 
 type GenderId = "female" | "male" | "nonbinary";
 type OnboardingEntryMode = "resume" | "manual" | null;
+type WorkPrefId = "remote" | "hybrid" | "office";
+type WorkExperienceEntry = {
+  id: string;
+  title: string;
+  employer: string;
+  startMonth: string;
+  endMonth: string | null;
+  location: string;
+  description: string;
+};
 
-function workPrefLabel(w: "remote" | "hybrid" | "office") {
+function workPrefLabel(w: WorkPrefId) {
   if (w === "remote") return "Remote";
   if (w === "hybrid") return "Hybrid";
   return "In Person";
@@ -72,15 +82,6 @@ const COUNTRY_OPTIONS = [
   "Vietnam",
 ];
 
-const VISA_STATUS_OPTIONS = [
-  "Citizen / Permanent Resident",
-  "Requires Visa Sponsorship",
-  "Work Visa Holder",
-  "Student Visa",
-  "Dependent Visa",
-  "Other / Prefer not to say",
-];
-
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { session, setSession } = useAuth();
@@ -99,9 +100,9 @@ export function OnboardingPage() {
     appInfo: false,
   });
   const [roles, setRoles] = useState<string[]>(["Software Engineer", "Product Manager"]);
-  const [workPref, setWorkPref] = useState<"remote" | "hybrid" | "office">("hybrid");
+  const [workPrefs, setWorkPrefs] = useState<WorkPrefId[]>(["hybrid"]);
   const [employment, setEmployment] = useState<string[]>(["Full Time"]);
-  const [experience, setExperience] = useState<string[]>(["Entry Level Professional", "Mid-Level Professional"]);
+  const [experienceLevel, setExperienceLevel] = useState("");
   const [personalFullName, setPersonalFullName] = useState("");
   const [personalEmail, setPersonalEmail] = useState("");
   const [personalDialCode, setPersonalDialCode] = useState("+1");
@@ -113,8 +114,9 @@ export function OnboardingPage() {
   const [workEndMonth, setWorkEndMonth] = useState("");
   const [workLocation, setWorkLocation] = useState("");
   const [workDescription, setWorkDescription] = useState("");
+  const [workExperiences, setWorkExperiences] = useState<WorkExperienceEntry[]>([]);
   const [countrySearch, setCountrySearch] = useState("");
-  const [selectedCountries, setSelectedCountries] = useState<string[]>(["United States", "United Kingdom"]);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState("");
   const [selectedBaseLocation, setSelectedBaseLocation] = useState("New York, New York, US");
   const [locationBusy, setLocationBusy] = useState(false);
@@ -122,17 +124,9 @@ export function OnboardingPage() {
   const [locationResults, setLocationResults] = useState<
     Array<{ label: string; city: string; region: string; source: "photon" | "nominatim" }>
   >([]);
-  const [targetLocations, setTargetLocations] = useState<Array<{ city: string; country: string }>>([
-    { city: "Lahore", country: "Pakistan" },
-    { city: "Dubai", country: "United Arab Emirates" },
-  ]);
-  const [showAddTargetLocationForm, setShowAddTargetLocationForm] = useState(false);
+  const [targetLocations, setTargetLocations] = useState<Array<{ city: string; country: string }>>([]);
   const [newTargetCity, setNewTargetCity] = useState("");
   const [newTargetCountry, setNewTargetCountry] = useState("");
-  const [countryVisaStatus, setCountryVisaStatus] = useState<Record<string, string>>({
-    "United States": "Citizen / Permanent Resident",
-    "United Kingdom": "Requires Visa Sponsorship",
-  });
   const filteredCountries = COUNTRY_OPTIONS.filter((country) =>
     country.toLowerCase().includes(countrySearch.trim().toLowerCase()),
   );
@@ -204,6 +198,49 @@ export function OnboardingPage() {
     },
     [scoreLocationMatch],
   );
+
+  const isCurrentWorkExperienceComplete =
+    workTitle.trim().length > 1 &&
+    workEmployer.trim().length > 1 &&
+    Boolean(workStartMonth) &&
+    (workPresentRole || Boolean(workEndMonth)) &&
+    workLocation.trim().length > 1 &&
+    workDescription.trim().length > 10;
+
+  const addWorkExperienceEntry = useCallback(() => {
+    if (!isCurrentWorkExperienceComplete) {
+      setStepError("Please complete all work experience fields before adding.");
+      return false;
+    }
+    const nextEntry: WorkExperienceEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: workTitle.trim(),
+      employer: workEmployer.trim(),
+      startMonth: workStartMonth,
+      endMonth: workPresentRole ? null : workEndMonth,
+      location: workLocation.trim(),
+      description: workDescription.trim(),
+    };
+    setWorkExperiences((current) => [...current, nextEntry]);
+    setWorkTitle("");
+    setWorkEmployer("");
+    setWorkStartMonth("");
+    setWorkPresentRole(true);
+    setWorkEndMonth("");
+    setWorkLocation("");
+    setWorkDescription("");
+    setStepError(null);
+    return true;
+  }, [
+    isCurrentWorkExperienceComplete,
+    workDescription,
+    workEmployer,
+    workEndMonth,
+    workLocation,
+    workPresentRole,
+    workStartMonth,
+    workTitle,
+  ]);
 
   useEffect(() => {
     const q = locationSearch.trim();
@@ -309,6 +346,10 @@ export function OnboardingPage() {
   const next = useCallback(() => {
     setStep((currentStep) => {
       if (currentStep === 1) {
+        if (resumeBusy) {
+          setStepError("Please wait until resume upload is complete.");
+          return currentStep;
+        }
         if (resumeOk) {
           setStepError(null);
           return 5;
@@ -332,15 +373,28 @@ export function OnboardingPage() {
       }
 
       if (currentStep === 4) {
-        const hasTitle = workTitle.trim().length > 1;
-        const hasEmployer = workEmployer.trim().length > 1;
-        const hasStart = Boolean(workStartMonth);
-        const hasEnd = workPresentRole || Boolean(workEndMonth);
-        const hasLocation = workLocation.trim().length > 1;
-        const hasDescription = workDescription.trim().length > 10;
-        if (!hasTitle || !hasEmployer || !hasStart || !hasEnd || !hasLocation || !hasDescription) {
-          setStepError("Please complete your work experience details before continuing.");
+        if (!isCurrentWorkExperienceComplete && workExperiences.length === 0) {
+          setStepError("Add at least one complete work experience to continue.");
           return currentStep;
+        }
+        if (isCurrentWorkExperienceComplete) {
+          const nextEntry: WorkExperienceEntry = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            title: workTitle.trim(),
+            employer: workEmployer.trim(),
+            startMonth: workStartMonth,
+            endMonth: workPresentRole ? null : workEndMonth,
+            location: workLocation.trim(),
+            description: workDescription.trim(),
+          };
+          setWorkExperiences((current) => [...current, nextEntry]);
+          setWorkTitle("");
+          setWorkEmployer("");
+          setWorkStartMonth("");
+          setWorkPresentRole(true);
+          setWorkEndMonth("");
+          setWorkLocation("");
+          setWorkDescription("");
         }
       }
 
@@ -359,13 +413,18 @@ export function OnboardingPage() {
         return currentStep;
       }
 
+      if (currentStep === 10 && workPrefs.length === 0) {
+        setStepError("Select at least one work preference to continue.");
+        return currentStep;
+      }
+
       if (currentStep === 11 && employment.length === 0) {
         setStepError("Select at least one employment model to continue.");
         return currentStep;
       }
 
-      if (currentStep === 12 && experience.length === 0) {
-        setStepError("Select at least one experience level to continue.");
+      if (currentStep === 12 && !experienceLevel) {
+        setStepError("Select one experience level to continue.");
         return currentStep;
       }
 
@@ -374,6 +433,7 @@ export function OnboardingPage() {
     });
   }, [
     entryMode,
+    resumeBusy,
     resumeOk,
     personalFullName,
     personalEmail,
@@ -385,11 +445,14 @@ export function OnboardingPage() {
     workEndMonth,
     workLocation,
     workDescription,
+    isCurrentWorkExperienceComplete,
+    workExperiences.length,
     roles.length,
     selectedCountries.length,
     targetLocations.length,
     employment.length,
-    experience.length,
+    experienceLevel,
+    workPrefs.length,
   ]);
   const back = useCallback(() => {
     setStepError(null);
@@ -430,7 +493,6 @@ export function OnboardingPage() {
         setResumeOk(true);
         setEntryMode("resume");
         setStepError(null);
-        setStep(5);
         if (session) {
           const profile = asUserProfile(json.data);
           setSession({
@@ -467,9 +529,9 @@ export function OnboardingPage() {
         targetCountries: normalizeList(selectedCountries),
         baseLocation: normalizedBaseLocation,
         workLocations: normalizedWorkLocations,
-        workMode: [workPrefLabel(workPref)],
+        workMode: normalizeList(workPrefs.map((pref) => workPrefLabel(pref))),
         jobTypes: normalizeList(employment),
-        experienceLevel: normalizeList(experience),
+        experienceLevel: experienceLevel ? [experienceLevel] : [],
         onboardingStep: ONBOARDING_COMPLETE_STEP,
       },
       session.token,
@@ -502,9 +564,9 @@ export function OnboardingPage() {
     session,
     setSession,
     roles,
-    workPref,
+    workPrefs,
     employment,
-    experience,
+    experienceLevel,
     selectedCountries,
     selectedBaseLocation,
     targetLocations,
@@ -518,15 +580,12 @@ export function OnboardingPage() {
     setEmployment((r) => (r.includes(name) ? r.filter((x) => x !== name) : [...r, name]));
   };
 
-  const toggleExperience = (name: string) => {
-    setExperience((r) => (r.includes(name) ? r.filter((x) => x !== name) : [...r, name]));
+  const selectExperienceLevel = (name: string) => {
+    setExperienceLevel(name);
   };
 
   const addCountry = (country: string) => {
     setSelectedCountries((current) => (current.includes(country) ? current : [...current, country]));
-    setCountryVisaStatus((current) =>
-      current[country] ? current : { ...current, [country]: "Requires Visa Sponsorship" },
-    );
   };
 
   const removeCountry = (country: string) => {
@@ -547,7 +606,6 @@ export function OnboardingPage() {
     });
     setNewTargetCity("");
     setNewTargetCountry("");
-    setShowAddTargetLocationForm(false);
   };
 
   const removeTargetLocation = (city: string, country: string) => {
@@ -601,7 +659,18 @@ export function OnboardingPage() {
   );
 
   return (
-    <div className="onb page-fill">
+    <div
+      className={`onb page-fill${step === 8 ? " onb--loc-step" : ""}${step === 9 ? " onb--target-step" : ""}`}
+      style={
+        step === 8 || step === 9
+          ? {
+              height: "calc(100dvh - var(--app-navbar-height))",
+              maxHeight: "calc(100dvh - var(--app-navbar-height))",
+              overflow: "hidden",
+            }
+          : undefined
+      }
+    >
       {stepError ? (
         <div
           role="alert"
@@ -620,6 +689,7 @@ export function OnboardingPage() {
           {stepError}
         </div>
       ) : null}
+      <div key={step} className="onb-step-stage">
       {step === 0 && (
         <>
           <div className="onb-gender-layout">
@@ -718,8 +788,8 @@ export function OnboardingPage() {
                     </p>
                   ) : null}
                   {resumeOk ? (
-                    <p style={{ margin: "0 0 16px", fontSize: 14, color: "#15803d" }}>
-                      Resume parsed and saved to your profile.
+                    <p className="onb-resume-success-note">
+                      Resume processed successfully. Click Continue when you are ready.
                     </p>
                   ) : null}
                   <div className="onb-or-row">
@@ -870,11 +940,11 @@ export function OnboardingPage() {
               </button>
               <button
                 type="button"
-                className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap"
+                className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap onb-btn-continue"
                 disabled={resumeBusy || (!resumeOk && entryMode !== "manual")}
                 onClick={next}
               >
-                Continue
+                {resumeBusy ? "Uploading..." : "Continue"}
                 <img src={ast.resume.forwardArrow} alt="" width={13} height={13} />
               </button>
             </div>
@@ -1209,10 +1279,38 @@ export function OnboardingPage() {
                 </div>
               </div>
 
-              <button type="button" className="onb-btn onb-we-add">
+              <button type="button" className="onb-btn onb-we-add" onClick={addWorkExperienceEntry}>
                 <img src={ast.workExp.add} alt="" width={14} height={14} />
                 Add Work Experience
               </button>
+
+              {workExperiences.length > 0 ? (
+                <div className="onb-we-added-list" aria-live="polite">
+                  {workExperiences.map((entry) => (
+                    <article key={entry.id} className="onb-we-added-card">
+                      <div className="onb-we-added-head">
+                        <h3>
+                          {entry.title} at {entry.employer}
+                        </h3>
+                        <button
+                          type="button"
+                          className="onb-btn onb-we-remove"
+                          onClick={() =>
+                            setWorkExperiences((current) => current.filter((item) => item.id !== entry.id))
+                          }
+                          aria-label={`Remove ${entry.title} at ${entry.employer}`}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <p className="onb-muted-sm">
+                        {entry.startMonth} - {entry.endMonth ?? "Present"} | {entry.location}
+                      </p>
+                      <p className="onb-muted-sm">{entry.description}</p>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
 
               <div className="onb-btn-row onb-we-actions">
                 <button type="button" className="onb-btn onb-btn-ghost" onClick={back}>
@@ -1414,12 +1512,6 @@ export function OnboardingPage() {
               </div>
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                 {selectedCountries.map((name) => {
-                  const visa = countryVisaStatus[name] ?? "Requires Visa Sponsorship";
-                  const isCitizen = visa === "Citizen / Permanent Resident";
-                  const infoImg = isCitizen ? ast.country.infoBlue : ast.country.infoAmber;
-                  const bg = isCitizen ? "#eff6ff" : "#fffbeb";
-                  const border = isCitizen ? "#dbeafe" : "#fef3c7";
-                  const color = isCitizen ? "#1e3a8a" : "#78350f";
                   return (
                   <div key={name} className="onb-country-selected-card" style={{ flex: "1 1 340px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 21, boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}>
                     <div className="onb-flex-gap" style={{ justifyContent: "space-between", marginBottom: 24 }}>
@@ -1438,30 +1530,13 @@ export function OnboardingPage() {
                         <img src={ast.country.close} alt="" width={13} height={15} />
                       </button>
                     </div>
-                    <p style={{ fontSize: 12, fontWeight: 500, letterSpacing: "0.6px", color: "#64748b", margin: "0 0 6px", fontFamily: "Inter, sans-serif" }}>VISA STATUS</p>
-                    <div style={{ position: "relative", marginBottom: 16 }}>
-                      <select
-                        className="onb-input onb-select"
-                        style={{ borderRadius: 6, background: "#f1f5f9", fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500, paddingRight: 36 }}
-                        value={visa}
-                        onChange={(e) =>
-                          setCountryVisaStatus((current) => ({ ...current, [name]: e.target.value }))
-                        }
-                        aria-label={`${name} visa status`}
-                      >
-                        {VISA_STATUS_OPTIONS.map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="onb-flex-gap" style={{ alignItems: "flex-start", background: bg, border: `1px solid ${border}`, borderRadius: 6, padding: 13 }}>
-                      <img src={infoImg} alt="" width={18} height={18} />
-                      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color, fontFamily: "Inter, sans-serif" }}>
-                        {isCitizen
-                          ? `You marked ${name} as citizen/permanent resident, so your profile will show that sponsorship is not required there.`
-                          : `You marked ${name} as requiring visa support or a non-citizen status, so employers can assess sponsorship eligibility accordingly.`}
+                    <div
+                      className="onb-flex-gap"
+                      style={{ alignItems: "flex-start", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: 13 }}
+                    >
+                      <img src={ast.country.infoBlue} alt="" width={18} height={18} />
+                      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: "#334155", fontFamily: "Inter, sans-serif" }}>
+                        Selected for job discovery and matching preferences.
                       </p>
                     </div>
                   </div>
@@ -1488,29 +1563,10 @@ export function OnboardingPage() {
       )}
 
       {step === 8 && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: "1 1 auto",
-            minHeight: 0,
-            width: "100%",
-          }}
-        >
-          <div
-            className="onb-country-head"
-            style={{
-              boxShadow: "0 1px 1px rgba(0,0,0,0.05)",
-              justifyContent: "flex-end",
-            }}
-          >
-            <button type="button" className="onb-btn" aria-label="Close" onClick={() => navigate("/onboarding/complete")}>
-              <img src={ast.location.close} alt="" width={20} height={20} />
-            </button>
-          </div>
+        <div className="onb-loc-step-shell">
           <div className="onb-loc-split">
             <div className="onb-loc-side">
-              <div style={{ padding: 32, flex: 1, overflowY: "auto" }}>
+              <div className="onb-loc-side-scroll">
                 <button
                   type="button"
                   className="onb-btn"
@@ -1667,11 +1723,10 @@ export function OnboardingPage() {
                   </>
                 ) : null}
               </div>
-              <div style={{ borderTop: "1px solid #e2e8f0", padding: "33px 32px 32px" }}>
+              <div className="onb-loc-side-actions">
                 <button
                   type="button"
-                  className="onb-btn onb-flex-gap"
-                  style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 48, padding: "13px", marginBottom: 16, fontWeight: 600, justifyContent: "center" }}
+                  className="onb-btn onb-flex-gap onb-loc-action-secondary"
                   onClick={() => setSelectedBaseLocation("Current Location")}
                 >
                   <img src={ast.location.locate} alt="" width={22} height={22} />
@@ -1679,8 +1734,7 @@ export function OnboardingPage() {
                 </button>
                 <button
                   type="button"
-                  className="onb-btn onb-btn-primary onb-btn-primary--brand"
-                  style={{ width: "100%", borderRadius: 48, padding: "13px" }}
+                  className="onb-btn onb-btn-primary onb-btn-primary--brand onb-loc-action-primary"
                   onClick={next}
                   disabled={!selectedBaseLocation}
                 >
@@ -1719,86 +1773,103 @@ export function OnboardingPage() {
       )}
 
       {step === 9 && (
-        <>
-          <div className="onb-step-help-bar">
-            <button type="button" className="onb-btn" style={{ padding: 8, borderRadius: 8 }}>
-              <img src={ast.target.help} alt="Help" width={17} height={17} />
-            </button>
-          </div>
-          <div className="onb-target onb-main-pad">
-            <div style={{ borderBottom: "1px solid #e2e8f0", paddingBottom: 25, marginBottom: 32 }}>
-              <h1 className="onb-h1" style={{ fontSize: 24, letterSpacing: "-0.24px" }}>
-                Target Locations
-              </h1>
-              <p className="onb-muted-sm" style={{ marginTop: 4, fontSize: 13, maxWidth: 420 }}>
-                Manage the cities or regions where you&apos;re open to new opportunities.
-              </p>
-            </div>
-            <div className="onb-target-grid">
-              <div>
-                <div className="onb-flex-gap onb-target-head-row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Selected Locations</h3>
+        <div className="onb-target-shell">
+          <div className="onb-target-split">
+            <div className="onb-target-side">
+              <div className="onb-target-side-scroll">
+                <div className="onb-flex-gap" style={{ justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
                   <button
                     type="button"
-                    className="onb-btn onb-flex-gap onb-target-add-btn"
-                    style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 13px", boxShadow: "0 1px 1px rgba(0,0,0,0.05)", color: "#4648d4", fontWeight: 600, fontSize: 14 }}
-                    onClick={() => setShowAddTargetLocationForm((current) => !current)}
-                    aria-expanded={showAddTargetLocationForm}
+                    className="onb-btn"
+                    style={{ width: 40, height: 40, border: "1px solid #e2e8f0", borderRadius: 9999 }}
+                    onClick={back}
+                    aria-label="Back"
                   >
-                    <img src={ast.target.add} alt="" width={9} height={9} />
-                    Add location
+                    <img src={ast.location.backCircle} alt="" width={16} height={16} />
                   </button>
                 </div>
-                {showAddTargetLocationForm ? (
-                  <div className="onb-target-add-form">
-                    <input
-                      className="onb-input"
-                      placeholder="City"
-                      value={newTargetCity}
-                      onChange={(e) => setNewTargetCity(e.target.value)}
-                    />
-                    <input
-                      className="onb-input"
-                      placeholder="Country"
-                      value={newTargetCountry}
-                      onChange={(e) => setNewTargetCountry(e.target.value)}
-                    />
-                    <div className="onb-flex-gap onb-target-add-actions">
-                      <button type="button" className="onb-btn onb-btn-ghost" onClick={() => setShowAddTargetLocationForm(false)}>
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className="onb-btn onb-btn-primary onb-btn-primary--brand"
-                        style={{ borderRadius: 12, padding: "10px 18px" }}
-                        onClick={addTargetLocation}
-                        disabled={!newTargetCity.trim() || !newTargetCountry.trim()}
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-                <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-                  {targetLocations.map(({ city, country }, i) => {
-                    const badge = i === 0 ? "Primary" : null;
+                <h1 className="onb-h1">Where do you want to work next?</h1>
+                <p className="onb-sub" style={{ marginTop: 8 }}>
+                  These are your preferred opportunity locations, not your current base location.
+                </p>
+
+                <div className="onb-target-add-form" style={{ marginTop: 20 }}>
+                  <input
+                    className="onb-input"
+                    placeholder="City"
+                    value={newTargetCity}
+                    onChange={(e) => setNewTargetCity(e.target.value)}
+                  />
+                  <input
+                    className="onb-input"
+                    placeholder="Country"
+                    value={newTargetCountry}
+                    onChange={(e) => setNewTargetCountry(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="onb-btn onb-btn-primary onb-btn-primary--brand"
+                    style={{ borderRadius: 12, padding: "10px 18px" }}
+                    onClick={addTargetLocation}
+                    disabled={!newTargetCity.trim() || !newTargetCountry.trim()}
+                  >
+                    Add
+                  </button>
+                </div>
+
+                <p style={{ margin: "20px 0 12px", fontWeight: 700, fontSize: 16 }}>Suggested targets</p>
+                <div className="onb-target-suggested">
+                  {popularLocations.map(({ city, region }) => {
+                    const normalizedCountry = region.split(",").slice(-1)[0]?.trim() || region.trim();
+                    const exists = targetLocations.some(
+                      (entry) =>
+                        entry.city.toLowerCase() === city.toLowerCase() &&
+                        entry.country.toLowerCase() === normalizedCountry.toLowerCase(),
+                    );
                     return (
-                    <div key={`${city}-${country}`} className="onb-target-list-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderTop: i ? "1px solid #e2e8f0" : undefined }}>
-                      <div className="onb-flex-gap onb-target-list-main">
-                        <img src={ast.target.pin} alt="" width={26} height={26} />
-                        <div>
-                          <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{city}</p>
-                          <p className="onb-muted-sm" style={{ margin: 0, fontSize: 12 }}>
-                            {country}
-                          </p>
+                      <button
+                        key={`${city}-${region}`}
+                        type="button"
+                        className="onb-target-chip"
+                        onClick={() => {
+                          if (exists) return;
+                          setTargetLocations((current) => [...current, { city, country: normalizedCountry }]);
+                        }}
+                        disabled={exists}
+                      >
+                        {city}, {normalizedCountry}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ marginTop: 22 }}>
+                  <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 600 }}>Selected target locations</h3>
+                  <p className="onb-muted-sm" style={{ marginBottom: 12 }}>
+                    Add at least one location to continue.
+                  </p>
+                  <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+                    {targetLocations.map(({ city, country }, i) => (
+                      <div
+                        key={`${city}-${country}`}
+                        className="onb-target-list-row"
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "14px 16px",
+                          borderTop: i ? "1px solid #e2e8f0" : undefined,
+                        }}
+                      >
+                        <div className="onb-flex-gap onb-target-list-main">
+                          <img src={ast.target.pin} alt="" width={22} height={22} />
+                          <div>
+                            <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{city}</p>
+                            <p className="onb-muted-sm" style={{ margin: 0, fontSize: 12 }}>
+                              {country}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="onb-flex-gap onb-target-list-meta">
-                        {badge && (
-                          <span style={{ background: "#efecf8", borderRadius: 8, padding: "2px 8px", fontSize: 12, color: "#64748b" }}>
-                            {badge}
-                          </span>
-                        )}
                         <button
                           type="button"
                           className="onb-btn"
@@ -1809,29 +1880,55 @@ export function OnboardingPage() {
                           <img src={ast.workExp.trash} alt="" width={12} height={14} />
                         </button>
                       </div>
-                    </div>
-                  )})}
-                  {targetLocations.length === 0 ? (
-                    <div style={{ padding: 20, color: "#64748b", fontSize: 14 }}>No locations selected yet. Add one to continue.</div>
-                  ) : null}
+                    ))}
+                    {targetLocations.length === 0 ? (
+                      <div style={{ padding: 16, color: "#64748b", fontSize: 14 }}>
+                        No target locations yet. Add one city/country pair to continue.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div className="onb-target-actions">
+                <button type="button" className="onb-btn onb-btn-ghost" onClick={back}>
+                  Back
+                </button>
+                <button
+                  type="button"
+                  className="onb-btn onb-btn-primary onb-btn-primary--brand"
+                  onClick={next}
+                  disabled={targetLocations.length === 0}
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+
+            <div className="onb-target-visual">
+              <div className="onb-target-visual-card">
+                <h3 style={{ margin: "0 0 10px", fontSize: 22 }}>Target locations</h3>
+                <p className="onb-sub" style={{ margin: 0 }}>
+                  Choose cities where you want to receive opportunities. Your base location and target locations are used together to improve matching quality.
+                </p>
+                <div className="onb-target-visual-points">
+                  <div className="onb-flex-gap">
+                    <img src={ast.target.pin} alt="" width={18} height={18} />
+                    <span>Add at least one preferred destination</span>
+                  </div>
+                  <div className="onb-flex-gap">
+                    <img src={ast.target.pin} alt="" width={18} height={18} />
+                    <span>Use suggestions for quick setup</span>
+                  </div>
+                  <div className="onb-flex-gap">
+                    <img src={ast.target.pin} alt="" width={18} height={18} />
+                    <span>Update this later from onboarding/profile</span>
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="onb-btn-row" style={{ marginTop: 40 }}>
-              <button type="button" className="onb-btn onb-btn-ghost" onClick={back}>
-                Back
-              </button>
-              <button
-                type="button"
-                className="onb-btn onb-btn-primary onb-btn-primary--brand"
-                onClick={next}
-                disabled={targetLocations.length === 0}
-              >
-                Continue
-              </button>
-            </div>
           </div>
-        </>
+        </div>
       )}
 
       {step === 10 && (
@@ -1852,13 +1949,17 @@ export function OnboardingPage() {
                     ["office", "In Person", "Full-time at the company office.", ["Dedicated workspace", "Spontaneous collaboration", "Clear work-life boundary"], ast.workPref.office, false],
                   ] as const
                 ).map(([id, title, sub, bullets, icon, popular]) => {
-                  const sel = workPref === id;
+                  const sel = workPrefs.includes(id);
                   return (
                     <button
                       key={id}
                       type="button"
                       className={`onb-wpref-opt${sel ? " onb-wpref-opt--sel" : ""}`}
-                      onClick={() => setWorkPref(id)}
+                      onClick={() =>
+                        setWorkPrefs((current) =>
+                          current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id],
+                        )
+                      }
                       style={{ position: "relative" }}
                     >
                       {popular && (
@@ -1918,7 +2019,7 @@ export function OnboardingPage() {
                   Back
                 </button>
                 <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap" onClick={next}>
-                  Save Preference
+                  Save Preferences
                   <img src={ast.workPref.forward} alt="" width={9} height={9} />
                 </button>
               </div>
@@ -2022,7 +2123,7 @@ export function OnboardingPage() {
             <div style={{ maxWidth: 896, margin: "0 auto" }}>
               <h1 className="onb-h1">Define Your Experience Level</h1>
               <p className="onb-sub" style={{ marginTop: 16, maxWidth: 672 }}>
-                Help us tailor your dashboard by providing more context about your professional background. Select the levels that best describe your current roles.
+                Help us tailor your dashboard by providing more context about your professional background. Select the single level that best describes your current role.
               </p>
               {(
                 [
@@ -2031,9 +2132,9 @@ export function OnboardingPage() {
                   ["Senior Level Expert", "5+ years", "Leading teams and driving strategic initiatives. You are responsible for high-level decision making, architecture, and driving overall business impact."],
                 ] as const
               ).map(([title, years, desc]) => {
-                const sel = experience.includes(title);
+                const sel = experienceLevel === title;
                 return (
-                  <button key={title} type="button" className={`onb-exp-row${sel ? " onb-exp-row--sel" : ""}`} onClick={() => toggleExperience(title)}>
+                  <button key={title} type="button" className={`onb-exp-row${sel ? " onb-exp-row--sel" : ""}`} onClick={() => selectExperienceLevel(title)}>
                     <img src={sel ? ast.experience.radioOn : ast.experience.radioOff} alt="" width={18} height={22} />
                     <div style={{ flex: 1, textAlign: "left" }}>
                       <div className="onb-flex-gap" style={{ marginBottom: 4, flexWrap: "wrap" }}>
@@ -2055,7 +2156,7 @@ export function OnboardingPage() {
                 <button
                   type="button"
                   className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap"
-                  disabled={prefsBusy}
+                  disabled={prefsBusy || !experienceLevel}
                   onClick={() => void finish()}
                 >
                   {prefsBusy ? "Saving…" : "Continue to Profile"}
@@ -2067,6 +2168,7 @@ export function OnboardingPage() {
           {footer()}
         </>
       )}
+      </div>
     </div>
   );
 }

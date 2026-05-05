@@ -1,6 +1,6 @@
 # Auth — Swipe Select
 
-Covers the three screens users see **before onboarding**: landing, sign-up, and sign-in. **Email + password** is always available. **Google sign-in** appears on login (and optionally sign-up) when **`VITE_GOOGLE_CLIENT_ID`** is set in the environment (see `.env.example`).
+Covers the screens users see **before onboarding**: landing, sign-up, and sign-in. **Email + password** is always available. **Google sign-in** is shown when **`VITE_GOOGLE_CLIENT_ID`** is set (see `.env.example`); when unset, only email/password appears.
 
 ---
 
@@ -13,6 +13,8 @@ Covers the three screens users see **before onboarding**: landing, sign-up, and 
 | `/login` | `LoginPage` | `src/pages/LoginPage.tsx` |
 
 **Protected client routes** (must be signed in — see `ProtectedRoute` in `src/App.tsx`): `/onboarding`, `/onboarding/complete`, `/discover`. Logged-out visits redirect to **`/login`**.
+
+**Navbar (`AppNavbar`):** When `onboardingStep >= 13` (`ONBOARDING_COMPLETE_STEP` in `src/auth/onboardingStep.ts`), the header shows **Logout**, which clears the client session and navigates to **`/login`**.
 
 ---
 
@@ -29,11 +31,10 @@ The public landing page. Split into two sections:
 - Primary CTA:
   - **Start Swiping** → `/signup`
 
-**Right — visual preview**
-- Stacked card mockup showing a sample job match (98% match, Senior Product Designer at Google)
-- Match metadata: location, salary range ($180k–$240k), job type, experience level
-- Skill tags: Figma, Design Systems, Prototyping
-- Pass / Apply buttons (Apply links to `/signup`)
+**Right — interactive preview**
+- Stacked job cards with **swipe/drag** interaction (Pass / Apply drive card motion)
+- Match-style metadata and skill tags per card (see `WelcomePage.tsx`)
+- **Apply** routes to **`/signup`** for users who are not yet registered
 
 **Styles:** `src/pages/WelcomePage.css`  
 **Assets:** `src/figma/welcomeAssets.ts` (match badge, location/salary/type/experience icons, pass/apply icons, floating hint icon)
@@ -97,7 +98,7 @@ Single centered card layout.
 
 ## Session & backend user data
 
-The client keeps auth state in **`localStorage`** under the key **`swipe-select-session`**, typed as **`AuthUserPayload`** in `src/api/types.ts`.
+The client persists auth in **`localStorage`**, key **`swipe-select-session`** (`src/auth/storage.ts`), typed as **`AuthUserPayload`** in `src/api/types.ts`. Authenticated requests set **`Authorization: Bearer <token>`** (e.g. `src/api/client.ts`, onboarding upload helpers).
 
 | Field | Source |
 |---|---|
@@ -121,7 +122,7 @@ The backend does **not** expose a separate “patch profile” endpoint for manu
 |---|---|---|
 | `LoginPage` | `showPassword: boolean`, `email`, `password`, `pending`, `error` | Form + feedback |
 | `SignUpPage` | `name`, `email`, `password`, `pending`, `error` | Controlled fields + API errors |
-| `WelcomePage` | — | Fully static |
+| `WelcomePage` | Card stack / pointer / swipe state | Interactive demo cards |
 
 ---
 

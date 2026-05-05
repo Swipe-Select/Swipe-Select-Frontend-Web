@@ -22,7 +22,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 80px 96px 80px 96px;
+  padding: 40px 64px;
   box-sizing: border-box;
 }
 
@@ -53,8 +53,8 @@
 .signup-features {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  padding-top: 24px;
+  gap: 22px;
+  padding-top: 12px;
 }
 
 .signup-feature {
@@ -99,7 +99,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: 20px;
 }
 
 .signup-form-wrap {
@@ -107,7 +107,7 @@
   max-width: 384px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 .signup-form-heading h1 {
@@ -260,7 +260,7 @@
 
 .signup-footer {
   border-top: 1px solid #e2e8f0;
-  padding: 25px 32px 24px;
+  padding: 14px 24px;
   background: #ffffff;
   flex-shrink: 0;
 }

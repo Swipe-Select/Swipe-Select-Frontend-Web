@@ -3,11 +3,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BRAND_NAME } from "../brand";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
+import { hasGoogleClientIdCandidates } from "../auth/googleClientIds";
 import { signUpAssets } from "../figma/authAssets";
 import { useAuth } from "../context/AuthContext";
 import "./SignUpPage.css";
 
-const HAS_GOOGLE = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
+const HAS_GOOGLE = hasGoogleClientIdCandidates();
 
 export function SignUpPage() {
   const navigate = useNavigate();

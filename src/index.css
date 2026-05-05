@@ -4,6 +4,11 @@
   --app-navbar-height: 64px;
   --app-navbar-bg: #ffffff;
   --app-navbar-border: #4648d4;
+  --motion-duration-route: 280ms;
+  --motion-duration-section: 240ms;
+  --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-slide-distance: 22px;
+  --motion-slide-distance-sm: 12px;
   --brand-primary: #2563eb;
   --brand-primary-hover: #1d4ed8;
   --primary: #f43f5e;
@@ -67,4 +72,81 @@ body {
   flex-direction: column;
   min-height: 0;
   width: 100%;
+}
+
+.route-transition {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  will-change: transform, opacity;
+}
+
+.route-transition-forward {
+  animation: routeSlideForward var(--motion-duration-route) var(--motion-ease-standard);
+}
+
+.route-transition-back {
+  animation: routeSlideBack var(--motion-duration-route) var(--motion-ease-standard);
+}
+
+@keyframes routeSlideForward {
+  from {
+    opacity: 0.9;
+    transform: translate3d(var(--motion-slide-distance), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes routeSlideBack {
+  from {
+    opacity: 0.9;
+    transform: translate3d(calc(var(--motion-slide-distance) * -1), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+:where(button, a, [role="button"]) {
+  transition: transform 160ms ease, filter 160ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+:where(button, a, [role="button"]):hover {
+  transform: translateY(-1px);
+}
+
+:where(button, a, [role="button"]):active {
+  transform: translateY(0);
+}
+
+:where(.login-card, .signup-form-wrap, .onb-card, .post-onb-card, .welcome-card-front) {
+  animation: sectionFadeUp var(--motion-duration-section) var(--motion-ease-standard) both;
+}
+
+@keyframes sectionFadeUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--motion-slide-distance-sm), 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-transition-forward,
+  .route-transition-back,
+  :where(.login-card, .signup-form-wrap, .onb-card, .post-onb-card, .welcome-card-front) {
+    animation: none !important;
+  }
+
+  :where(button, a, [role="button"]) {
+    transition: none !important;
+  }
 }

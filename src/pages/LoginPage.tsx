@@ -3,12 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { BRAND_NAME } from "../brand";
 import { loginAssets } from "../figma/authAssets";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
+import { hasGoogleClientIdCandidates } from "../auth/googleClientIds";
 import { useAuth } from "../context/AuthContext";
 import { ONBOARDING_COMPLETE_STEP } from "../auth/onboardingStep";
 import { readSession } from "../auth/storage";
 import "./LoginPage.css";
 
-const HAS_GOOGLE = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
+const HAS_GOOGLE = hasGoogleClientIdCandidates();
 
 function landingAfterAuth() {
   const s = readSession();
