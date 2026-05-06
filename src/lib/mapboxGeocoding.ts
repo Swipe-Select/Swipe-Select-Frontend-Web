@@ -51,7 +51,7 @@ function featureToRow(feature: LocationIqFeature): LocationIqLocationRow | null 
 export async function mapboxForwardGeocode(
   query: string,
   accessToken: string,
-  options?: { limit?: number; types?: string },
+  options?: { limit?: number },
   signal?: AbortSignal,
 ): Promise<LocationIqLocationRow[]> {
   const q = query.trim();
@@ -65,10 +65,6 @@ export async function mapboxForwardGeocode(
     limit,
     normalizecity: "1",
   });
-  const typeFilter = options?.types?.toLowerCase() ?? "";
-  if (typeFilter.includes("country")) {
-    params.set("tag", "place:country");
-  }
   const url = `https://us1.locationiq.com/v1/search.php?${params.toString()}`;
   const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
   if (res.status === 401 || res.status === 403) {
