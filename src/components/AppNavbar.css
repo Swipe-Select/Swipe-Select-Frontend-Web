@@ -1,0 +1,88 @@
+.app-navbar {
+  flex-shrink: 0;
+  height: var(--app-navbar-height, 64px);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0 clamp(16px, 3vw, 32px);
+  background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+  border-bottom: none;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  z-index: 200;
+}
+
+.app-navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.app-navbar-logo {
+  display: block;
+  object-fit: contain;
+}
+
+.app-navbar-title {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: clamp(17px, 2vw, 20px);
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: #4648d4;
+}
+
+.app-navbar-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  font-size: 14px;
+  line-height: 20px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.app-navbar-cta-text {
+  color: #475569;
+}
+
+.app-navbar-cta-link {
+  font-weight: 500;
+  color: var(--brand-primary, #2563eb);
+  text-decoration: none;
+}
+
+.app-navbar-cta-link:hover {
+  text-decoration: underline;
+}
+
+.app-navbar-logout {
+  appearance: none;
+  border: 1px solid #dbe4ff;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.app-navbar-logout:hover {
+  border-color: #a5b4fc;
+  color: #3730a3;
+  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.16);
+  transform: translateY(-1px);
+}
+
+.app-navbar-logout:active {
+  transform: translateY(0);
+}

@@ -1,11 +1,12 @@
 /* Post-onboarding completion — aligned with onboarding Figma tokens (Ready to Swipe / feature cards) */
 .post-onb {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   font-family: Manrope, system-ui, sans-serif;
   background: linear-gradient(90deg, #f8fafc 0%, #f8fafc 100%), linear-gradient(90deg, #fff 0%, #fff 100%);
   color: #0f172a;
-  display: flex;
-  flex-direction: column;
   box-sizing: border-box;
 }
 
@@ -13,38 +14,14 @@
   box-sizing: border-box;
 }
 
-.post-onb-header {
-  flex-shrink: 0;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  padding: 0 32px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.post-onb-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.post-onb-brand img {
-  display: block;
-}
-
-.post-onb-brand-name {
-  font-size: 16px;
-  font-weight: 400;
-  color: #0f172a;
-}
-
 .post-onb-main {
   flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px 64px;
+  padding: 28px 20px 28px;
+  overflow-y: visible;
 }
 
 .post-onb-card {

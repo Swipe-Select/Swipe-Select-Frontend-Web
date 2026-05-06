@@ -1,73 +1,33 @@
-# React + TypeScript + Vite
+# Swipe Select — Web frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React (Vite) client for **Swipe Select**. It uses the **Swipe-Select-Backend** API only (not the Python scraper). See **`docs/AGENTS.md`** for structure and integration.
 
-Currently, two official plugins are available:
+**Shipped in this repo:** email/password auth with **`localStorage`** session and **`GET /api/auth/profile`** rehydration; optional Google sign-in via env; **Welcome** swipeable job cards; **route slide transitions**; onboarding steps **0–12** with resume extract, preferences save, completion at **`onboardingStep: 13`**; **Discover** job swipe (`GET/POST` jobs API); **navbar Logout** after onboarding complete.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Quick links
 
-## React Compiler
+| Doc | Purpose |
+|-----|---------|
+| [`docs/AGENTS.md`](docs/AGENTS.md) | Conventions, connectivity, jobs + session behavior |
+| [`docs/auth.md`](docs/auth.md) | Auth screens + **session / `profile` / `preferences`** |
+| [`docs/onboarding.md`](docs/onboarding.md) | Onboarding steps + API contract notes |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Environment
 
-## Expanding the ESLint configuration
+Copy **`.env.example`** → **`.env`** and set at least:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **`VITE_API_URL`** — backend base URL (default in code: `http://localhost:5000`)
+- **`VITE_GOOGLE_CLIENT_ID`** (optional) — enables Google sign-in UI
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Scripts
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run build
+npm run lint
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Related repo
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+**Swipe-Select-Backend** — Express API, MongoDB, onboarding, jobs feed (calls scraper server-side).

@@ -1,65 +1,10 @@
 .signup-page {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   background: #ffffff;
   font-family: "Inter", system-ui, sans-serif;
   color: #0f172a;
-}
-
-.signup-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 32px 17px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #ffffff;
-  flex-shrink: 0;
-}
-
-.signup-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.signup-brand-logo {
-  width: 36px;
-  height: 36px;
-  display: block;
-  object-fit: contain;
-}
-
-.signup-brand-name {
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 28px;
-  letter-spacing: -0.5px;
-  color: #0f172a;
-  margin: 0;
-}
-
-.signup-header-cta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.signup-header-cta span {
-  color: #475569;
-}
-
-.signup-header-cta a {
-  font-weight: 500;
-  color: var(--brand-primary);
-  text-decoration: none;
-}
-
-.signup-header-cta a:hover {
-  text-decoration: underline;
 }
 
 .signup-main {
@@ -77,7 +22,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 80px 96px 80px 96px;
+  padding: 40px 64px;
   box-sizing: border-box;
 }
 
@@ -108,8 +53,8 @@
 .signup-features {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  padding-top: 24px;
+  gap: 22px;
+  padding-top: 12px;
 }
 
 .signup-feature {
@@ -154,7 +99,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: 20px;
 }
 
 .signup-form-wrap {
@@ -162,7 +107,7 @@
   max-width: 384px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 .signup-form-heading h1 {
@@ -315,7 +260,7 @@
 
 .signup-footer {
   border-top: 1px solid #e2e8f0;
-  padding: 25px 32px 24px;
+  padding: 14px 24px;
   background: #ffffff;
   flex-shrink: 0;
 }
@@ -356,7 +301,4 @@
     display: none;
   }
 
-  .signup-main {
-    min-height: 560px;
-  }
 }

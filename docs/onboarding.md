@@ -1,6 +1,21 @@
 # Onboarding — Swipe Select
 
-Documents every step of the multi-screen onboarding flow that runs after sign-up.
+## Implementation notes (frontend)
+
+The step-by-step sections below describe the UI; these bullets match **current code** in `OnboardingPage.tsx`:
+
+- **Resume (step 1):** Backend accepts **PDF only**, **5 MB** (`POST /api/onboarding/resume-extract`). Continue is disabled while upload/extract runs; user advances manually (no auto-advance after extract). "Fill out manually" skips extraction. Later steps use per-step validation before Continue.
+- **Work experience (step 4):** Multiple cards via **Add Work Experience**; Continue requires at least one **complete** entry (required fields filled).
+- **Work preference (step 10):** **Multi-select** among remote / hybrid / office; saved as `workMode` on `POST /api/onboarding/preferences`.
+- **Experience level (step 12):** **Single-select**; sent as `experienceLevel: [<one label>]`. Continue disabled until one level is chosen.
+- **Application setup (step 7):** Country search and add/remove; selected countries show summary cards **without** per-country visa dropdowns.
+- **Motion:** Step content uses `OnboardingPage.css` stage styling. App-level route slide transitions come from `App.tsx` + `index.css` (`route-transition-forward` / `route-transition-back`, `--motion-*` tokens, `prefers-reduced-motion`).
+- **`finish()`** calls `POST /api/onboarding/preferences` with `jobTitles`, `targetCountries`, `baseLocation`, `workLocations`, `workMode`, `jobTypes`, `experienceLevel`, and **`onboardingStep: 13`** (see `src/auth/onboardingStep.ts`; aligns with `GET /api/jobs/recommended` when `onboardingStep >= 13`).
+- **Session:** After resume extract, **`profile`** in `localStorage` is updated from response `data`. After preferences save, **`preferences`** and **`onboardingStep`** update from response `data` (`AuthContext`, `src/auth/normalizeSession.ts`, `src/api/types.ts`).
+
+**API contract:** `POST /api/onboarding/preferences` persists the preference fields defined by the backend schema. The UI still collects **gender**, notification toggles, and a manual **work experience** list for the step flow; those values are **not** part of that request body. Resume extract populates `profile` from the PDF where applicable.
+
+Documents every step of the multi-screen onboarding flow that runs **after sign-up** when the user has a valid session. **`/onboarding` is protected** — unauthenticated users are sent to **`/login`**.
 
 ---
 
@@ -25,7 +40,7 @@ step 3  → Notifications
 step 4  → Work Experience
 step 5  → Ready screen ("You're almost ready to swipe!")
 step 6  → Role Selection
-step 7  → Country / Visa Setup
+step 7  → Application setup (target countries)
 step 8  → Location
 step 9  → Target Locations
 step 10 → Work Preference
@@ -42,14 +57,14 @@ step 12 → Experience Level
 |---|---|---|---|
 | `step` | `number` | `0` | Current step index |
 | `gender` | `GenderId` | `"female"` | Identity selection |
-| `notif` | `Record<string, boolean>` | See below | Notification toggle map |
+| `notif` | `Record<string, boolean>` — keys: `appStatus`, `jobRec`, `appInfo` | Defaults: first two `true`, `appInfo` `false` |
 | `roles` | `string[]` | `["Software Engineer", "Product Manager"]` | Selected job roles |
-| `workPref` | `"remote" \| "hybrid" \| "office"` | `"hybrid"` | Work environment preference |
+| `workPrefs` | `WorkPrefId[]` | `["hybrid"]` | Work mode **multi-select** (`remote` / `hybrid` / `office`) → `workMode` on save |
 | `employment` | `string[]` | `["Full Time"]` | Employment model selection |
-| `experience` | `string[]` | `["Entry Level Professional", "Mid-Level Professional"]` | Experience level selection |
+| `experienceLevel` | `string` | `""` | Experience **single-select** (one row title) → `experienceLevel: [label]` on save |
 
-**Default notification state:**  
-`appStatus: true`, `jobRec: true`, `appInfo: true`, `dm: true`, `interview: true`, `security: true`, `marketing: false`
+**Default notification state (three toggles only):**  
+`appStatus: true`, `jobRec: true`, `appInfo: false`
 
 ---
 
@@ -60,11 +75,10 @@ step 12 → Experience Level
 **Headline:** "How do you identify?"  
 **Sub-copy:** Explains the information is private by default.
 
-**Options (2 × 2 grid):**
-- Female
+**Options (single row of three on desktop; stacked on narrow view):**
 - Male
+- Female
 - Non-binary
-- Prefer not to say
 
 Each card shows a radio icon (on/off asset) and a label. The selected card gets an indigo border and indigo label colour. Subtitle descriptions ("Identify as female", etc.) have been **removed**.
 
@@ -82,9 +96,9 @@ Each card shows a radio icon (on/off asset) and a label. The selected card gets 
 
 **Left card:**
 - Drag-and-drop zone with cloud-upload icon
-- Supported formats: PDF, DOCX, DOC, TXT (Max 10 MB)
+- **Implementation note:** the backend (`POST /api/onboarding/resume-extract`) accepts **PDF only**, max **5 MB**; UI copy should match.
 - "Browse Files" button
-- "Don't have a resume ready? Fill out manually" banner
+- "Don't have a resume ready? Fill out manually" banner (skips extraction; user can still complete onboarding)
 
 **Right card — "Why build your profile?"**
 - Three feature rows with icons (fast setup, connections, AI matching)
@@ -102,34 +116,27 @@ Collects basic profile fields (name, location, contact, etc.).
 
 ### Step 3 — Notifications
 
-**Headline:** Notification preferences  
-Organised into three categories, each with toggle switches:
+**Headline:** Notification settings  
+Single list of **three** toggles only (no grouped “Job / Messages / Security” sections):
 
-| Category | Toggles |
+| Toggle | Description line |
 |---|---|
-| Job Activity | Application Status Updates · Job Recommendations · Application Info |
-| Messages | Direct Messages · Interview Invitations |
-| System & Security | Security Alerts (forced ON, disabled) · Marketing & Promotions |
+| Application Statuses | Stay informed about application statuses. |
+| Job Recommendations | Receive job recommendations that fit your profile. |
+| Application Info Alerts | Get alerted if an application needs more info. |
 
-**Buttons:** Cancel · **Save Preferences** (brand purple `#4648d4`)
+Each row: icon in a soft indigo circle · title · description · switch. Defaults: first two on, third off.
 
----
+**Buttons:** Cancel (go back) · **Save Preferences** (brand purple `#4648d4`) → continues to step 4
 
 ### Step 4 — Work Experience
 
 **Headline:** "Work Experience"  
 **Sub-copy:** "Detail your professional roles, duties, and achievements."
 
-Shows a pre-populated entry card (drag-handle, edit/delete icons) with fields:
-- Job Title · Employer · Start Date · End Date (Present checkbox) · Location · Description
+**List of cards:** Users add entries with **Add Work Experience** and remove per card. Each card: Job Title, Employer, Start/End dates (Present checkbox), Location, Description. **Continue** requires at least one fully valid entry.
 
-"Polish with AI" button has been **removed** from the Description field.
-
-**Add Work Experience** dashed button at the bottom.
-
-**Buttons:** Back · Continue
-
-The AI Assistant / Preview right sidebar has been **removed**. The work experience panel is now full-width.
+"Polish with AI" and the AI Assistant / Preview sidebar are **removed**. Panel is full-width.
 
 **CSS class:** `onb-we-layout` / `onb-we-main`
 
@@ -159,23 +166,17 @@ No progress bar or step counter.
 
 ---
 
-### Step 7 — Country / Visa Setup (Application Setup)
+### Step 7 — Application setup (target countries)
 
 Two-panel layout:
 
 **Left — Available Countries**
-- Search field
-- Scrollable country list (Canada, Australia, Germany) with add buttons
-- Already-selected countries dimmed (United States, United Kingdom)
+- Search + scrollable list; each row toggles **Select** / **Selected** to add or remove a country
 
 **Right — Selected Countries**
-- Cards per selected country showing visa status dropdown and an info banner
-- United States: Citizen / Permanent Resident (blue info)
-- United Kingdom: Requires Visa Sponsorship (amber info)
+- Card per country with remove control and short info copy (job discovery context). **No** visa or sponsorship controls per country.
 
-**Buttons:** **Save & Continue** (brand purple). "Skip Step" button has been **removed**.
-
-The "Step 3 of 5" badge in the header has been **removed**.
+**Buttons:** **Save & Continue** (requires at least one country). "Skip Step" removed.
 
 ---
 
@@ -186,7 +187,7 @@ Split screen:
 **Left panel:**
 - Back button
 - Headline: "Where are you based?"
-- City/zip search field
+- Place search field ("Search city, area, or country")
 - Popular locations list (San Francisco, New York, London, Toronto, Sydney, Berlin) with selection state
 - "Use current location" button
 - **Continue** (full-width, brand purple)
@@ -219,7 +220,7 @@ Fixed top bar with brand name and help icon.
 
 ### Step 10 — Work Preference ("How do you prefer to work?")
 
-Three-column card grid:
+Three-column card grid. **Multiple cards can be selected.**
 
 | Option | Key bullets |
 |---|---|
@@ -227,7 +228,7 @@ Three-column card grid:
 | Hybrid *(popular)* | Best of both worlds · Regular team connection · Structured flexibility |
 | In Person | Dedicated workspace · Spontaneous collaboration · Clear work-life boundary |
 
-Cards show icon, title, description, and bullet points. Selected card highlights in brand purple.
+Cards show icon, title, description, and bullet points. Selected cards use brand purple. Continue blocked if none selected.
 
 **Buttons:** ← Back · **Save Preference** → (brand purple `#4648d4`)
 
@@ -267,9 +268,9 @@ Three selectable rows:
 | Mid-Level Professional | 3–5 years |
 | Senior Level Expert | 5+ years |
 
-Each row shows a radio icon, title, year badge, and description. Multiple selection allowed.
+Each row shows a radio icon, title, year badge, and description. **Exactly one** row may be selected.
 
-**Buttons:** ← Back · **Continue to Profile** (brand purple) → calls `finish()` → navigates to `/onboarding/complete`
+**Buttons:** ← Back · **Continue to Profile** (brand purple; disabled until one row selected) → calls `finish()` → navigates to `/onboarding/complete`
 
 The "Step 2 of 5" label and progress bar above this screen have been **removed**.
 
@@ -284,7 +285,7 @@ Centered card with:
 
 **Two action buttons:**
 - **Explore Jobs** → `/discover`
-- **View Profile** → `/` (welcome)
+- **View Profile** → `/` (**Welcome** — there is no standalone profile route yet; users remain authenticated)
 
 **Footer buttons:** Back · **Finish** → `/discover`
 
@@ -293,14 +294,14 @@ Centered card with:
 ## Navigation flow
 
 ```
-/signup ──────────────────────────────→ step 0 (Identity)
+/signup (success) or /login (success, onboarding not finished) → step 0 (Identity)
   → step 1 (Resume Upload)
   → step 2 (Personal Info)
   → step 3 (Notifications)
   → step 4 (Work Experience)
   → step 5 (Ready screen)
   → step 6 (Role Selection)
-  → step 7 (Country / Visa Setup)
+  → step 7 (Application setup — countries)
   → step 8 (Location)
   → step 9 (Target Locations)
   → step 10 (Work Preference)
@@ -308,7 +309,7 @@ Centered card with:
   → step 12 (Experience Level)
   → /onboarding/complete
        ├── Explore Jobs / Finish ──────→ /discover
-       └── View Profile ───────────────→ /
+       └── View Profile ───────────────→ / (welcome — there is no dedicated profile URL yet)
 ```
 
 ---

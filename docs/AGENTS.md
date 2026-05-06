@@ -26,8 +26,16 @@ This file is the authoritative reference for any AI agent or developer working o
 
 ```
 src/
-  App.tsx                    # Root router — all routes defined here
-  main.tsx                   # Vite entry point
+  App.tsx                    # Routes + `ROUTE_ORDER` forward/back `route-transition-*` wrapper
+  components/
+    AppNavbar.tsx            # Brand; Logout when `onboardingStep >= 13`; sign-up CTA on `/signup`
+    ProtectedRoute.tsx       # JWT gate for private routes
+  main.tsx                   # Vite entry (`AuthProvider`, optional `GoogleOAuthProvider`)
+  index.css                  # Layout (`app-main`, `page-fill`), motion tokens, route transition keyframes
+  api/types.ts               # `AuthUserPayload`, `UserProfile`, `UserPreferences` (mirror backend User)
+  api/jobs.ts                # GET recommended, POST refresh & swipe
+  auth/onboardingStep.ts     # ONBOARDING_COMPLETE_STEP (= 13)
+  auth/normalizeSession.ts   # `normalizeAuthPayload`, `mergeProfileIntoSession`, profile/prefs guards
   brand.ts                   # BRAND_NAME, BRAND_LOGO_SRC constants
   figma/
     authAssets.ts            # Login & Sign-up SVG/image URLs
@@ -50,16 +58,20 @@ docs/
 
 ## Routes
 
-| Path | Component | Description |
-|---|---|---|
-| `/` | `WelcomePage` | Public landing page |
-| `/welcome` | `WelcomePage` | Alias for `/` |
-| `/login` | `LoginPage` | Sign-in form |
-| `/signup` | `SignUpPage` | Registration form → redirects to `/onboarding` on submit |
-| `/onboarding` | `OnboardingPage` | 13-step profile setup flow (steps 0–12) |
-| `/onboarding/complete` | `PostOnboardingPage` | Completion / next-steps screen |
-| `/discover` | `JobSwipePage` | Job card swipe interface |
-| `*` | redirect | Any unknown path → `/` |
+| Path | Component | Auth | Description |
+|---|---|---|---|
+| `/` | `WelcomePage` | Public | Landing page |
+| `/welcome` | `WelcomePage` | Public | Alias for `/` |
+| `/login` | `LoginPage` | Public | Email/password sign-in |
+| `/signup` | `SignUpPage` | Public | Registration → session then `/onboarding` on success |
+| `/onboarding` | `OnboardingPage` | **Required** | Steps 0–12 |
+| `/onboarding/complete` | `PostOnboardingPage` | **Required** | Completion screen |
+| `/discover` | `JobSwipePage` | **Required** | Job swipe UI |
+| `*` | redirect | Public | Unknown path → `/` |
+
+`ProtectedRoute` checks JWT in React context / `localStorage`; missing token → redirect to `/login`.
+
+**Route transitions:** `AppRoutes` sets `route-transition-forward` or `route-transition-back` from path order in `App.tsx` and `useNavigationType` (browser back uses the back class). Styles in `index.css` respect `prefers-reduced-motion`.
 
 ---
 
@@ -73,19 +85,30 @@ docs/
 | 1 | Resume Upload |
 | 2 | Personal Info |
 | 3 | Notifications |
-| 4 | Work Experience |
+| 4 | Work Experience (multi-card list, validated continue) |
 | 5 | Ready ("You're almost ready to swipe!") |
 | 6 | Role Selection |
-| 7 | Country / Visa Setup |
+| 7 | Application setup — target countries (no per-country visa UI) |
 | 8 | Location |
 | 9 | Target Locations |
-| 10 | Work Preference |
+| 10 | Work Preference (multi-select remote/hybrid/office) |
 | 11 | Employment Models |
-| 12 | Experience Level → `finish()` → `/onboarding/complete` |
+| 12 | Experience Level (single-select) → `finish()` → `/onboarding/complete` |
 
 See `docs/onboarding.md` for full step-by-step detail.
 
 ---
+
+## Connectivity & known quirks
+
+- **`onboardingStep`:** finishing onboarding calls `POST /api/onboarding/preferences` with **`onboardingStep: 13`** (see `src/auth/onboardingStep.ts`). Login/Google redirect to **`/discover`** only when **`onboardingStep >= 13`**, matching the backend jobs API gate.
+- **Session rehydration:** `AuthProvider` calls **`GET /api/auth/profile`** on load when a token exists (`refreshSession` in `AuthContext`), merges **`onboardingStep`**, name, email, and full **`profile`** / **`preferences`** into `localStorage` via `mergeProfileIntoSession` (`src/auth/normalizeSession.ts`). Register/login/Google responses also persist **`profile`** and **`preferences`** when the API returns them (`normalizeAuthPayload`). After resume extract and after saving preferences, `OnboardingPage` updates those objects in session from the response **`data`**.
+- **`/discover`:** `JobSwipePage` uses **`GET /api/jobs/recommended`**, **`POST /api/jobs/refresh`**, and **`POST /api/jobs/:jobId/swipe`** (`src/api/jobs.ts`). **`401`** clears the session and sends the user to **`/login`**. Pass / save / apply map to **`pass`**, **`like`**, **`apply`**.
+- **`View Profile`** on `/onboarding/complete` navigates to **`/`** (Welcome). There is **no `/profile` route** in this repo yet.
+- **Google OAuth:** **`AuthContext`** + backend; **Google** button on login/sign-up when **`VITE_GOOGLE_CLIENT_ID`** is set (`GoogleOAuthProvider` in `src/main.tsx`).
+- **Welcome:** `WelcomePage` implements the interactive swipe card stack (not a static hero).
+- **Logout:** `AppNavbar` shows **Logout** when **`onboardingStep >= ONBOARDING_COMPLETE_STEP` (13)**; uses **`AuthContext.logout`**.
+- **Resume upload:** backend accepts **PDF, 5 MB** — documented in **`docs/onboarding.md`**.
 
 ## Brand & design conventions
 

@@ -1,4 +1,14 @@
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  fetchRecommendedJobs,
+  refreshJobs,
+  swipeJob,
+  type JobCard,
+} from "../api/jobs";
+import { readSession } from "../auth/storage";
+import { ONBOARDING_COMPLETE_STEP } from "../auth/onboardingStep";
+import { useAuth } from "../context/AuthContext";
 import "./JobSwipePage.css";
 
 function IconLocation({ className }: { className?: string }) {
@@ -83,135 +93,365 @@ function IconClose({ className }: { className?: string }) {
   );
 }
 
+function formatJobType(jobType: string | null | undefined): string {
+  if (!jobType) return "";
+  const key = jobType.toLowerCase();
+  const map: Record<string, string> = {
+    fulltime: "Full-time",
+    parttime: "Part-time",
+    internship: "Internship",
+    contract: "Contract",
+  };
+  return map[key] ?? jobType;
+}
+
+function formatPostedAt(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function statusBadgeLabel(status: string): string | null {
+  if (status === "queued") return "New";
+  if (status === "seen") return "For you";
+  return null;
+}
+
 export function JobSwipePage() {
   const navigate = useNavigate();
+  const { session, logout, refreshSession } = useAuth();
+  const [jobs, setJobs] = useState<JobCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshBusy, setRefreshBusy] = useState(false);
+  const [swipeBusy, setSwipeBusy] = useState(false);
+  const [bannerMessage, setBannerMessage] = useState<string | null>(null);
+  const [feedError, setFeedError] = useState<string | null>(null);
+
+  const token = session?.token?.trim() || readSession()?.token?.trim();
+  const onboardingStep =
+    readSession()?.onboardingStep ?? session?.onboardingStep ?? 0;
+  const current = jobs[0] ?? null;
+  const upcoming = jobs.slice(1, 4);
+
+  const loadRecommended = useCallback(async () => {
+    const t = session?.token?.trim() || readSession()?.token?.trim();
+    if (!t) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    setFeedError(null);
+    setBannerMessage(null);
+    const result = await fetchRecommendedJobs(t);
+    if (result.status === 401) {
+      logout();
+      navigate("/login", { replace: true });
+      return;
+    }
+    setJobs(result.jobs);
+    if (result.message) setBannerMessage(result.message);
+    if (!result.success && result.message) setFeedError(result.message);
+  }, [session?.token, navigate, logout]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      await refreshSession();
+      if (cancelled) return;
+      const t = readSession()?.token?.trim();
+      if (!t) {
+        setLoading(false);
+        navigate("/login", { replace: true });
+        return;
+      }
+      setFeedError(null);
+      setBannerMessage(null);
+      const result = await fetchRecommendedJobs(t);
+      if (cancelled) return;
+      if (result.status === 401) {
+        logout();
+        navigate("/login", { replace: true });
+        setLoading(false);
+        return;
+      }
+      setJobs(result.jobs);
+      if (result.message) setBannerMessage(result.message);
+      if (!result.success && result.message) setFeedError(result.message);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshSession, navigate, logout]);
+
+  const handleRefresh = async () => {
+    const t = token;
+    if (!t) return;
+    setRefreshBusy(true);
+    setFeedError(null);
+    const result = await refreshJobs(t);
+    if (result.status === 401) {
+      logout();
+      navigate("/login", { replace: true });
+      setRefreshBusy(false);
+      return;
+    }
+    setJobs(result.jobs);
+    if (result.message) setBannerMessage(result.message);
+    if (!result.success && result.message) setFeedError(result.message);
+    setRefreshBusy(false);
+  };
+
+  const removeTopCard = () => {
+    setJobs((prev) => prev.slice(1));
+  };
+
+  const handleSwipe = async (action: "like" | "pass" | "apply") => {
+    if (!current || swipeBusy) return;
+    const t = token;
+    if (!t) return;
+    const openListingAfterApply = action === "apply" ? current.sourceUrl : null;
+    setSwipeBusy(true);
+    const { ok, status, json } = await swipeJob(current.id, action, t);
+    if (status === 401) {
+      logout();
+      navigate("/login", { replace: true });
+      setSwipeBusy(false);
+      return;
+    }
+    if (!ok || !json || typeof json !== "object" || !("success" in json) || !json.success) {
+      const msg =
+        json && typeof json === "object" && "message" in json
+          ? String((json as { message?: string }).message)
+          : "Could not save swipe.";
+      alert(msg);
+      setSwipeBusy(false);
+      return;
+    }
+    if (openListingAfterApply)
+      window.open(openListingAfterApply, "_blank", "noopener,noreferrer");
+    removeTopCard();
+    setSwipeBusy(false);
+    if (jobs.length <= 1) void loadRecommended();
+  };
+
+  const openListing = () => {
+    if (current?.sourceUrl) window.open(current.sourceUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const incompleteOnboarding = onboardingStep < ONBOARDING_COMPLETE_STEP;
 
   return (
-    <div className="job-swipe" data-name="Html → Body">
-      <div className="job-swipe-progress" aria-hidden />
+    <div className="job-swipe page-fill" data-name="Html → Body">
+      <div className="job-swipe-toolbar">
+        <button
+          type="button"
+          className="job-swipe-refresh"
+          disabled={refreshBusy || loading || !token}
+          onClick={() => void handleRefresh()}
+        >
+          {refreshBusy ? "Refreshing…" : "Refresh feed"}
+        </button>
+      </div>
 
-      <div className="job-swipe-layout">
-        <div className="job-swipe-left">
-          <article className="job-swipe-card">
-            <header className="job-swipe-card-header">
-              <div className="job-swipe-card-top">
-                <span className="job-swipe-company">Acme Corp Global</span>
-                <span className="job-swipe-badge">New</span>
+      {loading ? (
+        <div className="job-swipe-loading">Loading recommendations…</div>
+      ) : incompleteOnboarding ? (
+        <div className="job-swipe-empty">
+          <p className="job-swipe-empty-title">Finish onboarding first</p>
+          <p className="job-swipe-empty-copy">
+            Complete onboarding to receive job recommendations from the server.
+          </p>
+          <Link className="job-swipe-empty-cta" to="/onboarding">
+            Continue onboarding
+          </Link>
+        </div>
+      ) : feedError && jobs.length === 0 ? (
+        <div className="job-swipe-empty">
+          <p className="job-swipe-empty-title">Couldn’t load jobs</p>
+          <p className="job-swipe-empty-copy">{feedError}</p>
+          <button type="button" className="job-swipe-empty-cta job-swipe-empty-cta--btn" onClick={() => void loadRecommended()}>
+            Try again
+          </button>
+        </div>
+      ) : !current ? (
+        <div className="job-swipe-empty">
+          <p className="job-swipe-empty-title">You’re caught up</p>
+          <p className="job-swipe-empty-copy">
+            {bannerMessage?.trim() ||
+              "No more recommendations right now. Try refreshing or check back later."}
+          </p>
+          <button type="button" className="job-swipe-empty-cta job-swipe-empty-cta--btn" onClick={() => void handleRefresh()}>
+            Refresh feed
+          </button>
+        </div>
+      ) : (
+        <div className="job-swipe-layout">
+          <div className="job-swipe-left">
+            {bannerMessage && !feedError ? (
+              <p className="job-swipe-banner" role="status">
+                {bannerMessage}
+              </p>
+            ) : null}
+
+            <article className="job-swipe-card">
+              <header className="job-swipe-card-header">
+                <div className="job-swipe-card-top">
+                  <span className="job-swipe-company">{current.company}</span>
+                  {statusBadgeLabel(current.status) ? (
+                    <span className="job-swipe-badge">{statusBadgeLabel(current.status)}</span>
+                  ) : null}
+                </div>
+                <h1 className="job-swipe-title">{current.title}</h1>
+              </header>
+
+              <div className="job-swipe-meta">
+                {current.location ? (
+                  <span className="job-swipe-chip">
+                    <span className="job-swipe-chip-icon">
+                      <IconLocation />
+                    </span>
+                    {current.location}
+                  </span>
+                ) : null}
+                {current.salaryRange ? (
+                  <span className="job-swipe-chip">
+                    <span className="job-swipe-chip-icon">
+                      <IconMoney />
+                    </span>
+                    {current.salaryRange}
+                  </span>
+                ) : null}
+                {formatJobType(current.jobType) ? (
+                  <span className="job-swipe-chip">
+                    <span className="job-swipe-chip-icon">
+                      <IconClock />
+                    </span>
+                    {formatJobType(current.jobType)}
+                  </span>
+                ) : null}
+                {formatPostedAt(current.postedAt) ? (
+                  <span className="job-swipe-chip">
+                    <span className="job-swipe-chip-icon">
+                      <IconClock />
+                    </span>
+                    Posted {formatPostedAt(current.postedAt)}
+                  </span>
+                ) : null}
               </div>
-              <h1 className="job-swipe-title">Senior UX/UI Designer</h1>
+
+              {current.skills?.length ? (
+                <div className="job-swipe-skills" aria-label="Skills">
+                  {current.skills.map((s, i) => (
+                    <span key={`${i}-${s}`} className="job-swipe-skill-pill">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              <hr className="job-swipe-sep" />
+
+              <p className="job-swipe-brief">{current.description}</p>
+            </article>
+
+            <div className="job-swipe-actions-wrap">
+              <div className="job-swipe-actions">
+                <button
+                  type="button"
+                  className="job-swipe-icon-btn"
+                  aria-label="Pass on this job"
+                  disabled={swipeBusy}
+                  onClick={() => void handleSwipe("pass")}
+                >
+                  <IconPass />
+                </button>
+                <button
+                  type="button"
+                  className="job-swipe-icon-btn"
+                  aria-label="Save this job"
+                  disabled={swipeBusy}
+                  onClick={() => void handleSwipe("like")}
+                >
+                  <IconBookmark />
+                </button>
+                <button
+                  type="button"
+                  className="job-swipe-apply"
+                  disabled={swipeBusy}
+                  onClick={() => void handleSwipe("apply")}
+                >
+                  <IconSend />
+                  Apply Now
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <aside className="job-swipe-aside">
+            <header className="job-swipe-aside-header">
+              <h2 className="job-swipe-aside-title">Details</h2>
+              <button type="button" className="job-swipe-aside-close" aria-label="Close" onClick={() => navigate("/")}>
+                <IconClose />
+              </button>
             </header>
 
-            <div className="job-swipe-meta">
-              <span className="job-swipe-chip">
-                <span className="job-swipe-chip-icon">
-                  <IconLocation />
-                </span>
-                San Francisco, CA (Hybrid)
-              </span>
-              <span className="job-swipe-chip">
-                <span className="job-swipe-chip-icon">
-                  <IconMoney />
-                </span>
-                $140k - $175k
-              </span>
-              <span className="job-swipe-chip">
-                <span className="job-swipe-chip-icon">
-                  <IconClock />
-                </span>
-                Full-time
-              </span>
+            <div className="job-swipe-aside-scroll">
+              <section>
+                <h3 className="job-swipe-section-label">About the role</h3>
+                <p className="job-swipe-prose">{current.description}</p>
+              </section>
+
+              <hr className="job-swipe-sep" />
+
+              <section>
+                <h3 className="job-swipe-section-label">Company info</h3>
+                <div className="job-swipe-company-row">
+                  <div className="job-swipe-company-avatar" aria-hidden>
+                    <IconBuilding />
+                  </div>
+                  <div>
+                    <p className="job-swipe-company-name">{current.company}</p>
+                    <p className="job-swipe-company-meta">
+                      {current.source ? `Source: ${current.source}` : "Job listing"}
+                    </p>
+                    {current.sourceUrl ? (
+                      <button type="button" className="job-swipe-link" onClick={openListing}>
+                        View original listing
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
+
+              {upcoming.length > 0 ? (
+                <>
+                  <hr className="job-swipe-sep" />
+                  <section>
+                    <h3 className="job-swipe-section-label">Up next</h3>
+                    <div className="job-swipe-similar-stack">
+                      {upcoming.map((j) => (
+                        <div key={j.id} className="job-swipe-similar-card job-swipe-similar-card--static">
+                          <p className="job-swipe-similar-title">{j.title}</p>
+                          <p className="job-swipe-similar-meta">
+                            {j.company}
+                            {j.location ? ` · ${j.location}` : ""}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </>
+              ) : null}
             </div>
-
-            <hr className="job-swipe-sep" />
-
-            <p className="job-swipe-brief">
-              We are looking for an experienced Senior UX/UI Designer to lead design initiatives for our core global
-              platform. You will be responsible for end-to-end product design, from user research and wireframing to
-              high-fidelity prototyping and collaborating closely with engineering teams to ship polished experiences.
-            </p>
-          </article>
-
-          <div className="job-swipe-actions-wrap">
-            <div className="job-swipe-actions">
-              <button type="button" className="job-swipe-icon-btn" aria-label="Pass on this job">
-                <IconPass />
-              </button>
-              <button type="button" className="job-swipe-icon-btn" aria-label="Save this job">
-                <IconBookmark />
-              </button>
-              <button type="button" className="job-swipe-apply">
-                <IconSend />
-                Apply Now
-              </button>
-            </div>
-          </div>
+          </aside>
         </div>
-
-        <aside className="job-swipe-aside">
-          <header className="job-swipe-aside-header">
-            <h2 className="job-swipe-aside-title">Details</h2>
-            <button type="button" className="job-swipe-aside-close" aria-label="Close" onClick={() => navigate("/")}>
-              <IconClose />
-            </button>
-          </header>
-
-          <div className="job-swipe-aside-scroll">
-            <section>
-              <h3 className="job-swipe-section-label">About the role</h3>
-              <p className="job-swipe-prose">
-                We are looking for an experienced Senior UX/UI Designer to lead design initiatives for our core global
-                platform. You will be responsible for end-to-end product design, from user research and wireframing to
-                high-fidelity prototyping and collaborating closely with engineering teams to ensure pixel-perfect
-                implementation.
-              </p>
-              <p className="job-swipe-prose">
-                The ideal candidate has a strong portfolio demonstrating a deep understanding of user-centered design
-                principles in complex enterprise applications. You will work within a highly collaborative,
-                cross-functional team environment.
-              </p>
-              <ul className="job-swipe-list">
-                <li>5+ years of experience in product design.</li>
-                <li>Proficiency in Figma and modern prototyping tools.</li>
-                <li>Experience with design systems and component libraries.</li>
-              </ul>
-            </section>
-
-            <hr className="job-swipe-sep" />
-
-            <section>
-              <h3 className="job-swipe-section-label">Company info</h3>
-              <div className="job-swipe-company-row">
-                <div className="job-swipe-company-avatar" aria-hidden>
-                  <IconBuilding />
-                </div>
-                <div>
-                  <p className="job-swipe-company-name">Acme Corp Global</p>
-                  <p className="job-swipe-company-meta">Enterprise Software · 10,000+ employees</p>
-                  <button type="button" className="job-swipe-link">
-                    View Company Profile
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <hr className="job-swipe-sep" />
-
-            <section>
-              <h3 className="job-swipe-section-label">Similar roles</h3>
-              <div className="job-swipe-similar-stack">
-                <button type="button" className="job-swipe-similar-card">
-                  <p className="job-swipe-similar-title">Lead Product Designer</p>
-                  <p className="job-swipe-similar-meta">TechFlow · Remote</p>
-                </button>
-                <button type="button" className="job-swipe-similar-card">
-                  <p className="job-swipe-similar-title">UX Researcher</p>
-                  <p className="job-swipe-similar-meta">Innovate Inc. · San Francisco, CA</p>
-                </button>
-              </div>
-            </section>
-          </div>
-        </aside>
-      </div>
+      )}
     </div>
   );
 }
