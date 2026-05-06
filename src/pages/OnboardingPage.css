@@ -1596,3 +1596,325 @@
     animation: none !important;
   }
 }
+
+/* ─────────────────────────────────────────────
+   Resume Builder (step 4)
+───────────────────────────────────────────── */
+.onb-rb-shell {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  background: var(--onb-bg);
+  padding: 40px 24px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.onb-rb-inner {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.onb-rb-header {
+  text-align: center;
+}
+
+/* Section list */
+.onb-rb-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Section card */
+.onb-rb-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: box-shadow 120ms ease;
+}
+
+.onb-rb-card--open {
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 8px rgba(70, 72, 212, 0.08);
+}
+
+/* Section header row (button) */
+.onb-rb-card-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.onb-rb-card-row:hover {
+  background: #f8fafc;
+}
+
+/* Icon circle */
+.onb-rb-icon-wrap {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(70, 72, 212, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Section title + description */
+.onb-rb-card-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.onb-rb-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--onb-slate-900);
+}
+
+.onb-rb-card-desc {
+  font-size: 13px;
+  color: var(--onb-slate-600);
+}
+
+/* Item count badge */
+.onb-rb-count {
+  flex-shrink: 0;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: rgba(70, 72, 212, 0.1);
+  color: var(--onb-brand);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+}
+
+/* Expand / collapse indicator */
+.onb-rb-toggle {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--onb-brand);
+  pointer-events: none;
+}
+
+.onb-rb-card--open .onb-rb-toggle {
+  background: rgba(70, 72, 212, 0.1);
+  border-color: #c7d2fe;
+}
+
+/* Expanded form area */
+.onb-rb-form {
+  padding: 4px 20px 20px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: onbRbFormIn 160ms var(--motion-ease-standard, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+@keyframes onbRbFormIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Add entry button */
+.onb-rb-add-btn {
+  align-self: flex-start;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  background: var(--onb-brand);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: filter 120ms ease;
+}
+
+.onb-rb-add-btn:hover { filter: brightness(0.92); }
+
+/* Added items list */
+.onb-rb-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.onb-rb-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.onb-rb-item-body { flex: 1; }
+
+.onb-rb-item-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--onb-slate-900);
+}
+
+.onb-rb-item-meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--onb-slate-600);
+}
+
+/* Remove button on items */
+.onb-rb-remove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 120ms, border-color 120ms;
+}
+
+.onb-rb-remove:hover {
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+/* Inline add row (skills / interests) */
+.onb-rb-inline-add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.onb-rb-tag-input {
+  flex: 1;
+}
+
+/* Tag chips */
+.onb-rb-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.onb-rb-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 12px;
+  background: rgba(70, 72, 212, 0.09);
+  color: var(--onb-brand);
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.onb-rb-tag-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--onb-brand);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  font-family: inherit;
+  opacity: 0.6;
+  transition: opacity 100ms;
+}
+
+.onb-rb-tag-remove:hover { opacity: 1; }
+
+/* Editable item card (extracted data shown as editable fields) */
+.onb-rb-edit-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.onb-rb-edit-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.onb-rb-edit-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--onb-brand);
+}
+
+/* Empty-state hint */
+.onb-rb-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--onb-slate-600);
+  font-style: italic;
+}
+
+/* Footer nav row */
+.onb-rb-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+}
+
+.onb-rb-continue {
+  padding: 14px 36px;
+  font-size: 15px;
+}
+
+@media (max-width: 520px) {
+  .onb-rb-shell { padding: 24px 12px 16px; }
+  .onb-rb-card-row { padding: 14px 16px; }
+  .onb-rb-form { padding: 4px 14px 16px; }
+  .onb-rb-continue { padding: 12px 24px; }
+}
