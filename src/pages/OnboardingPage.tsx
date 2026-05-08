@@ -605,6 +605,34 @@ export function OnboardingPage() {
             onboardingStep: 1,
             ...(profile !== undefined ? { profile } : {}),
           });
+          // Seed resume builder state directly so the data shows on step 4
+          if (profile) {
+            profileSeededRef.current = false; // allow effect to re-run with fresh data
+            if (profile.workExperience?.length) {
+              setWorkExperiences(
+                profile.workExperience.map((we, i) => ({
+                  id: `extract-${i}`,
+                  title: we.title ?? "",
+                  employer: we.company ?? "",
+                  startMonth: toMonthStr(we.startDate),
+                  endMonth: we.endDate ? toMonthStr(we.endDate) : null,
+                  location: we.location ?? "",
+                })),
+              );
+            }
+            if (profile.education?.length)
+              setEducation(profile.education.map((e) => ({ ...e, date: toMonthStr(e.date) })));
+            if (profile.projects?.length)
+              setProjects(profile.projects.map((p) => ({ ...p, date: toMonthStr(p.date) })));
+            if (profile.skills?.length) setSkills(profile.skills);
+            if (profile.certifications?.length) setCertifications(profile.certifications);
+            if (profile.interests?.length) setInterests(profile.interests);
+            // Auto-open the first section that has data
+            if (profile.workExperience?.length) setActiveBuildSection("work");
+            else if (profile.education?.length) setActiveBuildSection("edu");
+            else if (profile.projects?.length) setActiveBuildSection("proj");
+            else if (profile.skills?.length) setActiveBuildSection("skills");
+          }
         }
       } catch {
         setResumeErr("Resume upload failed. Please try again.");
