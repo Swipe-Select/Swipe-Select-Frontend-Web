@@ -136,6 +136,7 @@ export function OnboardingPage() {
     import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim() ??
     "";
   const locationMapRef = useRef<OnboardingLocationMapHandle>(null);
+  const targetMapRef = useRef<OnboardingLocationMapHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [resumeBusy, setResumeBusy] = useState(false);
   const [resumeErr, setResumeErr] = useState<string | null>(null);
@@ -182,6 +183,7 @@ export function OnboardingPage() {
   const [targetSuggestBusy, setTargetSuggestBusy] = useState(false);
   const [targetSuggestErr, setTargetSuggestErr] = useState<string | null>(null);
   const [targetSuggestRows, setTargetSuggestRows] = useState<LocationListRow[]>([]);
+  const [targetMapLngLat, setTargetMapLngLat] = useState(DEFAULT_BASE_MAP_LNG_LAT);
   const popularLocations = useMemo(
     () => [
     { city: "San Francisco", region: "California, US" },
@@ -1980,7 +1982,12 @@ export function OnboardingPage() {
                           key={`${city}-${region}`}
                           type="button"
                           className={`onb-loc-chip${exists ? " onb-loc-chip--sel" : ""}`}
-                          onClick={() => { if (!exists) addTargetLocation(city, normalizedCountry); }}
+                          onClick={() => {
+                            if (!exists) addTargetLocation(city, normalizedCountry);
+                            const key = `${city}, ${region}`;
+                            const coords = POPULAR_BASE_LOCATION_LNG_LAT[key];
+                            if (coords) setTargetMapLngLat({ lng: coords[0], lat: coords[1] });
+                          }}
                           aria-pressed={exists}
                         >
                           <div className="onb-flex-gap">
@@ -2027,7 +2034,10 @@ export function OnboardingPage() {
                           key={`${r.label}-${idx}`}
                           type="button"
                           className={`onb-loc-chip${exists ? " onb-loc-chip--sel" : ""}`}
-                          onClick={() => { if (!exists) addTargetLocation(r.city, country); }}
+                          onClick={() => {
+                            if (!exists) addTargetLocation(r.city, country);
+                            if (r.lngLat) setTargetMapLngLat({ lng: r.lngLat[0], lat: r.lngLat[1] });
+                          }}
                           aria-pressed={exists}
                         >
                           <div className="onb-flex-gap">
@@ -2115,25 +2125,26 @@ export function OnboardingPage() {
             </div>
 
             <div className="onb-target-visual">
-              <div className="onb-target-visual-card">
-                <h3 style={{ margin: "0 0 10px", fontSize: 22 }}>Target locations</h3>
-                <p className="onb-sub" style={{ margin: 0 }}>
-                  Choose cities where you want to receive opportunities. Your base location and target locations are used together to improve matching quality.
-                </p>
-                <div className="onb-target-visual-points">
-                  <div className="onb-flex-gap">
-                    <img src={ast.target.pin} alt="" width={18} height={18} />
-                    <span>Add at least one preferred destination</span>
-                  </div>
-                  <div className="onb-flex-gap">
-                    <img src={ast.target.pin} alt="" width={18} height={18} />
-                    <span>Use suggestions for quick setup</span>
-                  </div>
-                  <div className="onb-flex-gap">
-                    <img src={ast.target.pin} alt="" width={18} height={18} />
-                    <span>Update this later from onboarding/profile</span>
-                  </div>
-                </div>
+              <OnboardingLocationMap ref={targetMapRef} accessToken={mapboxEnvToken} lngLat={targetMapLngLat} />
+              <div style={{ position: "absolute", bottom: 32, right: 32, display: "flex", flexDirection: "column", gap: 8, zIndex: 2 }}>
+                <button
+                  type="button"
+                  className="onb-btn"
+                  aria-label="Zoom in"
+                  style={{ width: 40, height: 40, borderRadius: 32, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
+                  onClick={() => targetMapRef.current?.zoomIn()}
+                >
+                  <img src={ast.location.mapPlus} alt="" width={14} height={14} />
+                </button>
+                <button
+                  type="button"
+                  className="onb-btn"
+                  aria-label="Zoom out"
+                  style={{ width: 40, height: 40, borderRadius: 32, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
+                  onClick={() => targetMapRef.current?.zoomOut()}
+                >
+                  <img src={ast.location.mapMinus} alt="" width={14} height={2} />
+                </button>
               </div>
             </div>
           </div>

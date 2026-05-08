@@ -1312,11 +1312,8 @@
 .onb-target-visual {
   flex: 1 1 auto;
   min-width: 0;
-  background: linear-gradient(129.835deg, rgba(238, 242, 255, 0.8) 0%, rgba(240, 249, 255, 0.8) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  background: #efecf8;
+  position: relative;
 }
 
 .onb-target-visual-card {
