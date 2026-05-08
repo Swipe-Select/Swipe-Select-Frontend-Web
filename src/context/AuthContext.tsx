@@ -12,6 +12,7 @@ import type { AuthUserPayload } from '../api/types';
 import { fetchUserProfile, loginUser, loginWithGoogle, registerUser } from '../api/auth';
 import { mergeProfileIntoSession, normalizeAuthPayload } from '../auth/normalizeSession';
 import { clearSession, readSession, writeSession } from '../auth/storage';
+import { apiJson } from '../api/client';
 
 type AuthCtx = {
   session: AuthUserPayload | null;
@@ -30,10 +31,10 @@ type AuthCtx = {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [session, setSessionState] = useState<AuthUserPayload | null>(() => readSession());
 
-  /** Persist + sync React immediately so Navigate after OAuth/email auth sees token (avoids ProtectedRoute flash / blank routes). */
+  /** Persist + sync React immediately so Navigate after OAuth/email auth sees token. */
   const commitPayload = useCallback((raw: unknown): string | undefined => {
     const next = normalizeAuthPayload(raw);
     if (!next) {
@@ -124,6 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    // Tell the backend to clear its HttpOnly cookie — fire-and-forget, never blocks UI
+    void apiJson('/api/auth/logout', { method: 'POST' });
     clearSession();
     setSessionState(null);
   }, []);

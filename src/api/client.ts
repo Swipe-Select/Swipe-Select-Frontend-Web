@@ -20,6 +20,9 @@ export async function apiJson<T>(
   const res = await fetch(url, {
     ...options,
     headers,
+    // Send the HttpOnly auth cookie on every request so the backend can
+    // authenticate via cookie (web) or Bearer token (mobile/API clients).
+    credentials: 'include',
   });
   const json = (await res.json()) as ApiSuccess<T> | { success: false; message?: string; data: null };
   return { ok: res.ok, status: res.status, json };
