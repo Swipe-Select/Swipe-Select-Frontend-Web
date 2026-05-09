@@ -31,6 +31,7 @@ export async function extractResumePdf(file: File, token: string) {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
       },
+      credentials: 'include',
       body: fd,
     });
 

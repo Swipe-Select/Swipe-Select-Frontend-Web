@@ -634,6 +634,7 @@ export function OnboardingPage() {
             else if (profile.education?.length) setActiveBuildSection("edu");
             else if (profile.projects?.length) setActiveBuildSection("proj");
             else if (profile.skills?.length) setActiveBuildSection("skills");
+            else if (profile.certifications?.length) setActiveBuildSection("cert");
           }
         }
       } catch {
