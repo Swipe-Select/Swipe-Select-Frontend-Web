@@ -1,5 +1,5 @@
-/** Default assumes backend README `PORT=5000` when `.env` is not set */
-export const apiBaseUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? 'http://localhost:5000';
+/** Default assumes backend README `PORT=5002` when `.env` is not set */
+export const apiBaseUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? 'http://localhost:5002';
 
 export type ApiSuccess<T> = { success: true; message?: string | null; data: T };
 
@@ -20,9 +20,6 @@ export async function apiJson<T>(
   const res = await fetch(url, {
     ...options,
     headers,
-    // Send the HttpOnly auth cookie on every request so the backend can
-    // authenticate via cookie (web) or Bearer token (mobile/API clients).
-    credentials: 'include',
   });
   const json = (await res.json()) as ApiSuccess<T> | { success: false; message?: string; data: null };
   return { ok: res.ok, status: res.status, json };

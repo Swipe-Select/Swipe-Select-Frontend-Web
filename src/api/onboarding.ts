@@ -31,7 +31,6 @@ export async function extractResumePdf(file: File, token: string) {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
       },
-      credentials: 'include',
       body: fd,
     });
 
@@ -57,7 +56,7 @@ export async function extractResumePdf(file: File, token: string) {
       status: 0,
       json: {
         success: false,
-        message: 'Could not reach the server. Make sure backend is running on port 5000.',
+        message: 'Could not reach the server. Make sure backend is running on port 5002.',
       },
     };
   }

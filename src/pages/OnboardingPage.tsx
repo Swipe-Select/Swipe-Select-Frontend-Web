@@ -30,60 +30,6 @@ function workPrefLabel(w: WorkPrefId) {
   return "In Person";
 }
 
-const COUNTRY_OPTIONS = [
-  "Argentina",
-  "Australia",
-  "Austria",
-  "Bangladesh",
-  "Belgium",
-  "Brazil",
-  "Canada",
-  "Chile",
-  "China",
-  "Colombia",
-  "Czech Republic",
-  "Denmark",
-  "Egypt",
-  "Finland",
-  "France",
-  "Germany",
-  "Greece",
-  "Hong Kong",
-  "Hungary",
-  "India",
-  "Indonesia",
-  "Ireland",
-  "Israel",
-  "Italy",
-  "Japan",
-  "Kenya",
-  "Malaysia",
-  "Mexico",
-  "Netherlands",
-  "New Zealand",
-  "Nigeria",
-  "Norway",
-  "Pakistan",
-  "Philippines",
-  "Poland",
-  "Portugal",
-  "Qatar",
-  "Romania",
-  "Saudi Arabia",
-  "Singapore",
-  "South Africa",
-  "South Korea",
-  "Spain",
-  "Sweden",
-  "Switzerland",
-  "Thailand",
-  "Turkey",
-  "United Arab Emirates",
-  "United Kingdom",
-  "United States",
-  "Vietnam",
-];
-
 /** [lng, lat] for onboarding step 8 popular rows (matches `city` + `region` keys). */
 const POPULAR_BASE_LOCATION_LNG_LAT: Record<string, [number, number]> = {
   "San Francisco, California, US": [-122.4194, 37.7749],
@@ -207,8 +153,6 @@ export function OnboardingPage() {
   // Token is usable as long as it is present and has not been explicitly rejected with a 401/403.
   // "unknown" (still validating or network error) is treated as valid so features aren't blocked.
   // Location features are active whenever the key is present.
-  // Auth errors are surfaced per-search inline; a background probe is not used.
-  const hasValidMapbox = Boolean(mapboxEnvToken);
 
   // Pre-populate Resume Builder from extracted resume data (runs once when profile becomes available)
   const profileSeededRef = useRef(false);
