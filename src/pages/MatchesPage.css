@@ -1,0 +1,133 @@
+.matches-page {
+  background: #f1f5fb;
+  font-family: Manrope, system-ui, sans-serif;
+  color: #0f172a;
+}
+
+.matches-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 28px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+/* ─── Empty state ────────────────────────────────────────────────────── */
+.matches-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  max-width: 380px;
+}
+
+.matches-empty-art {
+  margin-bottom: 8px;
+}
+
+.matches-empty-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.matches-empty-copy {
+  font-size: 15px;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 24px;
+  margin: 0;
+}
+
+.matches-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 11px 28px;
+  border-radius: 9999px;
+  background: #4648d4;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(70, 72, 212, 0.28);
+  transition: filter 160ms, transform 160ms;
+}
+
+.matches-empty-cta:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* ─── Preview skeleton grid ──────────────────────────────────────────── */
+.matches-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.matches-preview-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  opacity: 0.45;
+}
+
+.matches-preview-logo {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e9e6f3 0%, #dde3f0 100%);
+}
+
+.matches-preview-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.matches-preview-line {
+  border-radius: 4px;
+  background: #e2e8f0;
+}
+
+.matches-preview-line--title {
+  height: 13px;
+  width: 70%;
+}
+
+.matches-preview-line--sub {
+  height: 11px;
+  width: 50%;
+}
+
+.matches-preview-badge {
+  flex-shrink: 0;
+  width: 30px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #e9e6f3;
+}
+
+/* ─── Coming soon label ──────────────────────────────────────────────── */
+.matches-coming-soon {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: #94a3b8;
+  margin: 0;
+  text-transform: uppercase;
+}

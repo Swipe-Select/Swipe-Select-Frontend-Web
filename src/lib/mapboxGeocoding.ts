@@ -51,7 +51,7 @@ function featureToRow(feature: LocationIqFeature): LocationIqLocationRow | null 
 export async function mapboxForwardGeocode(
   query: string,
   accessToken: string,
-  options?: { limit?: number; types?: string },
+  options?: { limit?: number },
   signal?: AbortSignal,
 ): Promise<LocationIqLocationRow[]> {
   const q = query.trim();
@@ -65,10 +65,6 @@ export async function mapboxForwardGeocode(
     limit,
     normalizecity: "1",
   });
-  const typeFilter = options?.types?.toLowerCase() ?? "";
-  if (typeFilter.includes("country")) {
-    params.set("tag", "place:country");
-  }
   const url = `https://us1.locationiq.com/v1/search.php?${params.toString()}`;
   const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
   if (res.status === 401 || res.status === 403) {
@@ -96,6 +92,7 @@ export async function mapboxReverseGeocode(
     lon: String(lng),
     format: "json",
     normalizecity: "1",
+    addressdetails: "1",
   });
   const url = `https://us1.locationiq.com/v1/reverse.php?${params.toString()}`;
   const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
@@ -103,6 +100,14 @@ export async function mapboxReverseGeocode(
     throw new Error("LOCATIONIQ_AUTH");
   }
   if (!res.ok) return null;
-  const json = (await res.json()) as { display_name?: string };
-  return json.display_name?.trim() ?? null;
+  const json = (await res.json()) as {
+    display_name?: string;
+    address?: { city?: string; town?: string; village?: string; county?: string; country?: string };
+  };
+  const addr = json.address;
+  const city = addr?.city || addr?.town || addr?.village || addr?.county;
+  const country = addr?.country;
+  if (city && country) return `${city}, ${country}`;
+  if (city) return city;
+  return json.display_name?.split(",")[0]?.trim() ?? null;
 }
