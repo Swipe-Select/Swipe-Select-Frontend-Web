@@ -74,7 +74,7 @@ export function ProfilePage() {
               </p>
             ) : null}
           </div>
-          <button type="button" className="prof-edit-btn" disabled aria-label="Edit profile (coming soon)">
+          <button type="button" className="prof-edit-btn" aria-label="Edit profile">
             <IconEdit />
             <span>Edit Profile</span>
           </button>

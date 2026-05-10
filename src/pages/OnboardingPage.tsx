@@ -1838,15 +1838,17 @@ export function OnboardingPage() {
                     ) : null}
                     {locationResults.map((row, idx) => {
                       const { label, city, region } = row;
+                      const country = row.country || region.split(",").slice(-1)[0]?.trim() || "";
+                      const cleanLocation = country ? `${city}, ${country}` : city;
                       const key = `${city}, ${region}`;
-                      const sel = selectedBaseLocation === key || selectedBaseLocation === label;
+                      const sel = selectedBaseLocation === key || selectedBaseLocation === label || selectedBaseLocation === cleanLocation;
                       return (
                         <button
                           key={`${label}-${idx}`}
                           type="button"
                           className={`onb-loc-chip${sel ? " onb-loc-chip--sel" : ""}`}
                           onClick={() => {
-                            setSelectedBaseLocation(label);
+                            setSelectedBaseLocation(cleanLocation);
                             if (row.lngLat) {
                               setBaseMapLngLat({ lng: row.lngLat[0], lat: row.lngLat[1] });
                             }
