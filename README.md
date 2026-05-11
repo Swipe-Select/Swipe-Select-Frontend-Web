@@ -16,7 +16,7 @@ React (Vite) client for **Swipe Select**. It uses the **Swipe-Select-Backend** A
 
 Copy **`.env.example`** → **`.env`** and set at least:
 
-- **`VITE_API_URL`** — backend base URL (default in code: `http://localhost:5000`)
+- **`VITE_API_URL`** — backend base URL (default: `https://swipe-select-backend.onrender.com`)
 - **`VITE_GOOGLE_CLIENT_ID`** (optional) — enables Google sign-in UI
 
 ## Scripts
@@ -27,6 +27,8 @@ npm run dev      # http://localhost:5173
 npm run build
 npm run lint
 ```
+
+
 
 ## Related repo
 
