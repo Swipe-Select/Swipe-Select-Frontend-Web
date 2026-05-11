@@ -61,3 +61,9 @@ export async function swipeJob(jobId: string, action: 'like' | 'pass' | 'apply',
     token,
   });
 }
+
+export async function fetchMatchedJobs(token: string) {
+  const res = await apiJson<JobsPayload>('/api/jobs/matches', { method: 'GET', token });
+  const parsed = parseJobsJson(res.json);
+  return { ...res, ...parsed };
+}

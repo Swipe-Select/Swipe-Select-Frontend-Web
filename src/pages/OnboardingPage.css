@@ -1,3 +1,8 @@
+/* Prevent outer page from scrolling — steps that need internal scroll use overflow-y:auto on their own container */
+.onb.page-fill {
+  overflow: hidden;
+}
+
 .onb {
   --onb-bg: #f8fafc;
   --onb-slate-900: #0f172a;
@@ -25,6 +30,7 @@
 .onb-step-stage {
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   animation: onbStepEnter var(--motion-duration-section, 240ms) var(--motion-ease-standard, cubic-bezier(0.22, 1, 0.36, 1));
@@ -32,8 +38,8 @@
 
 @keyframes onbStepEnter {
   from {
-    opacity: 0.92;
-    transform: translate3d(var(--motion-slide-distance-sm, 12px), 0, 0);
+    opacity: 0.55;
+    transform: translate3d(28px, 0, 0);
   }
   to {
     opacity: 1;
@@ -306,12 +312,12 @@
   background: #fcf8ff;
   border: 2px dashed var(--onb-muted-border);
   border-radius: 48px;
-  min-height: 300px;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 50px;
+  padding: 28px 50px;
   text-align: center;
 }
 
@@ -1488,7 +1494,7 @@
 .onb-emp-layout {
   display: flex;
   gap: 40px;
-  padding: 20px 16px;
+  padding: 8px 24px;
   max-width: 1280px;
   margin: 0 auto;
   flex: 1;
@@ -1497,7 +1503,7 @@
 .onb-emp-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 14px;
 }
 
 @media (max-width: 900px) {
@@ -1510,8 +1516,8 @@
 }
 
 .onb-emp-card {
-  border-radius: 48px;
-  padding: 25px;
+  border-radius: 32px;
+  padding: 16px;
   border: 1px solid var(--onb-slate-200);
   background: var(--onb-white);
   cursor: pointer;
@@ -1523,7 +1529,7 @@
   border: 2px solid var(--onb-indigo);
   background: #f5f7ff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  padding: 24px;
+  padding: 15px;
 }
 
 /* Experience pills */

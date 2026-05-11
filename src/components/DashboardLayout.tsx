@@ -187,6 +187,18 @@ export function DashboardLayout() {
         {/* Top bar */}
         <header className="dash-topbar">
           <div className="dash-topbar-left">
+            {collapsed && (
+              <button
+                type="button"
+                className="dash-topbar-expand"
+                onClick={() => setCollapsed(false)}
+                aria-label="Expand sidebar"
+              >
+                <span className="dash-topbar-expand-chevron">
+                  <IconChevron />
+                </span>
+              </button>
+            )}
             <h1 className="dash-topbar-title">{sectionLabel}</h1>
           </div>
           <div className="dash-topbar-right">
