@@ -114,6 +114,7 @@ export function OnboardingPage() {
   const [certifications, setCertifications] = useState<ProfileCertification[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
   const [activeBuildSection, setActiveBuildSection] = useState<string | null>(null);
+  const [committedKeys, setCommittedKeys] = useState<Set<string>>(new Set());
   const [newSkill, setNewSkill] = useState("");
   const [newInterest, setNewInterest] = useState("");
 
@@ -226,6 +227,10 @@ export function OnboardingPage() {
     },
     [scoreLocationMatch],
   );
+
+  const commitEntry = useCallback((key: string) => {
+    setCommittedKeys((s) => { const n = new Set(s); n.add(key); return n; });
+  }, []);
 
   const addBlankWorkExp = useCallback(() =>
     setWorkExperiences((c) => [
@@ -1302,6 +1307,15 @@ export function OnboardingPage() {
                             <input className="onb-input onb-we-field-control" value={entry.location} onChange={(e) => updateWorkExp(entry.id, "location", e.target.value)} placeholder="e.g. San Francisco, CA" />
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          className={`onb-rb-add-btn${committedKeys.has(`we-${entry.id}`) ? " onb-rb-add-btn--added" : ""}`}
+                          style={{ alignSelf: "flex-end" }}
+                          disabled={!entry.title.trim() && !entry.employer.trim()}
+                          onClick={() => commitEntry(`we-${entry.id}`)}
+                        >
+                          {committedKeys.has(`we-${entry.id}`) ? "✓ Added" : "Add"}
+                        </button>
                       </div>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={addBlankWorkExp}>+ Add Entry</button>
@@ -1347,6 +1361,15 @@ export function OnboardingPage() {
                             <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateEducation(i, "date", e.target.value)} />
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          className={`onb-rb-add-btn${committedKeys.has(`edu-${i}`) ? " onb-rb-add-btn--added" : ""}`}
+                          style={{ alignSelf: "flex-end" }}
+                          disabled={!entry.school.trim() && !entry.degree.trim()}
+                          onClick={() => commitEntry(`edu-${i}`)}
+                        >
+                          {committedKeys.has(`edu-${i}`) ? "✓ Added" : "Add"}
+                        </button>
                       </div>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setEducation((c) => [...c, { school: "", degree: "", date: "" }])}>+ Add Entry</button>
@@ -1396,6 +1419,15 @@ export function OnboardingPage() {
                             <textarea className="onb-input onb-we-textarea" rows={2} value={entry.description} onChange={(e) => updateProject(i, "description", e.target.value)} placeholder="What did you build and how?" />
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          className={`onb-rb-add-btn${committedKeys.has(`proj-${i}`) ? " onb-rb-add-btn--added" : ""}`}
+                          style={{ alignSelf: "flex-end" }}
+                          disabled={!entry.name.trim()}
+                          onClick={() => commitEntry(`proj-${i}`)}
+                        >
+                          {committedKeys.has(`proj-${i}`) ? "✓ Added" : "Add"}
+                        </button>
                       </div>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setProjects((c) => [...c, { name: "", website: "", date: "", description: "" }])}>+ Add Entry</button>
@@ -1482,6 +1514,15 @@ export function OnboardingPage() {
                             <input className="onb-input onb-we-field-control" type="url" value={entry.link} onChange={(e) => updateCertification(i, "link", e.target.value)} placeholder="https://..." />
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          className={`onb-rb-add-btn${committedKeys.has(`cert-${i}`) ? " onb-rb-add-btn--added" : ""}`}
+                          style={{ alignSelf: "flex-end" }}
+                          disabled={!entry.name.trim()}
+                          onClick={() => commitEntry(`cert-${i}`)}
+                        >
+                          {committedKeys.has(`cert-${i}`) ? "✓ Added" : "Add"}
+                        </button>
                       </div>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setCertifications((c) => [...c, { name: "", link: "" }])}>+ Add Entry</button>

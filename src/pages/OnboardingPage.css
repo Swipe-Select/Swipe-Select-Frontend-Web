@@ -1761,6 +1761,16 @@
 
 .onb-rb-add-btn:hover { filter: brightness(0.92); }
 
+.onb-rb-add-btn--added {
+  background: #16a34a;
+}
+
+.onb-rb-add-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: none;
+}
+
 /* Added items list */
 .onb-rb-items {
   display: flex;
