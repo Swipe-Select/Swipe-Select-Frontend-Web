@@ -114,8 +114,11 @@ export function OnboardingPage() {
   const [certifications, setCertifications] = useState<ProfileCertification[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
   const [activeBuildSection, setActiveBuildSection] = useState<string | null>(null);
+  const [committedKeys, setCommittedKeys] = useState<Set<string>>(new Set());
   const [newSkill, setNewSkill] = useState("");
+  const [skillJustAdded, setSkillJustAdded] = useState(false);
   const [newInterest, setNewInterest] = useState("");
+  const [interestJustAdded, setInterestJustAdded] = useState(false);
 
   const [locationSearch, setLocationSearch] = useState("");
   const [selectedBaseLocation, setSelectedBaseLocation] = useState("New York, New York, US");
@@ -226,6 +229,10 @@ export function OnboardingPage() {
     },
     [scoreLocationMatch],
   );
+
+  const commitEntry = useCallback((key: string) => {
+    setCommittedKeys((s) => { const n = new Set(s); n.add(key); return n; });
+  }, []);
 
   const addBlankWorkExp = useCallback(() =>
     setWorkExperiences((c) => [
@@ -1302,6 +1309,15 @@ export function OnboardingPage() {
                             <input className="onb-input onb-we-field-control" value={entry.location} onChange={(e) => updateWorkExp(entry.id, "location", e.target.value)} placeholder="e.g. San Francisco, CA" />
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          className={`onb-rb-add-btn${committedKeys.has(`we-${entry.id}`) ? " onb-rb-add-btn--added" : ""}`}
+                          style={{ alignSelf: "flex-end" }}
+                          disabled={!entry.title.trim() && !entry.employer.trim()}
+                          onClick={() => commitEntry(`we-${entry.id}`)}
+                        >
+                          {committedKeys.has(`we-${entry.id}`) ? "✓ Added" : "Add"}
+                        </button>
                       </div>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={addBlankWorkExp}>+ Add Entry</button>
@@ -1347,6 +1363,15 @@ export function OnboardingPage() {
                             <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateEducation(i, "date", e.target.value)} />
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          className={`onb-rb-add-btn${committedKeys.has(`edu-${i}`) ? " onb-rb-add-btn--added" : ""}`}
+                          style={{ alignSelf: "flex-end" }}
+                          disabled={!entry.school.trim() && !entry.degree.trim()}
+                          onClick={() => commitEntry(`edu-${i}`)}
+                        >
+                          {committedKeys.has(`edu-${i}`) ? "✓ Added" : "Add"}
+                        </button>
                       </div>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setEducation((c) => [...c, { school: "", degree: "", date: "" }])}>+ Add Entry</button>
@@ -1396,6 +1421,15 @@ export function OnboardingPage() {
                             <textarea className="onb-input onb-we-textarea" rows={2} value={entry.description} onChange={(e) => updateProject(i, "description", e.target.value)} placeholder="What did you build and how?" />
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          className={`onb-rb-add-btn${committedKeys.has(`proj-${i}`) ? " onb-rb-add-btn--added" : ""}`}
+                          style={{ alignSelf: "flex-end" }}
+                          disabled={!entry.name.trim()}
+                          onClick={() => commitEntry(`proj-${i}`)}
+                        >
+                          {committedKeys.has(`proj-${i}`) ? "✓ Added" : "Add"}
+                        </button>
                       </div>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setProjects((c) => [...c, { name: "", website: "", date: "", description: "" }])}>+ Add Entry</button>
@@ -1437,11 +1471,21 @@ export function OnboardingPage() {
                           setNewSkill("");
                         }
                       }} />
-                      <button type="button" className="onb-rb-add-btn" style={{ marginTop: 0 }} onClick={() => {
-                        const val = newSkill.trim();
-                        if (val && !skills.includes(val)) setSkills((c) => [...c, val]);
-                        setNewSkill("");
-                      }}>Add</button>
+                      <button
+                        type="button"
+                        className={`onb-rb-add-btn${skillJustAdded ? " onb-rb-add-btn--added" : ""}`}
+                        style={{ marginTop: 0, flexShrink: 0 }}
+                        disabled={!newSkill.trim()}
+                        onClick={() => {
+                          const val = newSkill.trim();
+                          if (val && !skills.includes(val)) {
+                            setSkills((c) => [...c, val]);
+                            setSkillJustAdded(true);
+                            setTimeout(() => setSkillJustAdded(false), 1200);
+                          }
+                          setNewSkill("");
+                        }}
+                      >{skillJustAdded ? "✓ Added" : "Add"}</button>
                     </div>
                     <p className="onb-muted-sm" style={{ marginTop: 4 }}>Press Enter or comma to add a skill</p>
                   </div>
@@ -1482,6 +1526,15 @@ export function OnboardingPage() {
                             <input className="onb-input onb-we-field-control" type="url" value={entry.link} onChange={(e) => updateCertification(i, "link", e.target.value)} placeholder="https://..." />
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          className={`onb-rb-add-btn${committedKeys.has(`cert-${i}`) ? " onb-rb-add-btn--added" : ""}`}
+                          style={{ alignSelf: "flex-end" }}
+                          disabled={!entry.name.trim()}
+                          onClick={() => commitEntry(`cert-${i}`)}
+                        >
+                          {committedKeys.has(`cert-${i}`) ? "✓ Added" : "Add"}
+                        </button>
                       </div>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setCertifications((c) => [...c, { name: "", link: "" }])}>+ Add Entry</button>
@@ -1523,11 +1576,21 @@ export function OnboardingPage() {
                           setNewInterest("");
                         }
                       }} />
-                      <button type="button" className="onb-rb-add-btn" style={{ marginTop: 0 }} onClick={() => {
-                        const val = newInterest.trim();
-                        if (val && !interests.includes(val)) setInterests((c) => [...c, val]);
-                        setNewInterest("");
-                      }}>Add</button>
+                      <button
+                        type="button"
+                        className={`onb-rb-add-btn${interestJustAdded ? " onb-rb-add-btn--added" : ""}`}
+                        style={{ marginTop: 0, flexShrink: 0 }}
+                        disabled={!newInterest.trim()}
+                        onClick={() => {
+                          const val = newInterest.trim();
+                          if (val && !interests.includes(val)) {
+                            setInterests((c) => [...c, val]);
+                            setInterestJustAdded(true);
+                            setTimeout(() => setInterestJustAdded(false), 1200);
+                          }
+                          setNewInterest("");
+                        }}
+                      >{interestJustAdded ? "✓ Added" : "Add"}</button>
                     </div>
                     <p className="onb-muted-sm" style={{ marginTop: 4 }}>Press Enter or comma to add an interest</p>
                   </div>
@@ -2100,7 +2163,7 @@ export function OnboardingPage() {
 
       {step === 10 && (
         <>
-          <div style={{ flex: 1, padding: "124px 24px 172px", display: "flex", justifyContent: "center" }}>
+          <div style={{ flex: 1, padding: "32px 24px", display: "flex", justifyContent: "center" }}>
             <div className="onb-wpref-card">
               <div className="onb-center" style={{ marginBottom: 40 }}>
                 <h1 className="onb-h1">How do you prefer to work?</h1>
@@ -2211,10 +2274,10 @@ export function OnboardingPage() {
           <div className="onb-emp-layout">
             <div style={{ flex: 1, maxWidth: 896 }}>
               <h1 className="onb-h1">Employment Models</h1>
-              <p className="onb-sub" style={{ marginTop: 12 }}>
+              <p className="onb-sub" style={{ marginTop: 8 }}>
                 Select the types of employment you are currently considering for your next career move. You can select multiple options.
               </p>
-              <div className="onb-emp-grid" style={{ marginTop: 40 }}>
+              <div className="onb-emp-grid" style={{ marginTop: 16 }}>
                 {(
                   [
                     ["Full Time", ast.employment.iconFullTime, "Standard 40 hours a week roles. Typically includes comprehensive benefits packages, paid time off, and long-term career growth opportunities within the company.", ["Benefits included", "W2 Status"]],
@@ -2226,12 +2289,12 @@ export function OnboardingPage() {
                   const sel = employment.includes(title);
                   return (
                     <button key={title} type="button" className={`onb-emp-card${sel ? " onb-emp-card--sel" : ""}`} onClick={() => toggleEmployment(title)}>
-                      <img src={sel ? ast.employment.cardCheckOn : ast.employment.cardCheckOff} alt="" width={20} height={20} style={{ position: "absolute", top: 16, right: 16 }} />
-                      <div style={{ marginBottom: 16 }}>
+                      <img src={sel ? ast.employment.cardCheckOn : ast.employment.cardCheckOff} alt="" width={18} height={18} style={{ position: "absolute", top: 12, right: 12 }} />
+                      <div style={{ marginBottom: 8 }}>
                         <div
                           style={{
-                            width: 48,
-                            height: 48,
+                            width: 40,
+                            height: 40,
                             borderRadius: 9999,
                             background: sel ? "rgba(99,102,241,0.1)" : "#efecf8",
                             display: "flex",
@@ -2239,11 +2302,11 @@ export function OnboardingPage() {
                             justifyContent: "center",
                           }}
                         >
-                          <img src={icon} alt="" width={20} height={20} />
+                          <img src={icon} alt="" width={18} height={18} />
                         </div>
                       </div>
-                      <h3 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 600, color: sel ? "#6366f1" : "#0f172a" }}>{title}</h3>
-                      <p className="onb-muted-sm" style={{ margin: "0 0 16px", lineHeight: 1.45 }}>
+                      <h3 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 600, color: sel ? "#6366f1" : "#0f172a" }}>{title}</h3>
+                      <p className="onb-muted-sm" style={{ margin: "0 0 8px", lineHeight: 1.4 }}>
                         {desc}
                       </p>
                       <div className="onb-flex-gap" style={{ flexWrap: "wrap" }}>
@@ -2251,9 +2314,9 @@ export function OnboardingPage() {
                           <span
                             key={t}
                             style={{
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: 500,
-                              padding: "5px 11px",
+                              padding: "3px 9px",
                               borderRadius: 9999,
                               background: sel ? "#fff" : "#efecf8",
                               border: sel ? "1px solid rgba(99,102,241,0.2)" : "none",
@@ -2268,7 +2331,7 @@ export function OnboardingPage() {
                   );
                 })}
               </div>
-              <div className="onb-btn-row" style={{ marginTop: 32 }}>
+              <div className="onb-btn-row" style={{ marginTop: 16 }}>
                 <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
                   <img src={ast.employment.back} alt="" width={9} height={9} />
                   Back
