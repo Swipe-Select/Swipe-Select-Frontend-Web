@@ -10,6 +10,7 @@ The step-by-step sections below describe the UI; these bullets match **current c
 - **Experience level (step 12):** **Single-select**; sent as `experienceLevel: [<one label>]`. Continue disabled until one level is chosen.
 - **Application setup (step 7):** Country search and add/remove; selected countries show summary cards **without** per-country visa dropdowns.
 - **Motion:** Step content uses `OnboardingPage.css` stage styling. App-level route slide transitions come from `App.tsx` + `index.css` (`route-transition-forward` / `route-transition-back`, `--motion-*` tokens, `prefers-reduced-motion`).
+- **Footer layout:** `.onb-step-stage` is a flex column (`display: flex; flex-direction: column`) so that `.onb-footer` with `margin-top: auto` sticks to the bottom of the viewport on all steps. Do not remove these properties — without them the footer floats mid-page on short steps.
 - **`finish()`** calls `POST /api/onboarding/preferences` with `jobTitles`, `targetCountries`, `baseLocation`, `workLocations`, `workMode`, `jobTypes`, `experienceLevel`, and **`onboardingStep: 13`** (see `src/auth/onboardingStep.ts`; aligns with `GET /api/jobs/recommended` when `onboardingStep >= 13`).
 - **Session:** After resume extract, **`profile`** in `localStorage` is updated from response `data`. After preferences save, **`preferences`** and **`onboardingStep`** update from response `data` (`AuthContext`, `src/auth/normalizeSession.ts`, `src/api/types.ts`).
 
@@ -196,6 +197,8 @@ The **Skip** button has been **removed**.
 
 **Right panel:** Decorative map placeholder with concentric circles and a pin.
 
+**Location storage:** The selected location is stored as a clean `"City, Country"` string (e.g. `"Muridke, Pakistan"`). Both the geocoder result click handler and `mapboxReverseGeocode` (`src/lib/mapboxGeocoding.ts`) strip the verbose LocationIQ `display_name` and extract structured `city`/`country` fields before saving. This clean value is what flows into `preferences.baseLocation` and gets sent to the scraper — do not revert to using the raw display name.
+
 ---
 
 ### Step 9 — Target Locations
@@ -285,7 +288,7 @@ Centered card with:
 
 **Two action buttons:**
 - **Explore Jobs** → `/discover`
-- **View Profile** → `/` (**Welcome** — there is no standalone profile route yet; users remain authenticated)
+- **View Profile** → `/` (**Welcome** — `ProfilePage` exists at `src/pages/ProfilePage.tsx` but `/profile` is not yet wired as a route; clicking "View Profile" goes to `/` for now)
 
 **Footer buttons:** Back · **Finish** → `/discover`
 
@@ -309,7 +312,7 @@ Centered card with:
   → step 12 (Experience Level)
   → /onboarding/complete
        ├── Explore Jobs / Finish ──────→ /discover
-       └── View Profile ───────────────→ / (welcome — there is no dedicated profile URL yet)
+       └── View Profile ───────────────→ / (welcome — ProfilePage exists but /profile route not wired yet)
 ```
 
 ---

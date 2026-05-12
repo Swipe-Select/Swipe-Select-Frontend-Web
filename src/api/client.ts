@@ -1,5 +1,5 @@
-/** Default assumes backend README `PORT=5000` when `.env` is not set */
-export const apiBaseUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? 'http://localhost:5000';
+/** Default assumes backend README `PORT=5002` when `.env` is not set */
+export const apiBaseUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? 'https://swipe-select-backend.onrender.com';
 
 export type ApiSuccess<T> = { success: true; message?: string | null; data: T };
 
