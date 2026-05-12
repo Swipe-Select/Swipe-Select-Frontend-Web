@@ -1,0 +1,160 @@
+/* OnboardingTopBar — Modern glassmorphism sticky navigation */
+
+/* ── Core bar ── */
+.onb-topbar-persistent {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 62px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(16px, 4vw, 36px);
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* ── Brand wordmark (center-left on mobile) ── */
+.onb-topbar-brand {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #4648d4 0%, #818cf8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Left — Back button ── */
+.onb-topbar-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px 0 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  background: rgba(99, 102, 241, 0.05);
+  color: #4648d4;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 200ms ease,
+    border-color 200ms ease,
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 200ms ease;
+  white-space: nowrap;
+}
+
+.onb-topbar-back:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateX(-2px);
+  box-shadow: 0 2px 8px rgba(70, 72, 212, 0.15);
+}
+
+.onb-topbar-back:active:not(:disabled) {
+  transform: translateX(0) scale(0.97);
+}
+
+.onb-topbar-back:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.onb-topbar-back-icon {
+  flex-shrink: 0;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.onb-topbar-back:hover:not(:disabled) .onb-topbar-back-icon {
+  transform: translateX(-2px);
+}
+
+/* ── Center — progress pill ── */
+.onb-topbar-progress-wrap {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.onb-topbar-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.onb-topbar-dot {
+  height: 5px;
+  border-radius: 9999px;
+  background: #e0e7ff;
+  transition:
+    width 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 280ms ease;
+  width: 5px;
+}
+
+.onb-topbar-dot--active {
+  width: 22px;
+  background: linear-gradient(90deg, #4648d4, #818cf8);
+}
+
+.onb-topbar-dot--done {
+  background: #c7d2fe;
+  width: 5px;
+}
+
+/* Step counter label */
+.onb-topbar-step-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #6366f1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ── Right spacer ── */
+.onb-topbar-right {
+  min-width: 80px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Mobile: hide step label, shrink dots ── */
+@media (max-width: 480px) {
+  .onb-topbar-step-label {
+    display: none;
+  }
+
+  .onb-topbar-back span {
+    display: none;  /* icon only */
+  }
+
+  .onb-topbar-back {
+    padding: 0 10px;
+    border-radius: 50%;
+    width: 44px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .onb-topbar-dots {
+    display: none;
+  }
+}

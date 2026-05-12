@@ -128,6 +128,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     // Tell the backend to clear its HttpOnly cookie — fire-and-forget, never blocks UI
     void apiJson('/api/auth/logout', { method: 'POST' });
     clearSession();
+    import('../auth/onboardingDraft').then(({ clearDraft }) => clearDraft());
     setSessionState(null);
   }, []);
 
