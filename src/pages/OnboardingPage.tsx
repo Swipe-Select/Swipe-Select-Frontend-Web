@@ -1,4 +1,4 @@
-import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { type DragEvent, useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { OnboardingLocationMap, type OnboardingLocationMapHandle } from "../components/onboarding/OnboardingLocationMap";
 import { mapboxForwardGeocode, mapboxReverseGeocode } from "../lib/mapboxGeocoding";
 import type { ReactNode } from "react";
@@ -10,6 +10,9 @@ import { ONBOARDING_COMPLETE_STEP } from "../auth/onboardingStep";
 import { asUserPreferences, asUserProfile } from "../auth/normalizeSession";
 import { useAuth } from "../context/AuthContext";
 import type { ProfileEducation, ProfileProject, ProfileCertification } from "../api/types";
+import { readDraft, writeDraft, clearDraft } from "../auth/onboardingDraft";
+import { OnboardingTopBar } from "../components/onboarding/OnboardingTopBar";
+import { OnboardingBottomBar } from "../components/onboarding/OnboardingBottomBar";
 import "./OnboardingPage.css";
 
 type GenderId = "female" | "male" | "nonbinary";
@@ -84,55 +87,122 @@ export function OnboardingPage() {
   const locationMapRef = useRef<OnboardingLocationMapHandle>(null);
   const targetMapRef = useRef<OnboardingLocationMapHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Live-data refs (always current, avoids stale closures) ──
+  const workExperiencesRef = useRef<WorkExperienceEntry[]>([]);
+  const educationRef = useRef<ProfileEducation[]>([]);
+  const projectsRef = useRef<ProfileProject[]>([]);
+  const skillsRef = useRef<string[]>([]);
+  const certificationsRef = useRef<ProfileCertification[]>([]);
+  const interestsRef = useRef<string[]>([]);
+  const personalFullNameRef = useRef('');
+  const personalPhoneRef = useRef('');
+  const personalDialCodeRef = useRef('+1');
+  const genderRef = useRef<GenderId>('female');
+  const rolesRef = useRef<string[]>([]);
+  const workPrefsRef = useRef<WorkPrefId[]>([]);
+  const employmentRef = useRef<string[]>([]);
+  const experienceLevelRef = useRef<string>('');
+  const selectedBaseLocationRef = useRef<string>('');
+  const targetLocationsRef = useRef<Array<{ city: string; country: string }>>([]);
   const [resumeBusy, setResumeBusy] = useState(false);
   const [resumeErr, setResumeErr] = useState<string | null>(null);
   const [resumeOk, setResumeOk] = useState(false);
-  const [entryMode, setEntryMode] = useState<OnboardingEntryMode>(null);
+  // ── Initialise all state from the localStorage draft (resume logic) ──────────
+  const _draft = readDraft();
+
+  const [entryMode, setEntryMode] = useState<OnboardingEntryMode>(() => _draft.entryMode ?? null);
   const [prefsBusy, setPrefsBusy] = useState(false);
-  const [step, setStep] = useState(0);
-  const [stepError, setStepError] = useState<string | null>(null);
-  const [gender, setGender] = useState<GenderId>("female");
-  const [notif, setNotif] = useState({
-    appStatus: true,
-    jobRec: true,
-    appInfo: false,
+  const [step, setStep] = useState<number>(() => {
+    return Math.max(_draft.step ?? 0, session?.onboardingStep ?? 0);
   });
-  const [roles, setRoles] = useState<string[]>(["Software Engineer", "Product Manager"]);
-  const [workPrefs, setWorkPrefs] = useState<WorkPrefId[]>(["hybrid"]);
-  const [employment, setEmployment] = useState<string[]>(["Full Time"]);
-  const [experienceLevel, setExperienceLevel] = useState("");
-  const [personalFullName, setPersonalFullName] = useState("");
-  const [personalEmail, setPersonalEmail] = useState("");
-  const [personalDialCode, setPersonalDialCode] = useState("+1");
-  const [personalPhone, setPersonalPhone] = useState("");
-  const [workExperiences, setWorkExperiences] = useState<WorkExperienceEntry[]>([]);
+  const [navDir, setNavDir] = useState<'forward' | 'back'>('forward');
+  const [stepError, setStepError] = useState<string | null>(null);
+  const [gender, setGender] = useState<GenderId>(() => _draft.gender ?? "female");
+  const [notif, setNotif] = useState(() => ({
+    appStatus: _draft.notifAppStatus ?? true,
+    jobRec:    _draft.notifJobRec    ?? true,
+    appInfo:   _draft.notifAppInfo   ?? false,
+  }));
+  const [roles, setRoles] = useState<string[]>(() => _draft.roles ?? ["Software Engineer", "Product Manager"]);
+  const [workPrefs, setWorkPrefs] = useState<WorkPrefId[]>(() => (_draft.workPrefs as WorkPrefId[] | undefined) ?? ["hybrid"]);
+  const [employment, setEmployment] = useState<string[]>(() => _draft.employment ?? ["Full Time"]);
+  const [experienceLevel, setExperienceLevel] = useState<string>(() => _draft.experienceLevel ?? "");
+  const [personalFullName, setPersonalFullName] = useState<string>(() => _draft.personalFullName ?? "");
+  const [personalEmail, setPersonalEmail] = useState<string>(() => _draft.personalEmail ?? "");
+  const [personalDialCode, setPersonalDialCode] = useState<string>(() => _draft.personalDialCode ?? "+1");
+  const [personalPhone, setPersonalPhone] = useState<string>(() => _draft.personalPhone ?? "");
+  const [workExperiences, setWorkExperiences] = useState<WorkExperienceEntry[]>(() => _draft.workExperiences ?? []);
 
   // Resume Builder sections
-  const [education, setEducation] = useState<ProfileEducation[]>([]);
-  const [projects, setProjects] = useState<ProfileProject[]>([]);
-  const [skills, setSkills] = useState<string[]>([]);
-  const [certifications, setCertifications] = useState<ProfileCertification[]>([]);
-  const [interests, setInterests] = useState<string[]>([]);
+  const [education, setEducation] = useState<ProfileEducation[]>(() => _draft.education ?? []);
+  const [projects, setProjects] = useState<ProfileProject[]>(() => _draft.projects ?? []);
+  const [skills, setSkills] = useState<string[]>(() => _draft.skills ?? []);
+  const [certifications, setCertifications] = useState<ProfileCertification[]>(() => _draft.certifications ?? []);
+  const [interests, setInterests] = useState<string[]>(() => _draft.interests ?? []);
+
+
   const [activeBuildSection, setActiveBuildSection] = useState<string | null>(null);
-  const [committedKeys, setCommittedKeys] = useState<Set<string>>(new Set());
+
+  const deriveCommittedKeys = useCallback((
+    weList: WorkExperienceEntry[],
+    eduList: ProfileEducation[],
+    projList: ProfileProject[],
+    certList: ProfileCertification[]
+  ) => {
+    const keys = new Set<string>();
+    weList.forEach(w => { if (w.title?.trim() && w.employer?.trim()) keys.add(`we-${w.id}`); });
+    eduList.forEach((e, i) => { if (e.school?.trim() || e.degree?.trim()) keys.add(`edu-${i}`); });
+    projList.forEach((p, i) => { if (p.name?.trim()) keys.add(`proj-${i}`); });
+    certList.forEach((c, i) => { if (c.name?.trim()) keys.add(`cert-${i}`); });
+    return keys;
+  }, []);
+
+  const [committedKeys, setCommittedKeys] = useState<Set<string>>(() => {
+    return deriveCommittedKeys(
+      _draft.workExperiences ?? [],
+      _draft.education ?? [],
+      _draft.projects ?? [],
+      _draft.certifications ?? []
+    );
+  });
   const [newSkill, setNewSkill] = useState("");
   const [skillJustAdded, setSkillJustAdded] = useState(false);
   const [newInterest, setNewInterest] = useState("");
   const [interestJustAdded, setInterestJustAdded] = useState(false);
 
   const [locationSearch, setLocationSearch] = useState("");
-  const [selectedBaseLocation, setSelectedBaseLocation] = useState("New York, New York, US");
+  const [selectedBaseLocation, setSelectedBaseLocation] = useState<string>(() => _draft.selectedBaseLocation ?? "New York, New York, US");
   const [baseMapLngLat, setBaseMapLngLat] = useState(DEFAULT_BASE_MAP_LNG_LAT);
   const [locationBusy, setLocationBusy] = useState(false);
   const [locationGeoBusy, setLocationGeoBusy] = useState(false);
   const [locationErr, setLocationErr] = useState<string | null>(null);
   const [locationResults, setLocationResults] = useState<LocationListRow[]>([]);
-  const [targetLocations, setTargetLocations] = useState<Array<{ city: string; country: string }>>([]);
+  const [targetLocations, setTargetLocations] = useState<Array<{ city: string; country: string }>>(() => _draft.targetLocations ?? []);
   const [targetLocationSearch, setTargetLocationSearch] = useState("");
   const [targetSuggestBusy, setTargetSuggestBusy] = useState(false);
   const [targetSuggestErr, setTargetSuggestErr] = useState<string | null>(null);
   const [targetSuggestRows, setTargetSuggestRows] = useState<LocationListRow[]>([]);
   const [targetMapLngLat, setTargetMapLngLat] = useState(DEFAULT_BASE_MAP_LNG_LAT);
+
+  // ── Keep refs in sync with state (runs every render) ──
+  workExperiencesRef.current = workExperiences;
+  educationRef.current = education;
+  projectsRef.current = projects;
+  skillsRef.current = skills;
+  certificationsRef.current = certifications;
+  interestsRef.current = interests;
+  personalFullNameRef.current = personalFullName;
+  personalPhoneRef.current = personalPhone;
+  personalDialCodeRef.current = personalDialCode;
+  genderRef.current = gender;
+  rolesRef.current = roles;
+  workPrefsRef.current = workPrefs;
+  employmentRef.current = employment;
+  experienceLevelRef.current = experienceLevel;
+  selectedBaseLocationRef.current = selectedBaseLocation;
+  targetLocationsRef.current = targetLocations;
+
   const popularLocations = useMemo(
     () => [
     { city: "San Francisco", region: "California, US" },
@@ -165,25 +235,35 @@ export function OnboardingPage() {
     if (!profile) return;
     profileSeededRef.current = true;
 
+    let newWe: WorkExperienceEntry[] = [];
     if (profile.workExperience?.length) {
-      setWorkExperiences(
-        profile.workExperience.map((we, i) => ({
-          id: `seed-${i}`,
-          title: we.title ?? "",
-          employer: we.company ?? "",
-          startMonth: toMonthStr(we.startDate),
-          endMonth: we.endDate ? toMonthStr(we.endDate) : null,
-          location: we.location ?? "",
-        })),
-      );
+      newWe = profile.workExperience.map((we, i) => ({
+        id: `seed-${i}`,
+        title: we.title ?? "",
+        employer: we.company ?? "",
+        startMonth: toMonthStr(we.startDate),
+        endMonth: we.endDate ? toMonthStr(we.endDate) : null,
+        location: we.location ?? "",
+      }));
+      setWorkExperiences(newWe);
     }
-    if (profile.education?.length)
-      setEducation(profile.education.map((e) => ({ ...e, date: toMonthStr(e.date) })));
-    if (profile.projects?.length)
-      setProjects(profile.projects.map((p) => ({ ...p, date: toMonthStr(p.date) })));
+    const newEdu = profile.education ? profile.education.map((e) => ({ ...e, date: toMonthStr(e.date) })) : [];
+    if (newEdu.length) setEducation(newEdu);
+
+    const newProj = profile.projects ? profile.projects.map((p) => ({ ...p, date: toMonthStr(p.date) })) : [];
+    if (newProj.length) setProjects(newProj);
+
     if (profile.skills?.length) setSkills(profile.skills);
-    if (profile.certifications?.length) setCertifications(profile.certifications);
+    
+    const newCert = profile.certifications ? profile.certifications : [];
+    if (newCert.length) setCertifications(newCert);
+    
     if (profile.interests?.length) setInterests(profile.interests);
+
+    setCommittedKeys((prev) => {
+      const added = deriveCommittedKeys(newWe, newEdu, newProj, newCert);
+      return new Set([...prev, ...added]);
+    });
 
     // Auto-open the first section that has data so user sees their extracted info immediately
     let firstSection: string | null = null;
@@ -195,6 +275,109 @@ export function OnboardingPage() {
     else if (profile.interests?.length) firstSection = "interests";
     if (firstSection) setActiveBuildSection(firstSection);
   }, [session?.profile]);
+
+  // ── Debounced draft persistence (300 ms) — saves all form state to localStorage ──
+  useEffect(() => {
+    const tid = window.setTimeout(() => {
+      writeDraft({
+        step,
+        entryMode,
+        gender,
+        notifAppStatus: notif.appStatus,
+        notifJobRec:    notif.jobRec,
+        notifAppInfo:   notif.appInfo,
+        roles,
+        workPrefs,
+        employment,
+        experienceLevel,
+        personalFullName,
+        personalEmail,
+        personalDialCode,
+        personalPhone,
+        workExperiences,
+        education,
+        projects,
+        skills,
+        certifications,
+        interests,
+        selectedBaseLocation,
+        targetLocations,
+      });
+    }, 300);
+    return () => window.clearTimeout(tid);
+  }, [
+    step, entryMode, gender, notif,
+    roles, workPrefs, employment, experienceLevel,
+    personalFullName, personalEmail, personalDialCode, personalPhone,
+    workExperiences, education, projects, skills, certifications, interests,
+    selectedBaseLocation, targetLocations,
+  ]);
+
+  // Reads from refs so it ALWAYS gets the latest state, never a stale closure.
+  const syncProfileToDb = useCallback(async (stepOverride?: number) => {
+    if (!session?.token) return;
+    const we = workExperiencesRef.current;
+    const edu = educationRef.current;
+    const proj = projectsRef.current;
+    const sk = skillsRef.current;
+    const cert = certificationsRef.current;
+    const intr = interestsRef.current;
+    const fullName = personalFullNameRef.current;
+    const phone = personalPhoneRef.current;
+    const dialCode = personalDialCodeRef.current;
+    const g = genderRef.current;
+    
+    const normalizeList = (values: string[]) =>
+      Array.from(new Set(values.map((value) => value.trim()).filter((value) => value.length > 0)));
+      
+    const workPrefLabel = (id: WorkPrefId) => id === 'remote' ? 'Remote' : id === 'hybrid' ? 'Hybrid' : 'On-site';
+
+    const normalizedWorkLocations = normalizeList(
+      targetLocationsRef.current.map(({ city, country }) => `${city.trim()}, ${country.trim()}`)
+    );
+    const normalizedBaseLocation = selectedBaseLocationRef.current.trim();
+
+    const profilePayload = {
+      gender: g,
+      firstName: fullName.split(' ')[0] || '',
+      lastName: fullName.split(' ').slice(1).join(' ') || '',
+      phone: phone ? `${dialCode}${phone}` : '',
+      workExperience: we.map(w => ({
+        title: w.title,
+        company: w.employer,
+        location: w.location,
+        startDate: w.startMonth,
+        endDate: w.endMonth || ''
+      })),
+      education: edu.map(e => ({
+        school: e.school,
+        degree: e.degree,
+        date: e.date
+      })),
+      projects: proj,
+      skills: sk,
+      certifications: cert,
+      interests: intr
+    };
+    
+    const payload: any = {
+      profile: profilePayload,
+      jobTitles: normalizeList(rolesRef.current),
+      targetCountries: [],
+      baseLocation: normalizedBaseLocation,
+      workLocations: normalizedWorkLocations,
+      workMode: normalizeList(workPrefsRef.current.map((pref) => workPrefLabel(pref))),
+      jobTypes: normalizeList(employmentRef.current),
+      experienceLevel: experienceLevelRef.current ? [experienceLevelRef.current] : []
+    };
+    
+    if (stepOverride !== undefined) {
+      payload.onboardingStep = stepOverride;
+    }
+
+    console.log('[syncProfileToDb] Sending payload:', JSON.stringify(payload, null, 2));
+    await savePreferences(payload, session.token).catch((err) => console.error('[syncProfileToDb] error:', err));
+  }, [session?.token]); // only depends on the token — data comes from refs
 
   const scoreLocationMatch = useCallback(
     (query: string, candidate: LocationListRow) => {
@@ -232,6 +415,12 @@ export function OnboardingPage() {
 
   const commitEntry = useCallback((key: string) => {
     setCommittedKeys((s) => { const n = new Set(s); n.add(key); return n; });
+    // Small delay so React flushes the latest state into refs before we read them
+    window.setTimeout(() => { void syncProfileToDb(); }, 50);
+  }, [syncProfileToDb]);
+
+  const uncommitEntry = useCallback((key: string) => {
+    setCommittedKeys((s) => { const n = new Set(s); n.delete(key); return n; });
   }, []);
 
   const addBlankWorkExp = useCallback(() =>
@@ -443,16 +632,10 @@ export function OnboardingPage() {
           setStepError("Please wait until resume upload is complete.");
           return currentStep;
         }
-        if (resumeOk) {
-          setStepError(null);
-          return 4; // Go to Resume Builder with pre-filled extracted data
+        if (!resumeOk && entryMode !== "manual") {
+          setStepError("Upload and parse your resume, or choose fill out manually.");
+          return currentStep;
         }
-        if (entryMode === "manual") {
-          setStepError(null);
-          return 2;
-        }
-        setStepError("Upload and parse your resume, or choose fill out manually.");
-        return currentStep;
       }
 
       if (currentStep === 2) {
@@ -471,7 +654,6 @@ export function OnboardingPage() {
       }
 
       // Step 7 (Available Countries) removed — jump straight from 6 to 8.
-      if (currentStep === 6) return 8;
 
       if (currentStep === 9 && targetLocations.length === 0) {
         setStepError("Add at least one target location before continuing.");
@@ -493,8 +675,23 @@ export function OnboardingPage() {
         return currentStep;
       }
 
+      let nextStep = currentStep;
+      if (currentStep === 1) {
+        if (resumeOk || entryMode === "manual") nextStep = 2;
+      } else if (currentStep === 6) {
+        nextStep = 8;
+      } else {
+        nextStep = Math.min(currentStep + 1, 12);
+      }
+
+      // Background save when progressing
+      if (currentStep !== 12 && nextStep !== currentStep) {
+        void syncProfileToDb(nextStep);
+      }
+
       setStepError(null);
-      return Math.min(currentStep + 1, 12);
+      setNavDir('forward');
+      return nextStep;
     });
   }, [
     entryMode,
@@ -508,9 +705,11 @@ export function OnboardingPage() {
     employment.length,
     experienceLevel,
     workPrefs.length,
+    syncProfileToDb,
   ]);
   const back = useCallback(() => {
     setStepError(null);
+    setNavDir('back');
     setStep((s) => {
       if (s === 8) return 6; // step 7 removed
       return Math.max(s - 1, 0);
@@ -561,25 +760,44 @@ export function OnboardingPage() {
           // Seed resume builder state directly so the data shows on step 4
           if (profile) {
             profileSeededRef.current = false; // allow effect to re-run with fresh data
+            
+            // Seed personal info
+            const fName = profile.firstName?.trim() || "";
+            const lName = profile.lastName?.trim() || "";
+            if (fName || lName) setPersonalFullName(`${fName} ${lName}`.trim());
+            if (profile.phone?.trim()) setPersonalPhone(profile.phone.trim());
+            // Session email is fallback if profile doesn't have it parsed
+            setPersonalEmail(session.email || "");
+
+            let newWe: WorkExperienceEntry[] = [];
             if (profile.workExperience?.length) {
-              setWorkExperiences(
-                profile.workExperience.map((we, i) => ({
-                  id: `extract-${i}`,
-                  title: we.title ?? "",
-                  employer: we.company ?? "",
-                  startMonth: toMonthStr(we.startDate),
-                  endMonth: we.endDate ? toMonthStr(we.endDate) : null,
-                  location: we.location ?? "",
-                })),
-              );
+              newWe = profile.workExperience.map((we, i) => ({
+                id: `extract-${i}`,
+                title: we.title ?? "",
+                employer: we.company ?? "",
+                startMonth: toMonthStr(we.startDate),
+                endMonth: we.endDate ? toMonthStr(we.endDate) : null,
+                location: we.location ?? "",
+              }));
+              setWorkExperiences(newWe);
             }
-            if (profile.education?.length)
-              setEducation(profile.education.map((e) => ({ ...e, date: toMonthStr(e.date) })));
-            if (profile.projects?.length)
-              setProjects(profile.projects.map((p) => ({ ...p, date: toMonthStr(p.date) })));
+            const newEdu = profile.education ? profile.education.map((e) => ({ ...e, date: toMonthStr(e.date) })) : [];
+            if (newEdu.length) setEducation(newEdu);
+
+            const newProj = profile.projects ? profile.projects.map((p) => ({ ...p, date: toMonthStr(p.date) })) : [];
+            if (newProj.length) setProjects(newProj);
+
             if (profile.skills?.length) setSkills(profile.skills);
-            if (profile.certifications?.length) setCertifications(profile.certifications);
+            
+            const newCert = profile.certifications ? profile.certifications : [];
+            if (newCert.length) setCertifications(newCert);
+
             if (profile.interests?.length) setInterests(profile.interests);
+
+            setCommittedKeys((prev) => {
+              const added = deriveCommittedKeys(newWe, newEdu, newProj, newCert);
+              return new Set([...prev, ...added]);
+            });
             // Auto-open the first section that has data
             if (profile.workExperience?.length) setActiveBuildSection("work");
             else if (profile.education?.length) setActiveBuildSection("edu");
@@ -610,6 +828,30 @@ export function OnboardingPage() {
     const normalizedBaseLocation = selectedBaseLocation.trim();
 
     setPrefsBusy(true);
+
+    const profilePayload = {
+      gender: genderRef.current,
+      firstName: personalFullNameRef.current.split(' ')[0] || '',
+      lastName: personalFullNameRef.current.split(' ').slice(1).join(' ') || '',
+      phone: personalPhoneRef.current ? `${personalDialCodeRef.current}${personalPhoneRef.current}` : '',
+      workExperience: workExperiencesRef.current.map(w => ({
+        title: w.title,
+        company: w.employer,
+        location: w.location,
+        startDate: w.startMonth,
+        endDate: w.endMonth || ''
+      })),
+      education: educationRef.current.map(e => ({
+        school: e.school,
+        degree: e.degree,
+        date: e.date
+      })),
+      projects: projectsRef.current,
+      skills: skillsRef.current,
+      certifications: certificationsRef.current,
+      interests: interestsRef.current
+    };
+
     const { ok, json } = await savePreferences(
       {
         jobTitles: normalizeList(roles),
@@ -620,6 +862,7 @@ export function OnboardingPage() {
         jobTypes: normalizeList(employment),
         experienceLevel: experienceLevel ? [experienceLevel] : [],
         onboardingStep: ONBOARDING_COMPLETE_STEP,
+        profile: profilePayload,
       },
       session.token,
     );
@@ -645,6 +888,7 @@ export function OnboardingPage() {
         ...(preferences !== undefined ? { preferences } : {}),
       });
     }
+    clearDraft();
     navigate('/onboarding/complete');
   }, [
     navigate,
@@ -656,6 +900,16 @@ export function OnboardingPage() {
     experienceLevel,
     selectedBaseLocation,
     targetLocations,
+    gender,
+    personalFullName,
+    personalPhone,
+    personalDialCode,
+    workExperiences,
+    education,
+    projects,
+    skills,
+    certifications,
+    interests,
   ]);
 
   const toggleRole = (name: string) => {
@@ -737,6 +991,24 @@ export function OnboardingPage() {
     </div>
   );
 
+  // ── Derived navigation state for TopBar / BottomBar ──────────────────────────
+  const isMapStep     = step === 8 || step === 9;
+  const isBuilderStep = step === 4;
+  const showBottomBar = !isMapStep && !isBuilderStep && step !== 5;
+
+  const continueLabel =
+    step === 3  ? 'Save Preferences' :
+    step === 10 ? 'Save Preferences' :
+    step === 11 ? 'Save & Continue'  :
+    step === 12 ? 'Continue to Profile' :
+    'Continue';
+
+  const continueDisabled =
+    (step === 1 && (resumeBusy || (!resumeOk && entryMode !== 'manual'))) ||
+    (step === 12 && (prefsBusy || !experienceLevel));
+
+  const handleContinue = step === 12 ? () => { void finish(); } : next;
+
   return (
     <div
       className={`onb page-fill${step === 8 ? " onb--loc-step" : ""}${step === 9 ? " onb--target-step" : ""}`}
@@ -750,11 +1022,19 @@ export function OnboardingPage() {
           : undefined
       }
     >
+      {/* ── Shared sticky Top Bar (Back button + progress dots) ── */}
+      <OnboardingTopBar
+        step={step}
+        totalSteps={13}
+        canGoBack={step > 0}
+        onBack={back}
+      />
+
       {stepError ? (
         <div
           role="alert"
           style={{
-            margin: "16px auto 0",
+            margin: "8px auto 0",
             maxWidth: 960,
             width: "calc(100% - 48px)",
             border: "1px solid #fecaca",
@@ -768,7 +1048,8 @@ export function OnboardingPage() {
           {stepError}
         </div>
       ) : null}
-      <div key={step} className="onb-step-stage">
+      <div key={step} className={`onb-step-stage onb-step-stage--${navDir}`}>
+
       {step === 0 && (
         <>
           <div className="onb-gender-layout">
@@ -801,22 +1082,11 @@ export function OnboardingPage() {
                     </button>
                   ))}
                 </div>
-                <div className="onb-btn-row">
-                  <button type="button" className="onb-btn onb-btn-ghost" onClick={back} disabled>
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    className="onb-btn onb-btn-primary onb-btn-primary--brand"
-                    onClick={next}
-                  >
-                    Continue
-                  </button>
-                </div>
+
               </div>
             </div>
           </div>
-          {footer()}
+
         </>
       )}
 
@@ -1011,23 +1281,7 @@ export function OnboardingPage() {
               </div>
             </div>
           </div>
-          <div className="onb-resume-bottom">
-            <div className="onb-resume-bottom-inner">
-              <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
-                <img src={ast.resume.backArrow} alt="" width={13} height={13} />
-                Back
-              </button>
-              <button
-                type="button"
-                className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap onb-btn-continue"
-                disabled={resumeBusy || (!resumeOk && entryMode !== "manual")}
-                onClick={next}
-              >
-                {resumeBusy ? "Uploading..." : "Continue"}
-                <img src={ast.resume.forwardArrow} alt="" width={13} height={13} />
-              </button>
-            </div>
-          </div>
+
         </>
       )}
 
@@ -1159,20 +1413,11 @@ export function OnboardingPage() {
                     </div>
                   </div>
                 </div>
-                <div className="onb-btn-row">
-                  <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
-                    <img src={ast.personal.back} alt="" width={13} height={13} />
-                    Back
-                  </button>
-                  <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap" onClick={next}>
-                    Continue
-                    <img src={ast.personal.forward} alt="" width={14} height={14} />
-                  </button>
-                </div>
+
               </div>
             </div>
           </div>
-          {footer("narrow")}
+
         </>
       )}
 
@@ -1227,17 +1472,10 @@ export function OnboardingPage() {
                   "appInfo",
                 )}
               </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, paddingTop: 25, borderTop: "1px solid #e2e8f0" }}>
-                <button type="button" className="onb-btn onb-btn-ghost" style={{ fontSize: 14 }} onClick={back}>
-                  Cancel
-                </button>
-                <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand" style={{ padding: "10px 32px", fontSize: 14 }} onClick={next}>
-                  Save Preferences
-                </button>
-              </div>
+
             </div>
           </div>
-          {footer()}
+
         </>
       )}
 
@@ -1274,51 +1512,76 @@ export function OnboardingPage() {
                       <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
                     )}
                     {workExperiences.map((entry) => (
-                      <div key={entry.id} className="onb-rb-edit-card">
-                        <div className="onb-rb-edit-card-head">
-                          <span className="onb-rb-edit-card-label">Work Experience</span>
-                          <button type="button" className="onb-rb-remove" onClick={() => setWorkExperiences((c) => c.filter((x) => x.id !== entry.id))} aria-label="Remove entry">×</button>
-                        </div>
-                        <div className="onb-we-card-grid">
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Job title</label>
-                            <input className="onb-input onb-we-field-control" value={entry.title} onChange={(e) => updateWorkExp(entry.id, "title", e.target.value)} placeholder="e.g. Senior Frontend Developer" />
-                          </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Employer</label>
-                            <input className="onb-input onb-we-field-control" value={entry.employer} onChange={(e) => updateWorkExp(entry.id, "employer", e.target.value)} placeholder="e.g. TechNova Solutions" />
-                          </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Start date</label>
-                            <input className="onb-input onb-we-field-control" type="month" value={entry.startMonth} onChange={(e) => updateWorkExp(entry.id, "startMonth", e.target.value)} />
-                          </div>
-                          <div className="onb-we-field">
-                            <span className="onb-we-field-label">End date</span>
-                            <div className="onb-we-end-wrap">
-                              {entry.endMonth !== null && (
-                                <input type="month" className="onb-input onb-we-field-control onb-we-end-month" value={entry.endMonth} onChange={(e) => updateWorkExp(entry.id, "endMonth", e.target.value)} />
-                              )}
-                              <label className="onb-we-inline-check">
-                                <input type="checkbox" checked={entry.endMonth === null} onChange={(e) => updateWorkExp(entry.id, "endMonth", e.target.checked ? null : "")} />
-                                <span>I currently work here</span>
-                              </label>
+                      <React.Fragment key={entry.id}>
+                        {committedKeys.has(`we-${entry.id}`) ? (
+                          <div className="onb-rb-summary-card">
+                            <div className="onb-rb-summary-avatar">
+                              {entry.employer ? entry.employer.charAt(0).toUpperCase() : entry.title ? entry.title.charAt(0).toUpperCase() : "W"}
                             </div>
+                            <div className="onb-rb-summary-main">
+                              <strong>{entry.title || "Untitled Role"}</strong>
+                              <span className="onb-rb-summary-sub">{entry.employer || "Unknown Employer"}</span>
+                              <span className="onb-muted-sm">
+                                {entry.startMonth || "?"} – {entry.endMonth === null ? "Present" : entry.endMonth || "?"} {entry.location ? `· ${entry.location}` : ""}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-edit-icon-btn"
+                              onClick={() => uncommitEntry(`we-${entry.id}`)}
+                              aria-label="Edit entry"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            </button>
                           </div>
-                          <div className="onb-we-field onb-we-field--full">
-                            <label className="onb-we-field-label">Location</label>
-                            <input className="onb-input onb-we-field-control" value={entry.location} onChange={(e) => updateWorkExp(entry.id, "location", e.target.value)} placeholder="e.g. San Francisco, CA" />
+                        ) : (
+                          <div className="onb-rb-edit-card">
+                            <div className="onb-rb-edit-card-head">
+                              <span className="onb-rb-edit-card-label">Work Experience</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => setWorkExperiences((c) => c.filter((x) => x.id !== entry.id))} aria-label="Remove entry">×</button>
+                            </div>
+                            <div className="onb-we-card-grid">
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Job title</label>
+                                <input className="onb-input onb-we-field-control" value={entry.title} onChange={(e) => updateWorkExp(entry.id, "title", e.target.value)} placeholder="e.g. Senior Frontend Developer" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Employer</label>
+                                <input className="onb-input onb-we-field-control" value={entry.employer} onChange={(e) => updateWorkExp(entry.id, "employer", e.target.value)} placeholder="e.g. TechNova Solutions" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Start date</label>
+                                <input className="onb-input onb-we-field-control" type="month" value={entry.startMonth} onChange={(e) => updateWorkExp(entry.id, "startMonth", e.target.value)} />
+                              </div>
+                              <div className="onb-we-field">
+                                <span className="onb-we-field-label">End date</span>
+                                <div className="onb-we-end-wrap">
+                                  {entry.endMonth !== null && (
+                                    <input type="month" className="onb-input onb-we-field-control onb-we-end-month" value={entry.endMonth} onChange={(e) => updateWorkExp(entry.id, "endMonth", e.target.value)} />
+                                  )}
+                                  <label className="onb-we-inline-check">
+                                    <input type="checkbox" checked={entry.endMonth === null} onChange={(e) => updateWorkExp(entry.id, "endMonth", e.target.checked ? null : "")} />
+                                    <span>I currently work here</span>
+                                  </label>
+                                </div>
+                              </div>
+                              <div className="onb-we-field onb-we-field--full">
+                                <label className="onb-we-field-label">Location</label>
+                                <input className="onb-input onb-we-field-control" value={entry.location} onChange={(e) => updateWorkExp(entry.id, "location", e.target.value)} placeholder="e.g. San Francisco, CA" />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-add-btn"
+                              style={{ alignSelf: "flex-end", marginTop: 16 }}
+                              disabled={!entry.title.trim() && !entry.employer.trim()}
+                              onClick={() => commitEntry(`we-${entry.id}`)}
+                            >
+                              Save
+                            </button>
                           </div>
-                        </div>
-                        <button
-                          type="button"
-                          className={`onb-rb-add-btn${committedKeys.has(`we-${entry.id}`) ? " onb-rb-add-btn--added" : ""}`}
-                          style={{ alignSelf: "flex-end" }}
-                          disabled={!entry.title.trim() && !entry.employer.trim()}
-                          onClick={() => commitEntry(`we-${entry.id}`)}
-                        >
-                          {committedKeys.has(`we-${entry.id}`) ? "✓ Added" : "Add"}
-                        </button>
-                      </div>
+                        )}
+                      </React.Fragment>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={addBlankWorkExp}>+ Add Entry</button>
                   </div>
@@ -1344,35 +1607,58 @@ export function OnboardingPage() {
                       <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
                     )}
                     {education.map((entry, i) => (
-                      <div key={i} className="onb-rb-edit-card">
-                        <div className="onb-rb-edit-card-head">
-                          <span className="onb-rb-edit-card-label">Education</span>
-                          <button type="button" className="onb-rb-remove" onClick={() => setEducation((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
-                        </div>
-                        <div className="onb-we-card-grid">
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">School / University</label>
-                            <input className="onb-input onb-we-field-control" value={entry.school} onChange={(e) => updateEducation(i, "school", e.target.value)} placeholder="e.g. MIT" />
+                      <React.Fragment key={i}>
+                        {committedKeys.has(`edu-${i}`) ? (
+                          <div className="onb-rb-summary-card">
+                            <div className="onb-rb-summary-avatar">
+                              {entry.school ? entry.school.charAt(0).toUpperCase() : entry.degree ? entry.degree.charAt(0).toUpperCase() : "E"}
+                            </div>
+                            <div className="onb-rb-summary-main">
+                              <strong>{entry.degree || "Untitled Degree"}</strong>
+                              <span className="onb-rb-summary-sub">{entry.school || "Unknown School"}</span>
+                              <span className="onb-muted-sm">{entry.date || "?"}</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-edit-icon-btn"
+                              onClick={() => uncommitEntry(`edu-${i}`)}
+                              aria-label="Edit entry"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            </button>
                           </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Degree</label>
-                            <input className="onb-input onb-we-field-control" value={entry.degree} onChange={(e) => updateEducation(i, "degree", e.target.value)} placeholder="e.g. B.Sc. Computer Science" />
+                        ) : (
+                          <div className="onb-rb-edit-card">
+                            <div className="onb-rb-edit-card-head">
+                              <span className="onb-rb-edit-card-label">Education</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => setEducation((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
+                            </div>
+                            <div className="onb-we-card-grid">
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">School / University</label>
+                                <input className="onb-input onb-we-field-control" value={entry.school} onChange={(e) => updateEducation(i, "school", e.target.value)} placeholder="e.g. MIT" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Degree</label>
+                                <input className="onb-input onb-we-field-control" value={entry.degree} onChange={(e) => updateEducation(i, "degree", e.target.value)} placeholder="e.g. B.Sc. Computer Science" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Graduation date</label>
+                                <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateEducation(i, "date", e.target.value)} />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-add-btn"
+                              style={{ alignSelf: "flex-end", marginTop: 16 }}
+                              disabled={!entry.school.trim() && !entry.degree.trim()}
+                              onClick={() => commitEntry(`edu-${i}`)}
+                            >
+                              Save
+                            </button>
                           </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Graduation date</label>
-                            <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateEducation(i, "date", e.target.value)} />
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className={`onb-rb-add-btn${committedKeys.has(`edu-${i}`) ? " onb-rb-add-btn--added" : ""}`}
-                          style={{ alignSelf: "flex-end" }}
-                          disabled={!entry.school.trim() && !entry.degree.trim()}
-                          onClick={() => commitEntry(`edu-${i}`)}
-                        >
-                          {committedKeys.has(`edu-${i}`) ? "✓ Added" : "Add"}
-                        </button>
-                      </div>
+                        )}
+                      </React.Fragment>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setEducation((c) => [...c, { school: "", degree: "", date: "" }])}>+ Add Entry</button>
                   </div>
@@ -1398,39 +1684,62 @@ export function OnboardingPage() {
                       <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
                     )}
                     {projects.map((entry, i) => (
-                      <div key={i} className="onb-rb-edit-card">
-                        <div className="onb-rb-edit-card-head">
-                          <span className="onb-rb-edit-card-label">Project</span>
-                          <button type="button" className="onb-rb-remove" onClick={() => setProjects((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
-                        </div>
-                        <div className="onb-we-card-grid">
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Project name</label>
-                            <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateProject(i, "name", e.target.value)} placeholder="e.g. Portfolio Site" />
+                      <React.Fragment key={i}>
+                        {committedKeys.has(`proj-${i}`) ? (
+                          <div className="onb-rb-summary-card">
+                            <div className="onb-rb-summary-avatar">
+                              {entry.name ? entry.name.charAt(0).toUpperCase() : "P"}
+                            </div>
+                            <div className="onb-rb-summary-main">
+                              <strong>{entry.name || "Untitled Project"}</strong>
+                              <span className="onb-rb-summary-sub">{entry.website || "No link"}</span>
+                              <span className="onb-muted-sm">{entry.date || "?"}</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-edit-icon-btn"
+                              onClick={() => uncommitEntry(`proj-${i}`)}
+                              aria-label="Edit entry"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            </button>
                           </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Website / Link</label>
-                            <input className="onb-input onb-we-field-control" type="url" value={entry.website} onChange={(e) => updateProject(i, "website", e.target.value)} placeholder="https://..." />
+                        ) : (
+                          <div className="onb-rb-edit-card">
+                            <div className="onb-rb-edit-card-head">
+                              <span className="onb-rb-edit-card-label">Project</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => setProjects((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
+                            </div>
+                            <div className="onb-we-card-grid">
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Project name</label>
+                                <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateProject(i, "name", e.target.value)} placeholder="e.g. Portfolio Site" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Website / Link</label>
+                                <input className="onb-input onb-we-field-control" type="url" value={entry.website} onChange={(e) => updateProject(i, "website", e.target.value)} placeholder="https://..." />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Date</label>
+                                <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateProject(i, "date", e.target.value)} />
+                              </div>
+                              <div className="onb-we-field onb-we-field--full">
+                                <label className="onb-we-field-label">Description</label>
+                                <textarea className="onb-input onb-we-textarea" rows={2} value={entry.description} onChange={(e) => updateProject(i, "description", e.target.value)} placeholder="What did you build and how?" />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-add-btn"
+                              style={{ alignSelf: "flex-end", marginTop: 16 }}
+                              disabled={!entry.name.trim()}
+                              onClick={() => commitEntry(`proj-${i}`)}
+                            >
+                              Save
+                            </button>
                           </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Date</label>
-                            <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateProject(i, "date", e.target.value)} />
-                          </div>
-                          <div className="onb-we-field onb-we-field--full">
-                            <label className="onb-we-field-label">Description</label>
-                            <textarea className="onb-input onb-we-textarea" rows={2} value={entry.description} onChange={(e) => updateProject(i, "description", e.target.value)} placeholder="What did you build and how?" />
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className={`onb-rb-add-btn${committedKeys.has(`proj-${i}`) ? " onb-rb-add-btn--added" : ""}`}
-                          style={{ alignSelf: "flex-end" }}
-                          disabled={!entry.name.trim()}
-                          onClick={() => commitEntry(`proj-${i}`)}
-                        >
-                          {committedKeys.has(`proj-${i}`) ? "✓ Added" : "Add"}
-                        </button>
-                      </div>
+                        )}
+                      </React.Fragment>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setProjects((c) => [...c, { name: "", website: "", date: "", description: "" }])}>+ Add Entry</button>
                   </div>
@@ -1511,31 +1820,53 @@ export function OnboardingPage() {
                       <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
                     )}
                     {certifications.map((entry, i) => (
-                      <div key={i} className="onb-rb-edit-card">
-                        <div className="onb-rb-edit-card-head">
-                          <span className="onb-rb-edit-card-label">Certification</span>
-                          <button type="button" className="onb-rb-remove" onClick={() => setCertifications((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
-                        </div>
-                        <div className="onb-we-card-grid">
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Certification name</label>
-                            <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateCertification(i, "name", e.target.value)} placeholder="e.g. AWS Certified Developer" />
+                      <React.Fragment key={i}>
+                        {committedKeys.has(`cert-${i}`) ? (
+                          <div className="onb-rb-summary-card">
+                            <div className="onb-rb-summary-avatar">
+                              {entry.name ? entry.name.charAt(0).toUpperCase() : "C"}
+                            </div>
+                            <div className="onb-rb-summary-main">
+                              <strong>{entry.name || "Untitled Certification"}</strong>
+                              <span className="onb-rb-summary-sub">{entry.link || "No link"}</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-edit-icon-btn"
+                              onClick={() => uncommitEntry(`cert-${i}`)}
+                              aria-label="Edit entry"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            </button>
                           </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Link / URL</label>
-                            <input className="onb-input onb-we-field-control" type="url" value={entry.link} onChange={(e) => updateCertification(i, "link", e.target.value)} placeholder="https://..." />
+                        ) : (
+                          <div className="onb-rb-edit-card">
+                            <div className="onb-rb-edit-card-head">
+                              <span className="onb-rb-edit-card-label">Certification</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => setCertifications((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
+                            </div>
+                            <div className="onb-we-card-grid">
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Certification name</label>
+                                <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateCertification(i, "name", e.target.value)} placeholder="e.g. AWS Certified Developer" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Link / URL</label>
+                                <input className="onb-input onb-we-field-control" type="url" value={entry.link} onChange={(e) => updateCertification(i, "link", e.target.value)} placeholder="https://..." />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-add-btn"
+                              style={{ alignSelf: "flex-end", marginTop: 16 }}
+                              disabled={!entry.name.trim()}
+                              onClick={() => commitEntry(`cert-${i}`)}
+                            >
+                              Save
+                            </button>
                           </div>
-                        </div>
-                        <button
-                          type="button"
-                          className={`onb-rb-add-btn${committedKeys.has(`cert-${i}`) ? " onb-rb-add-btn--added" : ""}`}
-                          style={{ alignSelf: "flex-end" }}
-                          disabled={!entry.name.trim()}
-                          onClick={() => commitEntry(`cert-${i}`)}
-                        >
-                          {committedKeys.has(`cert-${i}`) ? "✓ Added" : "Add"}
-                        </button>
-                      </div>
+                        )}
+                      </React.Fragment>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setCertifications((c) => [...c, { name: "", link: "" }])}>+ Add Entry</button>
                   </div>
@@ -1669,10 +2000,6 @@ export function OnboardingPage() {
                   Select all the roles that align with your next career move.
                 </p>
               </div>
-              <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap" onClick={next}>
-                Continue
-                <img src={ast.roles.continueArrow} alt="" width={13} height={13} />
-              </button>
             </div>
             <div className="onb-role-grid">
               {[
@@ -1704,16 +2031,7 @@ export function OnboardingPage() {
               ))}
             </div>
           </div>
-          <footer className="onb-footer" style={{ position: "relative" }}>
-            <p className="onb-footer-copy" style={{ fontSize: 14 }}>
-              © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
-            </p>
-            <nav className="onb-footer-links">
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-              <a href="#">Contact Support</a>
-            </nav>
-          </footer>
+
         </>
       )}
 
@@ -2243,29 +2561,10 @@ export function OnboardingPage() {
                   );
                 })}
               </div>
-              <div className="onb-btn-row" style={{ marginTop: 48 }}>
-                <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
-                  <img src={ast.workPref.back} alt="" width={9} height={9} />
-                  Back
-                </button>
-                <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap" onClick={next}>
-                  Save Preferences
-                  <img src={ast.workPref.forward} alt="" width={9} height={9} />
-                </button>
-              </div>
+
             </div>
           </div>
-          <footer className="onb-footer">
-            <nav className="onb-footer-links" style={{ fontSize: 12 }}>
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-              <a href="#">Contact Support</a>
-              <a href="#">Help Center</a>
-            </nav>
-            <p className="onb-footer-copy" style={{ fontSize: 12 }}>
-              © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
-            </p>
-          </footer>
+
         </>
       )}
 
@@ -2331,16 +2630,7 @@ export function OnboardingPage() {
                   );
                 })}
               </div>
-              <div className="onb-btn-row" style={{ marginTop: 16 }}>
-                <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
-                  <img src={ast.employment.back} alt="" width={9} height={9} />
-                  Back
-                </button>
-                <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap" onClick={next}>
-                  Save & Continue
-                  <img src={ast.employment.forward} alt="" width={9} height={9} />
-                </button>
-              </div>
+
             </div>
           </div>
           {footer()}
@@ -2379,26 +2669,48 @@ export function OnboardingPage() {
                 );
               })}
               <div className="onb-btn-row" style={{ marginTop: 48 }}>
-                <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
-                  <img src={ast.experience.back} alt="" width={16} height={16} />
-                  Back
-                </button>
-                <button
-                  type="button"
-                  className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap"
-                  disabled={prefsBusy || !experienceLevel}
-                  onClick={() => void finish()}
-                >
-                  {prefsBusy ? "Saving…" : "Continue to Profile"}
-                  <img src={ast.experience.forward} alt="" width={16} height={16} />
-                </button>
+                {/* Back is handled by OnboardingTopBar */}
               </div>
             </div>
           </div>
-          {footer()}
+          {/* footer moved to shared location below step-stage */}
         </>
       )}
       </div>
+
+      {/* ── Continue button row — outside and above footer ── */}
+      {!isMapStep && showBottomBar && (
+        <div className="onb-continue-row">
+          <button
+            id="onb-continue-btn"
+            type="button"
+            className="onb-footer-continue-btn"
+            disabled={continueDisabled || (step === 12 && prefsBusy)}
+            onClick={handleContinue}
+            aria-busy={step === 12 && prefsBusy}
+          >
+            {step === 12 && prefsBusy ? 'Saving…' : continueLabel}
+            <svg width={13} height={13} viewBox="0 0 13 13" fill="none" aria-hidden>
+              <path d="M2.5 6.5h8M7.5 3.5l3 3-3 3" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* ── Footer — copyright + links ── */}
+      {!isMapStep && (
+        <footer className="onb-footer">
+          <p className="onb-footer-copy">
+            © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
+          </p>
+          <nav className="onb-footer-links">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">Contact Support</a>
+            <a href="#">Help Center</a>
+          </nav>
+        </footer>
+      )}
     </div>
   );
 }

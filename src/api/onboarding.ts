@@ -9,6 +9,7 @@ export type PreferencesBody = {
   jobTypes?: string[];
   experienceLevel?: string[];
   onboardingStep?: number;
+  profile?: any;
 };
 
 export async function savePreferences(preferences: PreferencesBody, token: string) {

@@ -4,7 +4,7 @@
 }
 
 .onb {
-  --onb-bg: #f8fafc;
+  --onb-bg: #ffffff;
   --onb-slate-900: #0f172a;
   --onb-slate-600: #64748b;
   --onb-slate-200: #e2e8f0;
@@ -16,8 +16,7 @@
   min-height: 0;
   height: 100%;
   font-family: Manrope, system-ui, sans-serif;
-  background: linear-gradient(90deg, var(--onb-bg) 0%, var(--onb-bg) 100%),
-    linear-gradient(90deg, #fff 0%, #fff 100%);
+  background: #ffffff;
   color: var(--onb-slate-900);
   display: flex;
   flex-direction: column;
@@ -28,24 +27,47 @@
 }
 
 .onb-step-stage {
-  flex: 1 1 auto;
+  flex: 1 1 0;          /* flex: 1 but allows shrinking so footer stays on screen */
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;     /* step content scrolls internally — footer always visible */
+  overflow-x: hidden;   /* prevent horizontal scrollbar during slide animation */
   display: flex;
   flex-direction: column;
-  animation: onbStepEnter var(--motion-duration-section, 240ms) var(--motion-ease-standard, cubic-bezier(0.22, 1, 0.36, 1));
+  /* animation applied per direction class below */
 }
 
-@keyframes onbStepEnter {
+/* ── Forward: slide in from right ── */
+.onb-step-stage--forward {
+  animation: onbSlideFromRight 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Back: slide in from left ── */
+.onb-step-stage--back {
+  animation: onbSlideFromLeft 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes onbSlideFromRight {
   from {
-    opacity: 0.55;
-    transform: translate3d(28px, 0, 0);
+    opacity: 0;
+    transform: translate3d(48px, 0, 0);
   }
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
   }
 }
+
+@keyframes onbSlideFromLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(-48px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 
 .onb-topbar {
   position: absolute;
@@ -89,41 +111,143 @@
   color: var(--onb-brand);
 }
 
+/* ── Unified sticky bottom bar: footer + Continue button ── */
 .onb-footer {
-  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 32px;
-  background: var(--onb-white);
-  border-top: 1px solid var(--onb-slate-200);
-  flex-wrap: wrap;
   gap: 16px;
+  padding: 14px clamp(20px, 4vw, 48px);
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .onb-footer--padded {
-  padding: 32px 240px;
+  padding: 14px clamp(32px, 10vw, 240px);
 }
 
 .onb-footer-copy {
-  font-size: 16px;
-  color: var(--onb-slate-600);
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .onb-footer-links {
   display: flex;
-  gap: 24px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
 .onb-footer-links a {
-  color: var(--onb-slate-600);
+  color: #94a3b8;
   text-decoration: none;
-  font-size: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 2px 0;
+  position: relative;
+  transition: color 180ms ease;
+}
+
+/* Animated underline on hover */
+.onb-footer-links a::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .onb-footer-links a:hover {
-  text-decoration: underline;
+  color: #6366f1;
+}
+
+.onb-footer-links a:hover::after {
+  transform: scaleX(1);
+}
+
+/* Continue button row — sits above the footer, right-aligned */
+.onb-continue-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px clamp(20px, 4vw, 48px);
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+/* Continue button — gradient pill */
+.onb-footer-continue-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 11px clamp(20px, 3vw, 36px);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  border-radius: 9999px;
+  border: none;
+  background: linear-gradient(135deg, #4648d4 0%, #6366f1 60%, #818cf8 100%);
+  color: #ffffff;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 200ms ease;
+  box-shadow: 0 3px 12px rgba(70, 72, 212, 0.28);
+}
+
+/* Shimmer on hover */
+.onb-footer-continue-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+  transition: transform 550ms ease;
+}
+
+.onb-footer-continue-btn:hover:not(:disabled)::before {
+  transform: translateX(100%);
+}
+
+.onb-footer-continue-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(70, 72, 212, 0.36);
+}
+
+.onb-footer-continue-btn:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: 0 2px 6px rgba(70, 72, 212, 0.2);
+}
+
+.onb-footer-continue-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: saturate(0.6);
+  transform: none;
+  box-shadow: none;
 }
 
 .onb-btn {
@@ -1901,9 +2025,82 @@
 .onb-rb-edit-card-label {
   font-size: 11px;
   font-weight: 700;
+  color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--onb-brand);
+  letter-spacing: 0.5px;
+}
+
+.onb-rb-summary-card {
+  display: flex;
+  align-items: flex-start;
+  padding: 16px;
+  background: var(--onb-white);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  transition: all 0.2s ease;
+}
+
+.onb-rb-summary-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  border-color: #cbd5e1;
+}
+
+.onb-rb-summary-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #eff1ff;
+  color: #4648d4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.onb-rb-summary-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.onb-rb-summary-main strong {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.onb-rb-summary-sub {
+  color: #475569;
+  font-size: 14px;
+}
+
+.onb-rb-edit-icon-btn {
+  background: #f8fafc;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 12px;
+  transition: all 0.2s ease;
+}
+
+.onb-rb-edit-icon-btn:hover {
+  background: #e2e8f0;
+  color: #334155;
 }
 
 /* Empty-state hint */
@@ -1932,4 +2129,199 @@
   .onb-rb-card-row { padding: 14px 16px; }
   .onb-rb-form { padding: 4px 14px 16px; }
   .onb-rb-continue { padding: 12px 24px; }
+}
+
+/* ============================================================
+   GENERIC RESPONSIVE OVERRIDES
+   These rules fill gaps in the per-step responsive styles
+   and ensure the onboarding works on all screen sizes.
+   ============================================================ */
+
+/* Shared: card padding scales on small screens */
+@media (max-width: 640px) {
+  .onb-card {
+    padding: clamp(20px, 5vw, 41px);
+  }
+
+  .onb-notif-card {
+    padding: clamp(20px, 5vw, 49px);
+    border-radius: 20px;
+  }
+
+  .onb-wpref-card {
+    padding: clamp(20px, 5vw, 48px);
+    border-radius: 24px;
+  }
+
+  .onb-resume-wrap {
+    padding: 12px 12px 32px;
+  }
+
+  /* Gender step */
+  .onb-gender-inner {
+    gap: clamp(20px, 4vh, 40px);
+  }
+
+  /* Roles step — header becomes column on small screens */
+  .onb-roles {
+    padding: 16px 12px 24px;
+  }
+
+  /* Experience pills: tighten padding */
+  .onb-exp {
+    padding: 16px 12px 24px;
+  }
+
+  .onb-exp-row {
+    padding: 16px 18px;
+    border-radius: 18px;
+    gap: 16px;
+  }
+
+  .onb-exp-row--sel {
+    padding: 15px 17px;
+  }
+
+  /* Work preference grid */
+  .onb-wpref-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Employment grid */
+  .onb-emp-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .onb-emp-layout {
+    padding: 16px 14px;
+  }
+
+  /* Personal form */
+  .onb-personal {
+    padding: 16px 12px 16px;
+  }
+
+  /* Notifications */
+  .onb-notif-shell {
+    padding: 12px 12px 0;
+  }
+}
+
+/* Mobile: unified footer wraps into 2 rows */
+@media (max-width: 640px) {
+  .onb-footer {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  /* Hide nav links on small screens to save space */
+  .onb-footer-links {
+    display: none;
+  }
+
+  .onb-footer-copy {
+    font-size: 12px;
+  }
+
+  .onb-footer-continue-btn {
+    margin-left: auto;
+    padding: 10px 24px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  .onb-footer-copy {
+    display: none;
+  }
+
+  .onb-footer-continue-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Map steps on tablet/mobile: stack vertically instead of side-by-side */
+@media (max-width: 900px) {
+  /* Steps 8 & 9 — override fixed overflow to allow stacking */
+  .onb--loc-step,
+  .onb--target-step {
+    overflow-y: auto !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Map strip becomes 240px tall instead of full height */
+  .onb-loc-map,
+  .onb-target-visual {
+    min-height: 240px;
+    height: 240px;
+    flex: none;
+  }
+
+  /* Scroll containers: limit to half viewport so map is still visible */
+  .onb-loc-side-scroll,
+  .onb-target-side-scroll {
+    max-height: 55dvh;
+  }
+}
+
+/* Very narrow phones: tighten map side padding */
+@media (max-width: 400px) {
+  .onb-loc-side-scroll {
+    padding: 16px;
+  }
+
+  .onb-target-side-scroll {
+    padding: 14px 12px;
+  }
+
+  .onb-loc-side-actions,
+  .onb-target-actions {
+    padding: 12px 16px;
+  }
+}
+
+/* Resume dropzone shrinks on mobile */
+@media (max-width: 480px) {
+  .onb-dropzone {
+    padding: 20px 20px;
+    border-radius: 24px;
+  }
+
+  .onb-resume-grid {
+    gap: 20px;
+  }
+}
+
+/* Role grid: 2-col at tablet instead of 1-col */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .onb-role-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* "Ready" step: ensure it scrolls on small screens */
+@media (max-width: 640px) {
+  .onb-ready {
+    padding: 24px 16px;
+  }
+
+  .onb-ready-title {
+    font-size: clamp(28px, 6vw, 44px);
+    line-height: 1.3;
+  }
+
+  .onb-feature-card {
+    border-radius: 24px;
+    padding: 18px;
+    gap: 16px;
+  }
+}
+
+/* Touch-target minimum for all interactive elements */
+.onb button:not(.onb-switch):not(.onb-rb-tag-remove) {
+  min-height: 44px;
 }
