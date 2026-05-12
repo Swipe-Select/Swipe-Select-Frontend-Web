@@ -1,7 +1,9 @@
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useState } from 'react';
+import { useGoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleAuthConfig } from '../context/GoogleAuthConfigContext';
+import { loginAssets, signUpAssets } from '../figma/authAssets';
+import './GoogleSignInButton.css';
 
 type Props = {
   uxMode: 'signup' | 'login';
@@ -9,10 +11,9 @@ type Props = {
   onSignedIn: () => void;
 };
 
-/** Renders the official Google button; wrap in `.signup-google` / `.login-google` wrappers for layout parity. */
-export function GoogleSignInButton({ uxMode, width = 332, onSignedIn }: Props) {
+export function GoogleSignInButton({ uxMode, width = 332, onSignedIn }: Readonly<Props>) {
   const { googleLogin } = useAuth();
-  const { activeClientId, activeIndex, totalCandidates, switchToNextClientId } = useGoogleAuthConfig();
+  const { switchToNextClientId } = useGoogleAuthConfig();
   const [error, setError] = useState<string | null>(null);
 
   const handleSuccess = async (cred: CredentialResponse) => {
@@ -24,8 +25,9 @@ export function GoogleSignInButton({ uxMode, width = 332, onSignedIn }: Props) {
     const errMsg = await googleLogin(cred.credential);
     if (errMsg) {
       setError(errMsg);
+    } else {
+      onSignedIn();
     }
-    else onSignedIn();
   };
 
   const handleGoogleError = () => {
@@ -37,24 +39,25 @@ export function GoogleSignInButton({ uxMode, width = 332, onSignedIn }: Props) {
     setError('Google popup failed. Please try again or use email sign-in.');
   };
 
+  const login = useGoogleLogin({
+    onSuccess: handleSuccess,
+    onError: handleGoogleError,
+    flow: 'implicit',
+  });
+
+  const buttonText = uxMode === 'signup' ? 'Sign up with Google' : 'Continue with Google';
+  const assetSrc = uxMode === 'signup' ? signUpAssets.google : loginAssets.google;
+
   return (
-    <span style={{ display: 'flex', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
-      <GoogleLogin
-        key={activeClientId ?? 'google-login-disabled'}
-        onSuccess={handleSuccess}
-        onError={handleGoogleError}
-        theme="outline"
-        size="large"
-        width={width}
-        text={uxMode === 'signup' ? 'signup_with' : 'continue_with'}
-      />
-      {import.meta.env.DEV && totalCandidates > 1 ? (
-        <span style={{ color: '#64748b', fontSize: 11, textAlign: 'center' }}>
-          Google config {activeIndex + 1}/{totalCandidates}
+    <span className="google-signin-wrapper" style={{ maxWidth: width, width: '100%' }}>
+      <button type="button" className="google-signin-button" onClick={() => login()}>
+        <span className="google-signin-icon">
+          <img src={assetSrc} alt="Google logo" aria-hidden="true" />
         </span>
-      ) : null}
+        <span>{buttonText}</span>
+      </button>
       {error ? (
-        <span role="alert" style={{ color: '#dc2626', fontSize: 13, textAlign: 'center' }}>
+        <span role="alert" className="google-signin-error">
           {error}
         </span>
       ) : null}
