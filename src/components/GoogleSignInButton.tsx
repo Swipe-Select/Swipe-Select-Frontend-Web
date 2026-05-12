@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { useGoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleAuthConfig } from '../context/GoogleAuthConfigContext';
-import { loginAssets, signUpAssets } from '../figma/authAssets';
 import './GoogleSignInButton.css';
 
 type Props = {
@@ -39,23 +38,23 @@ export function GoogleSignInButton({ uxMode, width = 332, onSignedIn }: Readonly
     setError('Google popup failed. Please try again or use email sign-in.');
   };
 
-  const login = useGoogleLogin({
-    onSuccess: handleSuccess,
-    onError: handleGoogleError,
-    flow: 'implicit',
-  });
-
-  const buttonText = uxMode === 'signup' ? 'Sign up with Google' : 'Continue with Google';
-  const assetSrc = uxMode === 'signup' ? signUpAssets.google : loginAssets.google;
-
   return (
     <span className="google-signin-wrapper" style={{ maxWidth: width, width: '100%' }}>
-      <button type="button" className="google-signin-button" onClick={() => login()}>
-        <span className="google-signin-icon">
-          <img src={assetSrc} alt="Google logo" aria-hidden="true" />
-        </span>
-        <span>{buttonText}</span>
-      </button>
+      <GoogleLogin
+        onSuccess={handleSuccess}
+        onError={handleGoogleError}
+        theme="outline"
+        size="large"
+        width={width}
+        text={uxMode === 'signup' ? 'signup_with' : 'continue_with'}
+        containerProps={{
+          style: {
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+          },
+        }}
+      />
       {error ? (
         <span role="alert" className="google-signin-error">
           {error}
