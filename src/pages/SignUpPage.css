@@ -215,6 +215,34 @@
   white-space: nowrap;
 }
 
+.signup-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0f172a;
+  cursor: pointer;
+  filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.05));
+}
+
+.signup-google:hover {
+  background: #f8fafc;
+}
+
+.signup-google img {
+  width: 16px;
+  height: 16px;
+}
+
 .signup-legal {
   font-size: 12px;
   line-height: 16px;
