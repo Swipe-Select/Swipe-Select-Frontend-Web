@@ -1,4 +1,4 @@
-import React, { type DragEvent, useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
+import React, { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OnboardingLocationMap, type OnboardingLocationMapHandle } from "../components/onboarding/OnboardingLocationMap";
 import { mapboxForwardGeocode } from "../lib/mapboxGeocoding";
 import type { ReactNode } from "react";
@@ -12,7 +12,6 @@ import { useAuth } from "../context/AuthContext";
 import type { ProfileEducation, ProfileProject, ProfileCertification } from "../api/types";
 import { readDraft, writeDraft, clearDraft } from "../auth/onboardingDraft";
 import { OnboardingTopBar } from "../components/onboarding/OnboardingTopBar";
-import { OnboardingBottomBar } from "../components/onboarding/OnboardingBottomBar";
 import "./OnboardingPage.css";
 
 type GenderId = "female" | "male" | "nonbinary";
@@ -495,39 +494,6 @@ export function OnboardingPage() {
     };
   }, [locationSearch, finalizeLocationResults, mapboxEnvToken]);
 
-  const selectTypedLocation = useCallback(async () => {
-    const q = locationSearch.trim();
-    if (!q) return;
-    setSelectedBaseLocation(q);
-    setLocationBusy(true);
-    setLocationErr(null);
-    try {
-      let rows: LocationListRow[] = [];
-      try {
-        rows = await mapboxForwardGeocode(q, mapboxEnvToken);
-      } catch {
-        // LocationIQ unavailable — try Nominatim for coordinates
-        const params = new URLSearchParams({ format: "jsonv2", addressdetails: "1", limit: "1", q });
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { headers: { Accept: "application/json" } });
-        if (res.ok) {
-          const json = (await res.json()) as Array<{ lat?: string; lon?: string }>;
-          const first = json[0];
-          if (first?.lat && first?.lon) {
-            setBaseMapLngLat({ lng: Number(first.lon), lat: Number(first.lat) });
-            setLocationBusy(false);
-            return;
-          }
-        }
-      }
-      const first = rows[0];
-      if (first?.lngLat) setBaseMapLngLat({ lng: first.lngLat[0], lat: first.lngLat[1] });
-    } catch {
-      // Map pin stays at current position — not a blocking error.
-    } finally {
-      setLocationBusy(false);
-    }
-  }, [locationSearch, mapboxEnvToken]);
-
   useEffect(() => {
     const q = targetLocationSearch.trim();
     if (q.length < 2) {
@@ -907,19 +873,6 @@ export function OnboardingPage() {
       ),
     );
   };
-
-  const footer = (variant: "default" | "narrow" = "default") => (
-    <footer className={`onb-footer${variant === "narrow" ? " onb-footer--padded" : ""}`}>
-      <p className="onb-footer-copy">
-        © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
-      </p>
-      <nav className="onb-footer-links" aria-label="Legal">
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-        <a href="#">Help Center</a>
-      </nav>
-    </footer>
-  );
 
   const notificationSwitchRow = (
     icon: ReactNode,
@@ -2076,39 +2029,6 @@ export function OnboardingPage() {
                         Searching locations...
                       </p>
                     ) : null}
-                    <button
-                      type="button"
-                      className={`onb-loc-chip${selectedBaseLocation === locationSearch.trim() ? " onb-loc-chip--sel" : ""}`}
-                      onClick={() => { void selectTypedLocation(); }}
-                      aria-pressed={selectedBaseLocation === locationSearch.trim()}
-                      disabled={!locationSearch.trim() || locationBusy}
-                    >
-                      <div className="onb-flex-gap">
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 32,
-                            background: "rgba(70,72,212,0.12)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <img src={ast.location.pinSel} alt="" width={18} height={19} />
-                        </div>
-                        <div>
-                          <p style={{ margin: 0, fontSize: 16, color: "#4648d4" }}>{locationSearch.trim()}</p>
-                          <p style={{ margin: 0, fontSize: 14, color: "#64748b" }}>Use exactly what I typed</p>
-                        </div>
-                      </div>
-                      <img
-                        src={selectedBaseLocation === locationSearch.trim() ? ast.location.checkSel : ast.location.checkCircle}
-                        alt=""
-                        width={16}
-                        height={16}
-                      />
-                    </button>
                     {locationErr ? (
                       <p role="alert" style={{ margin: "0 0 12px", color: "#b91c1c", fontSize: 13 }}>
                         {locationErr}
@@ -2260,7 +2180,11 @@ export function OnboardingPage() {
                           type="button"
                           className={`onb-loc-chip${exists ? " onb-loc-chip--sel" : ""}`}
                           onClick={() => {
-                            if (!exists) addTargetLocation(city, normalizedCountry);
+                            if (exists) {
+                              removeTargetLocation(city, normalizedCountry);
+                            } else {
+                              addTargetLocation(city, normalizedCountry);
+                            }
                             const key = `${city}, ${region}`;
                             const coords = POPULAR_BASE_LOCATION_LNG_LAT[key];
                             if (coords) setTargetMapLngLat({ lng: coords[0], lat: coords[1] });
@@ -2312,7 +2236,11 @@ export function OnboardingPage() {
                           type="button"
                           className={`onb-loc-chip${exists ? " onb-loc-chip--sel" : ""}`}
                           onClick={() => {
-                            if (!exists) addTargetLocation(r.city, country);
+                            if (exists) {
+                              removeTargetLocation(r.city, country);
+                            } else {
+                              addTargetLocation(r.city, country);
+                            }
                             if (r.lngLat) setTargetMapLngLat({ lng: r.lngLat[0], lat: r.lngLat[1] });
                           }}
                           aria-pressed={exists}
@@ -2339,51 +2267,6 @@ export function OnboardingPage() {
                   </>
                 )}
 
-                <div style={{ marginTop: 22 }}>
-                  <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 600 }}>Selected target locations</h3>
-                  <p className="onb-muted-sm" style={{ marginBottom: 12 }}>
-                    Add at least one location to continue.
-                  </p>
-                  <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-                    {targetLocations.map(({ city, country }, i) => (
-                      <div
-                        key={`${city}-${country}`}
-                        className="onb-target-list-row"
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          padding: "14px 16px",
-                          borderTop: i ? "1px solid #e2e8f0" : undefined,
-                        }}
-                      >
-                        <div className="onb-flex-gap onb-target-list-main">
-                          <img src={ast.target.pin} alt="" width={22} height={22} />
-                          <div>
-                            <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{city}</p>
-                            <p className="onb-muted-sm" style={{ margin: 0, fontSize: 12 }}>
-                              {country}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className="onb-btn"
-                          style={{ padding: 6, borderRadius: 8 }}
-                          onClick={() => removeTargetLocation(city, country)}
-                          aria-label={`Remove ${city}, ${country}`}
-                        >
-                          <img src={ast.workExp.trash} alt="" width={12} height={14} />
-                        </button>
-                      </div>
-                    ))}
-                    {targetLocations.length === 0 ? (
-                      <div style={{ padding: 16, color: "#64748b", fontSize: 14 }}>
-                        No target locations yet. Add one city/country pair to continue.
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
               </div>
 
               <div className="onb-target-actions">
@@ -2445,7 +2328,7 @@ export function OnboardingPage() {
                     ["hybrid", "Hybrid", "A mix of home and office days.", ["Best of both worlds", "Regular team connection", "Structured flexibility"], ast.workPref.hybrid, true],
                     ["office", "In Person", "Full-time at the company office.", ["Dedicated workspace", "Spontaneous collaboration", "Clear work-life boundary"], ast.workPref.office, false],
                   ] as const
-                ).map(([id, title, sub, bullets, icon, popular]) => {
+                ).map(([id, title, sub, bullets, icon]) => {
                   const sel = workPrefs.includes(id);
                   return (
                     <button
@@ -2459,12 +2342,7 @@ export function OnboardingPage() {
                       }
                       style={{ position: "relative" }}
                     >
-                      {popular && (
-                        <span style={{ position: "absolute", top: 0, right: 0, background: "#6063ee", color: "#fffbff", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderBottomLeftRadius: 48 }}>
-                          Popular
-                        </span>
-                      )}
-                      <div className="onb-flex-gap" style={{ justifyContent: "space-between", marginBottom: 16, paddingTop: popular ? 8 : 0 }}>
+                      <div className="onb-flex-gap" style={{ justifyContent: "space-between", marginBottom: 16, paddingTop: 0 }}>
                         <div
                           style={{
                             width: 48,
@@ -2582,7 +2460,6 @@ export function OnboardingPage() {
 
             </div>
           </div>
-          {footer()}
         </>
       )}
 
@@ -2590,10 +2467,12 @@ export function OnboardingPage() {
         <>
           <div className="onb-exp">
             <div style={{ maxWidth: 896, margin: "0 auto" }}>
-              <h1 className="onb-h1">Define Your Experience Level</h1>
-              <p className="onb-sub" style={{ marginTop: 16, maxWidth: 672 }}>
-                Help us tailor your dashboard by providing more context about your professional background. Select the single level that best describes your current role.
-              </p>
+              <div className="onb-center" style={{ maxWidth: 760, margin: "0 auto" }}>
+                <h1 className="onb-h1">Define Your Experience Level</h1>
+                <p className="onb-sub" style={{ marginTop: 16, maxWidth: 660 }}>
+                  Help us tailor your dashboard by providing more context about your professional background. Select the single level that best describes your current role.
+                </p>
+              </div>
               {(
                 [
                   ["Entry Level Professional", "0-2 years", "Just starting out or building foundational skills. You focus on executing tasks effectively under guidance and learning best practices."],
@@ -2607,17 +2486,17 @@ export function OnboardingPage() {
                     <img src={sel ? ast.experience.radioOn : ast.experience.radioOff} alt="" width={18} height={22} />
                     <div style={{ flex: 1, textAlign: "left" }}>
                       <div className="onb-flex-gap" style={{ marginBottom: 4, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 20, fontWeight: 600, color: sel ? "#6366f1" : "#0f172a" }}>{title}</span>
+                        <span style={{ fontSize: 18, fontWeight: 600, color: sel ? "#6366f1" : "#0f172a" }}>{title}</span>
                         <span style={{ fontSize: 12, padding: "4px 12px", borderRadius: 9999, background: sel ? "rgba(99,102,241,0.1)" : "#efecf8", color: sel ? "#6366f1" : "#64748b" }}>{years}</span>
                       </div>
-                      <p className="onb-sub" style={{ margin: 0, lineHeight: 1.5 }}>
+                      <p className="onb-sub" style={{ margin: 0 }}>
                         {desc}
                       </p>
                     </div>
                   </button>
                 );
               })}
-              <div className="onb-btn-row" style={{ marginTop: 48 }}>
+              <div className="onb-btn-row" style={{ marginTop: 32 }}>
                 {/* Back is handled by OnboardingTopBar */}
               </div>
             </div>

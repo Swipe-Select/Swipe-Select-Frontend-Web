@@ -132,6 +132,10 @@ export function JobSwipePage() {
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [refreshOffset, setRefreshOffset] = useState(0);
+  const [showDetails, setShowDetails] = useState(false);
+  const [swipeStart, setSwipeStart] = useState<{ x: number; y: number } | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [swipeOutDirection, setSwipeOutDirection] = useState<'left' | 'right' | null>(null);
 
   const token = session?.token?.trim() || readSession()?.token?.trim();
   const onboardingStep =
@@ -214,12 +218,25 @@ export function JobSwipePage() {
 
   const removeTopCard = () => {
     setJobs((prev) => prev.slice(1));
+    setShowDetails(false);
+    setSwipeOutDirection(null);
   };
 
   const handleSwipe = async (action: "like" | "pass" | "apply") => {
     if (!current || swipeBusy) return;
     const t = token;
     if (!t) return;
+    
+    // Animate swipe out before processing
+    if (action === "pass") {
+      setSwipeOutDirection("left");
+    } else if (action === "apply" || action === "like") {
+      setSwipeOutDirection("right");
+    }
+    
+    // Wait for animation to start
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const openListingAfterApply = action === "apply" ? current.sourceUrl : null;
     setSwipeBusy(true);
     const { ok, status, json } = await swipeJob(current.id, action, t);
@@ -236,6 +253,7 @@ export function JobSwipePage() {
           : "Could not save swipe.";
       alert(msg);
       setSwipeBusy(false);
+      setSwipeOutDirection(null);
       return;
     }
     if (openListingAfterApply)
@@ -247,6 +265,34 @@ export function JobSwipePage() {
 
   const openListing = () => {
     if (current?.sourceUrl) window.open(current.sourceUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCardMouseDown = (e: React.MouseEvent) => {
+    setSwipeStart({ x: e.clientX, y: e.clientY });
+    setSwipeOffset(0);
+  };
+
+  const handleCardMouseMove = (e: React.MouseEvent) => {
+    if (!swipeStart || swipeBusy) return;
+    const deltaX = e.clientX - swipeStart.x;
+    setSwipeOffset(deltaX);
+  };
+
+  const handleCardMouseUp = (e: React.MouseEvent) => {
+    if (!swipeStart || swipeBusy) return;
+    const deltaX = e.clientX - swipeStart.x;
+    const deltaY = Math.abs(e.clientY - swipeStart.y);
+    setSwipeStart(null);
+    setSwipeOffset(0);
+    // Require horizontal swipe (not vertical scroll)
+    if (deltaY > 20) return;
+    if (Math.abs(deltaX) < 60) return;
+    // Right swipe = like, Left swipe = pass
+    if (deltaX > 0) {
+      void handleSwipe("like");
+    } else {
+      void handleSwipe("pass");
+    }
   };
 
   const incompleteOnboarding = onboardingStep < ONBOARDING_COMPLETE_STEP;
@@ -304,7 +350,26 @@ export function JobSwipePage() {
               </p>
             ) : null}
 
-            <article className="job-swipe-card">
+            <article 
+              className="job-swipe-card"
+              onMouseDown={handleCardMouseDown}
+              onMouseMove={handleCardMouseMove}
+              onMouseUp={handleCardMouseUp}
+              onMouseLeave={() => {
+                if (swipeStart) {
+                  setSwipeStart(null);
+                  setSwipeOffset(0);
+                }
+              }}
+              style={{
+                transform: swipeOutDirection === "left" 
+                  ? "translateX(-800px) rotateZ(-15deg)"
+                  : swipeOutDirection === "right"
+                  ? "translateX(800px) rotateZ(15deg)"
+                  : `translateX(${swipeOffset * 0.3}px) rotateZ(${swipeOffset * 0.02}deg)`,
+                opacity: swipeOutDirection ? 0 : Math.max(0.5, 1 - Math.abs(swipeOffset) * 0.003),
+              }}
+            >
               <header className="job-swipe-card-header">
                 <div className="job-swipe-card-top">
                   <span className="job-swipe-company">{current.company}</span>
@@ -387,6 +452,14 @@ export function JobSwipePage() {
                 </button>
                 <button
                   type="button"
+                  className="job-swipe-details-btn"
+                  disabled={swipeBusy}
+                  onClick={() => setShowDetails(!showDetails)}
+                >
+                  Details
+                </button>
+                <button
+                  type="button"
                   className="job-swipe-apply"
                   disabled={swipeBusy}
                   onClick={() => void handleSwipe("apply")}
@@ -398,10 +471,11 @@ export function JobSwipePage() {
             </div>
           </div>
 
+          {showDetails && (
           <aside className="job-swipe-aside">
             <header className="job-swipe-aside-header">
               <h2 className="job-swipe-aside-title">Details</h2>
-              <button type="button" className="job-swipe-aside-close" aria-label="Close" onClick={() => navigate("/")}>
+              <button type="button" className="job-swipe-aside-close" aria-label="Close" onClick={() => setShowDetails(false)}>
                 <IconClose />
               </button>
             </header>
@@ -455,6 +529,7 @@ export function JobSwipePage() {
               ) : null}
             </div>
           </aside>
+          )}
         </div>
       )}
     </div>

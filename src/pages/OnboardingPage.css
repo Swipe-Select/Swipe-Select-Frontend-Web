@@ -298,7 +298,6 @@
   justify-content: space-between;
   gap: 16px;
   padding-top: 24px;
-  border-top: 1px solid var(--onb-slate-200);
 }
 
 .onb-h1 {
@@ -1658,38 +1657,78 @@
 
 /* Experience pills */
 .onb-exp {
-  padding: 24px clamp(18px, 6vw, 72px) 32px;
+  padding: 18px clamp(16px, 4vw, 48px) 20px;
   position: relative;
+}
+
+.onb-exp .onb-center {
+  margin: 0 auto 56px;
+  max-width: 740px;
+}
+
+.onb-exp .onb-h1 {
+  font-size: 28px;
+  line-height: 34px;
+  text-align: center;
+}
+
+.onb-exp-row:first-of-type {
+  margin-top: 16px;
+}
+
+.onb-exp .onb-sub {
+  font-size: 15px;
+  line-height: 22px;
+  max-width: 680px;
 }
 
 .onb-exp-row {
   display: flex;
-  gap: 24px;
-  padding: 25px 41px;
-  border-radius: 9999px;
+  gap: 16px;
+  padding: 18px 28px;
+  border-radius: 32px;
   border: 1px solid var(--onb-slate-200);
   background: var(--onb-white);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   cursor: pointer;
   align-items: flex-start;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
 .onb-exp-row:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-  border-color: #c7d2fe;
+  transform: none;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  border-color: #dbeafe;
 }
 
 .onb-exp-row--sel {
   border: 2px solid var(--onb-indigo);
-  background: linear-gradient(180deg, #eef2ff 0%, #f7f8ff 100%);
-  padding: 24px 40px;
-  box-shadow: 0 14px 24px rgba(99, 102, 241, 0.18);
+  background: linear-gradient(180deg, #f3f4ff 0%, #f9f9ff 100%);
+  padding: 17px 26px;
+  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.14);
+}
+
+.onb-exp-row h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.onb-exp-row p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--onb-slate-600);
+}
+
+.onb-exp-row .onb-flex-gap {
+  gap: 12px;
 }
 
 .onb-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
 }
 
