@@ -1,6 +1,6 @@
 import React, { type DragEvent, useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { OnboardingLocationMap, type OnboardingLocationMapHandle } from "../components/onboarding/OnboardingLocationMap";
-import { mapboxForwardGeocode, mapboxReverseGeocode } from "../lib/mapboxGeocoding";
+import { mapboxForwardGeocode } from "../lib/mapboxGeocoding";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { BRAND_NAME } from "../brand";
@@ -175,7 +175,6 @@ export function OnboardingPage() {
   const [selectedBaseLocation, setSelectedBaseLocation] = useState<string>(() => _draft.selectedBaseLocation ?? "New York, New York, US");
   const [baseMapLngLat, setBaseMapLngLat] = useState(DEFAULT_BASE_MAP_LNG_LAT);
   const [locationBusy, setLocationBusy] = useState(false);
-  const [locationGeoBusy, setLocationGeoBusy] = useState(false);
   const [locationErr, setLocationErr] = useState<string | null>(null);
   const [locationResults, setLocationResults] = useState<LocationListRow[]>([]);
   const [targetLocations, setTargetLocations] = useState<Array<{ city: string; country: string }>>(() => _draft.targetLocations ?? []);
@@ -583,47 +582,6 @@ export function OnboardingPage() {
       window.clearTimeout(timer);
     };
   }, [targetLocationSearch, mapboxEnvToken]);
-
-  const requestCurrentLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      setLocationErr("This browser does not support location services.");
-      return;
-    }
-    setLocationGeoBusy(true);
-    setLocationErr(null);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { longitude, latitude } = pos.coords;
-        try {
-          const place = await mapboxReverseGeocode(longitude, latitude, mapboxEnvToken);
-          if (place) {
-            setSelectedBaseLocation(place);
-            setBaseMapLngLat({ lng: longitude, lat: latitude });
-          } else {
-            setLocationErr("Could not resolve this position to an address.");
-          }
-        } catch {
-          setLocationErr("Could not resolve this position to an address.");
-        } finally {
-          setLocationGeoBusy(false);
-        }
-      },
-      (geoErr) => {
-        setLocationGeoBusy(false);
-        const code = geoErr.code;
-        if (code === geoErr.PERMISSION_DENIED) {
-          setLocationErr("Location permission denied. Enable location in your browser settings.");
-        } else if (code === geoErr.POSITION_UNAVAILABLE) {
-          setLocationErr("Current position is unavailable.");
-        } else if (code === geoErr.TIMEOUT) {
-          setLocationErr("Location request timed out.");
-        } else {
-          setLocationErr("Could not read your current location.");
-        }
-      },
-      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 },
-    );
-  }, [mapboxEnvToken]);
 
   const next = useCallback(() => {
     setStep((currentStep) => {
@@ -2216,15 +2174,6 @@ export function OnboardingPage() {
                 ) : null}
               </div>
               <div className="onb-loc-side-actions">
-                <button
-                  type="button"
-                  className="onb-btn onb-flex-gap onb-loc-action-secondary"
-                  onClick={requestCurrentLocation}
-                  disabled={locationGeoBusy}
-                >
-                  <img src={ast.location.locate} alt="" width={22} height={22} />
-                  {locationGeoBusy ? "Locating…" : "Use current location"}
-                </button>
                 <button
                   type="button"
                   className="onb-btn onb-btn-primary onb-btn-primary--brand onb-loc-action-primary"
