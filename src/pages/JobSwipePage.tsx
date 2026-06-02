@@ -131,6 +131,7 @@ export function JobSwipePage() {
   const [swipeBusy, setSwipeBusy] = useState(false);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
   const [feedError, setFeedError] = useState<string | null>(null);
+  const [refreshOffset, setRefreshOffset] = useState(0);
 
   const token = session?.token?.trim() || readSession()?.token?.trim();
   const onboardingStep =
@@ -194,7 +195,7 @@ export function JobSwipePage() {
     if (!t) return;
     setRefreshBusy(true);
     setFeedError(null);
-    const result = await refreshJobs(t);
+    const result = await refreshJobs(t, refreshOffset);
     if (result.status === 401) {
       logout();
       navigate("/login", { replace: true });
@@ -204,6 +205,10 @@ export function JobSwipePage() {
     setJobs(result.jobs);
     if (result.message) setBannerMessage(result.message);
     if (!result.success && result.message) setFeedError(result.message);
+    if (result.success) {
+      // If scraper returned no new jobs at this offset, wrap back to 0
+      setRefreshOffset(result.jobs.length === 0 ? 0 : refreshOffset + 20);
+    }
     setRefreshBusy(false);
   };
 

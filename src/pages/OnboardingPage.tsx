@@ -1,6 +1,6 @@
-import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { type DragEvent, useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { OnboardingLocationMap, type OnboardingLocationMapHandle } from "../components/onboarding/OnboardingLocationMap";
-import { mapboxForwardGeocode, mapboxReverseGeocode } from "../lib/mapboxGeocoding";
+import { mapboxForwardGeocode } from "../lib/mapboxGeocoding";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { BRAND_NAME } from "../brand";
@@ -10,6 +10,9 @@ import { ONBOARDING_COMPLETE_STEP } from "../auth/onboardingStep";
 import { asUserPreferences, asUserProfile } from "../auth/normalizeSession";
 import { useAuth } from "../context/AuthContext";
 import type { ProfileEducation, ProfileProject, ProfileCertification } from "../api/types";
+import { readDraft, writeDraft, clearDraft } from "../auth/onboardingDraft";
+import { OnboardingTopBar } from "../components/onboarding/OnboardingTopBar";
+import { OnboardingBottomBar } from "../components/onboarding/OnboardingBottomBar";
 import "./OnboardingPage.css";
 
 type GenderId = "female" | "male" | "nonbinary";
@@ -29,60 +32,6 @@ function workPrefLabel(w: WorkPrefId) {
   if (w === "hybrid") return "Hybrid";
   return "In Person";
 }
-
-const COUNTRY_OPTIONS = [
-  "Argentina",
-  "Australia",
-  "Austria",
-  "Bangladesh",
-  "Belgium",
-  "Brazil",
-  "Canada",
-  "Chile",
-  "China",
-  "Colombia",
-  "Czech Republic",
-  "Denmark",
-  "Egypt",
-  "Finland",
-  "France",
-  "Germany",
-  "Greece",
-  "Hong Kong",
-  "Hungary",
-  "India",
-  "Indonesia",
-  "Ireland",
-  "Israel",
-  "Italy",
-  "Japan",
-  "Kenya",
-  "Malaysia",
-  "Mexico",
-  "Netherlands",
-  "New Zealand",
-  "Nigeria",
-  "Norway",
-  "Pakistan",
-  "Philippines",
-  "Poland",
-  "Portugal",
-  "Qatar",
-  "Romania",
-  "Saudi Arabia",
-  "Singapore",
-  "South Africa",
-  "South Korea",
-  "Spain",
-  "Sweden",
-  "Switzerland",
-  "Thailand",
-  "Turkey",
-  "United Arab Emirates",
-  "United Kingdom",
-  "United States",
-  "Vietnam",
-];
 
 /** [lng, lat] for onboarding step 8 popular rows (matches `city` + `region` keys). */
 const POPULAR_BASE_LOCATION_LNG_LAT: Record<string, [number, number]> = {
@@ -120,7 +69,7 @@ function toMonthStr(raw: string | undefined | null): string {
   if (/^\d{4}-\d{2}$/.test(s)) return s;
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 7);
   const d = new Date(s);
-  if (!isNaN(d.getTime())) {
+  if (!Number.isNaN(d.getTime())) {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
     return `${y}-${m}`;
@@ -135,65 +84,124 @@ export function OnboardingPage() {
     import.meta.env.VITE_LOCATIONIQ_API_KEY?.trim() ??
     import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim() ??
     "";
-  const [mapboxTokenStatus, setMapboxTokenStatus] = useState<"missing" | "unknown" | "valid" | "invalid">(
-    mapboxEnvToken ? "unknown" : "missing",
-  );
   const locationMapRef = useRef<OnboardingLocationMapHandle>(null);
+  const targetMapRef = useRef<OnboardingLocationMapHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Live-data refs (always current, avoids stale closures) ──
+  const workExperiencesRef = useRef<WorkExperienceEntry[]>([]);
+  const educationRef = useRef<ProfileEducation[]>([]);
+  const projectsRef = useRef<ProfileProject[]>([]);
+  const skillsRef = useRef<string[]>([]);
+  const certificationsRef = useRef<ProfileCertification[]>([]);
+  const interestsRef = useRef<string[]>([]);
+  const personalFullNameRef = useRef('');
+  const personalPhoneRef = useRef('');
+  const personalDialCodeRef = useRef('+1');
+  const genderRef = useRef<GenderId>('female');
+  const rolesRef = useRef<string[]>([]);
+  const workPrefsRef = useRef<WorkPrefId[]>([]);
+  const employmentRef = useRef<string[]>([]);
+  const experienceLevelRef = useRef<string>('');
+  const selectedBaseLocationRef = useRef<string>('');
+  const targetLocationsRef = useRef<Array<{ city: string; country: string }>>([]);
   const [resumeBusy, setResumeBusy] = useState(false);
   const [resumeErr, setResumeErr] = useState<string | null>(null);
   const [resumeOk, setResumeOk] = useState(false);
-  const [entryMode, setEntryMode] = useState<OnboardingEntryMode>(null);
+  // ── Initialise all state from the localStorage draft (resume logic) ──────────
+  const _draft = readDraft();
+
+  const [entryMode, setEntryMode] = useState<OnboardingEntryMode>(() => _draft.entryMode ?? null);
   const [prefsBusy, setPrefsBusy] = useState(false);
-  const [step, setStep] = useState(0);
-  const [stepError, setStepError] = useState<string | null>(null);
-  const [gender, setGender] = useState<GenderId>("female");
-  const [notif, setNotif] = useState({
-    appStatus: true,
-    jobRec: true,
-    appInfo: false,
+  const [step, setStep] = useState<number>(() => {
+    return Math.max(_draft.step ?? 0, session?.onboardingStep ?? 0);
   });
-  const [roles, setRoles] = useState<string[]>(["Software Engineer", "Product Manager"]);
-  const [workPrefs, setWorkPrefs] = useState<WorkPrefId[]>(["hybrid"]);
-  const [employment, setEmployment] = useState<string[]>(["Full Time"]);
-  const [experienceLevel, setExperienceLevel] = useState("");
-  const [personalFullName, setPersonalFullName] = useState("");
-  const [personalEmail, setPersonalEmail] = useState("");
-  const [personalDialCode, setPersonalDialCode] = useState("+1");
-  const [personalPhone, setPersonalPhone] = useState("");
-  const [workExperiences, setWorkExperiences] = useState<WorkExperienceEntry[]>([]);
+  const [navDir, setNavDir] = useState<'forward' | 'back'>('forward');
+  const [stepError, setStepError] = useState<string | null>(null);
+  const [gender, setGender] = useState<GenderId>(() => _draft.gender ?? "female");
+  const [notif, setNotif] = useState(() => ({
+    appStatus: _draft.notifAppStatus ?? true,
+    jobRec:    _draft.notifJobRec    ?? true,
+    appInfo:   _draft.notifAppInfo   ?? false,
+  }));
+  const [roles, setRoles] = useState<string[]>(() => _draft.roles ?? ["Software Engineer", "Product Manager"]);
+  const [workPrefs, setWorkPrefs] = useState<WorkPrefId[]>(() => (_draft.workPrefs as WorkPrefId[] | undefined) ?? ["hybrid"]);
+  const [employment, setEmployment] = useState<string[]>(() => _draft.employment ?? ["Full Time"]);
+  const [experienceLevel, setExperienceLevel] = useState<string>(() => _draft.experienceLevel ?? "");
+  const [personalFullName, setPersonalFullName] = useState<string>(() => _draft.personalFullName ?? "");
+  const [personalEmail, setPersonalEmail] = useState<string>(() => _draft.personalEmail ?? "");
+  const [personalDialCode, setPersonalDialCode] = useState<string>(() => _draft.personalDialCode ?? "+1");
+  const [personalPhone, setPersonalPhone] = useState<string>(() => _draft.personalPhone ?? "");
+  const [workExperiences, setWorkExperiences] = useState<WorkExperienceEntry[]>(() => _draft.workExperiences ?? []);
 
   // Resume Builder sections
-  const [education, setEducation] = useState<ProfileEducation[]>([]);
-  const [projects, setProjects] = useState<ProfileProject[]>([]);
-  const [skills, setSkills] = useState<string[]>([]);
-  const [certifications, setCertifications] = useState<ProfileCertification[]>([]);
-  const [interests, setInterests] = useState<string[]>([]);
-  const [activeBuildSection, setActiveBuildSection] = useState<string | null>(null);
-  const [newSkill, setNewSkill] = useState("");
-  const [newInterest, setNewInterest] = useState("");
+  const [education, setEducation] = useState<ProfileEducation[]>(() => _draft.education ?? []);
+  const [projects, setProjects] = useState<ProfileProject[]>(() => _draft.projects ?? []);
+  const [skills, setSkills] = useState<string[]>(() => _draft.skills ?? []);
+  const [certifications, setCertifications] = useState<ProfileCertification[]>(() => _draft.certifications ?? []);
+  const [interests, setInterests] = useState<string[]>(() => _draft.interests ?? []);
 
-  const [countrySearch, setCountrySearch] = useState("");
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [countryBusy, setCountryBusy] = useState(false);
-  const [countryErr, setCountryErr] = useState<string | null>(null);
-  const [countryResults, setCountryResults] = useState<Array<{ name: string; label: string }>>([]);
+
+  const [activeBuildSection, setActiveBuildSection] = useState<string | null>(null);
+
+  const deriveCommittedKeys = useCallback((
+    weList: WorkExperienceEntry[],
+    eduList: ProfileEducation[],
+    projList: ProfileProject[],
+    certList: ProfileCertification[]
+  ) => {
+    const keys = new Set<string>();
+    weList.forEach(w => { if (w.title?.trim() && w.employer?.trim()) keys.add(`we-${w.id}`); });
+    eduList.forEach((e, i) => { if (e.school?.trim() || e.degree?.trim()) keys.add(`edu-${i}`); });
+    projList.forEach((p, i) => { if (p.name?.trim()) keys.add(`proj-${i}`); });
+    certList.forEach((c, i) => { if (c.name?.trim()) keys.add(`cert-${i}`); });
+    return keys;
+  }, []);
+
+  const [committedKeys, setCommittedKeys] = useState<Set<string>>(() => {
+    return deriveCommittedKeys(
+      _draft.workExperiences ?? [],
+      _draft.education ?? [],
+      _draft.projects ?? [],
+      _draft.certifications ?? []
+    );
+  });
+  const [newSkill, setNewSkill] = useState("");
+  const [skillJustAdded, setSkillJustAdded] = useState(false);
+  const [newInterest, setNewInterest] = useState("");
+  const [interestJustAdded, setInterestJustAdded] = useState(false);
+
   const [locationSearch, setLocationSearch] = useState("");
-  const [selectedBaseLocation, setSelectedBaseLocation] = useState("New York, New York, US");
+  const [selectedBaseLocation, setSelectedBaseLocation] = useState<string>(() => _draft.selectedBaseLocation ?? "New York, New York, US");
   const [baseMapLngLat, setBaseMapLngLat] = useState(DEFAULT_BASE_MAP_LNG_LAT);
   const [locationBusy, setLocationBusy] = useState(false);
-  const [locationGeoBusy, setLocationGeoBusy] = useState(false);
   const [locationErr, setLocationErr] = useState<string | null>(null);
   const [locationResults, setLocationResults] = useState<LocationListRow[]>([]);
-  const [targetLocations, setTargetLocations] = useState<Array<{ city: string; country: string }>>([]);
-  const [newTargetCity, setNewTargetCity] = useState("");
-  const [newTargetCountry, setNewTargetCountry] = useState("");
+  const [targetLocations, setTargetLocations] = useState<Array<{ city: string; country: string }>>(() => _draft.targetLocations ?? []);
+  const [targetLocationSearch, setTargetLocationSearch] = useState("");
   const [targetSuggestBusy, setTargetSuggestBusy] = useState(false);
   const [targetSuggestErr, setTargetSuggestErr] = useState<string | null>(null);
   const [targetSuggestRows, setTargetSuggestRows] = useState<LocationListRow[]>([]);
-  const filteredCountries = COUNTRY_OPTIONS.filter((country) =>
-    country.toLowerCase().includes(countrySearch.trim().toLowerCase()),
-  );
+  const [targetMapLngLat, setTargetMapLngLat] = useState(DEFAULT_BASE_MAP_LNG_LAT);
+
+  // ── Keep refs in sync with state (runs every render) ──
+  workExperiencesRef.current = workExperiences;
+  educationRef.current = education;
+  projectsRef.current = projects;
+  skillsRef.current = skills;
+  certificationsRef.current = certifications;
+  interestsRef.current = interests;
+  personalFullNameRef.current = personalFullName;
+  personalPhoneRef.current = personalPhone;
+  personalDialCodeRef.current = personalDialCode;
+  genderRef.current = gender;
+  rolesRef.current = roles;
+  workPrefsRef.current = workPrefs;
+  employmentRef.current = employment;
+  experienceLevelRef.current = experienceLevel;
+  selectedBaseLocationRef.current = selectedBaseLocation;
+  targetLocationsRef.current = targetLocations;
+
   const popularLocations = useMemo(
     () => [
     { city: "San Francisco", region: "California, US" },
@@ -214,30 +222,9 @@ export function OnboardingPage() {
     [locationSearch, popularLocations],
   );
 
-  const hasValidMapbox = Boolean(mapboxEnvToken) && mapboxTokenStatus === "valid";
-
-  useEffect(() => {
-    if (!mapboxEnvToken) {
-      setMapboxTokenStatus("missing");
-      return;
-    }
-    setMapboxTokenStatus("unknown");
-    const controller = new AbortController();
-    void (async () => {
-      try {
-        await mapboxForwardGeocode("New York", mapboxEnvToken, { limit: 1, types: "place" }, controller.signal);
-        setMapboxTokenStatus("valid");
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        if (err instanceof Error && err.message === "LOCATIONIQ_AUTH") {
-          setMapboxTokenStatus("invalid");
-        } else {
-          setMapboxTokenStatus("unknown");
-        }
-      }
-    })();
-    return () => controller.abort();
-  }, [mapboxEnvToken]);
+  // Token is usable as long as it is present and has not been explicitly rejected with a 401/403.
+  // "unknown" (still validating or network error) is treated as valid so features aren't blocked.
+  // Location features are active whenever the key is present.
 
   // Pre-populate Resume Builder from extracted resume data (runs once when profile becomes available)
   const profileSeededRef = useRef(false);
@@ -247,81 +234,150 @@ export function OnboardingPage() {
     if (!profile) return;
     profileSeededRef.current = true;
 
+    let newWe: WorkExperienceEntry[] = [];
     if (profile.workExperience?.length) {
-      setWorkExperiences(
-        profile.workExperience.map((we, i) => ({
-          id: `seed-${i}`,
-          title: we.title ?? "",
-          employer: we.company ?? "",
-          startMonth: toMonthStr(we.startDate),
-          endMonth: we.endDate ? toMonthStr(we.endDate) : null,
-          location: we.location ?? "",
-        })),
-      );
+      newWe = profile.workExperience.map((we, i) => ({
+        id: `seed-${i}`,
+        title: we.title ?? "",
+        employer: we.company ?? "",
+        startMonth: toMonthStr(we.startDate),
+        endMonth: we.endDate ? toMonthStr(we.endDate) : null,
+        location: we.location ?? "",
+      }));
+      setWorkExperiences(newWe);
     }
-    if (profile.education?.length)
-      setEducation(profile.education.map((e) => ({ ...e, date: toMonthStr(e.date) })));
-    if (profile.projects?.length)
-      setProjects(profile.projects.map((p) => ({ ...p, date: toMonthStr(p.date) })));
+    const newEdu = profile.education ? profile.education.map((e) => ({ ...e, date: toMonthStr(e.date) })) : [];
+    if (newEdu.length) setEducation(newEdu);
+
+    const newProj = profile.projects ? profile.projects.map((p) => ({ ...p, date: toMonthStr(p.date) })) : [];
+    if (newProj.length) setProjects(newProj);
+
     if (profile.skills?.length) setSkills(profile.skills);
-    if (profile.certifications?.length) setCertifications(profile.certifications);
+    
+    const newCert = profile.certifications ? profile.certifications : [];
+    if (newCert.length) setCertifications(newCert);
+    
     if (profile.interests?.length) setInterests(profile.interests);
 
+    setCommittedKeys((prev) => {
+      const added = deriveCommittedKeys(newWe, newEdu, newProj, newCert);
+      return new Set([...prev, ...added]);
+    });
+
     // Auto-open the first section that has data so user sees their extracted info immediately
-    const firstSection =
-      profile.workExperience?.length ? "work" :
-      profile.education?.length ? "edu" :
-      profile.projects?.length ? "proj" :
-      profile.skills?.length ? "skills" :
-      profile.certifications?.length ? "cert" :
-      profile.interests?.length ? "interests" : null;
+    let firstSection: string | null = null;
+    if (profile.workExperience?.length) firstSection = "work";
+    else if (profile.education?.length) firstSection = "edu";
+    else if (profile.projects?.length) firstSection = "proj";
+    else if (profile.skills?.length) firstSection = "skills";
+    else if (profile.certifications?.length) firstSection = "cert";
+    else if (profile.interests?.length) firstSection = "interests";
     if (firstSection) setActiveBuildSection(firstSection);
   }, [session?.profile]);
 
+  // ── Debounced draft persistence (300 ms) — saves all form state to localStorage ──
   useEffect(() => {
-    const q = countrySearch.trim();
-    if (!hasValidMapbox || q.length < 2) {
-      setCountryBusy(false);
-      setCountryErr(null);
-      setCountryResults([]);
-      return;
+    const tid = window.setTimeout(() => {
+      writeDraft({
+        step,
+        entryMode,
+        gender,
+        notifAppStatus: notif.appStatus,
+        notifJobRec:    notif.jobRec,
+        notifAppInfo:   notif.appInfo,
+        roles,
+        workPrefs,
+        employment,
+        experienceLevel,
+        personalFullName,
+        personalEmail,
+        personalDialCode,
+        personalPhone,
+        workExperiences,
+        education,
+        projects,
+        skills,
+        certifications,
+        interests,
+        selectedBaseLocation,
+        targetLocations,
+      });
+    }, 300);
+    return () => window.clearTimeout(tid);
+  }, [
+    step, entryMode, gender, notif,
+    roles, workPrefs, employment, experienceLevel,
+    personalFullName, personalEmail, personalDialCode, personalPhone,
+    workExperiences, education, projects, skills, certifications, interests,
+    selectedBaseLocation, targetLocations,
+  ]);
+
+  // Reads from refs so it ALWAYS gets the latest state, never a stale closure.
+  const syncProfileToDb = useCallback(async (stepOverride?: number) => {
+    if (!session?.token) return;
+    const we = workExperiencesRef.current;
+    const edu = educationRef.current;
+    const proj = projectsRef.current;
+    const sk = skillsRef.current;
+    const cert = certificationsRef.current;
+    const intr = interestsRef.current;
+    const fullName = personalFullNameRef.current;
+    const phone = personalPhoneRef.current;
+    const dialCode = personalDialCodeRef.current;
+    const g = genderRef.current;
+    
+    const normalizeList = (values: string[]) =>
+      Array.from(new Set(values.map((value) => value.trim()).filter((value) => value.length > 0)));
+      
+    const workPrefLabel = (id: WorkPrefId) => id === 'remote' ? 'Remote' : id === 'hybrid' ? 'Hybrid' : 'On-site';
+
+    const normalizedWorkLocations = normalizeList(
+      targetLocationsRef.current.map(({ city, country }) => `${city.trim()}, ${country.trim()}`)
+    );
+    const normalizedBaseLocation = selectedBaseLocationRef.current.trim();
+
+    const profilePayload = {
+      gender: g,
+      firstName: fullName.split(' ')[0] || '',
+      lastName: fullName.split(' ').slice(1).join(' ') || '',
+      phone: phone ? `${dialCode}${phone}` : '',
+      workExperience: we.map(w => ({
+        title: w.title,
+        company: w.employer,
+        location: w.location,
+        startDate: w.startMonth,
+        endDate: w.endMonth || ''
+      })),
+      education: edu.map(e => ({
+        school: e.school,
+        degree: e.degree,
+        date: e.date
+      })),
+      projects: proj,
+      skills: sk,
+      certifications: cert,
+      interests: intr
+    };
+    
+    const payload: any = {
+      profile: profilePayload,
+      jobTitles: normalizeList(rolesRef.current),
+      targetCountries: [],
+      baseLocation: normalizedBaseLocation,
+      workLocations: normalizedWorkLocations,
+      workMode: normalizeList(workPrefsRef.current.map((pref) => workPrefLabel(pref))),
+      jobTypes: normalizeList(employmentRef.current),
+      experienceLevel: experienceLevelRef.current ? [experienceLevelRef.current] : []
+    };
+    
+    if (stepOverride !== undefined) {
+      payload.onboardingStep = stepOverride;
     }
 
-    const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
-      setCountryBusy(true);
-      setCountryErr(null);
-      try {
-        const rows = await mapboxForwardGeocode(
-          q,
-          mapboxEnvToken,
-          { limit: 8, types: "country" },
-          controller.signal,
-        );
-        setCountryResults(
-          rows.map((r) => ({
-            name: r.city,
-            label: r.label,
-          })),
-        );
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        if (err instanceof Error && err.message === "LOCATIONIQ_AUTH") {
-          setCountryErr("LocationIQ key rejected. Falling back to the built-in country list.");
-        } else {
-          setCountryErr("Could not load countries right now.");
-        }
-        setCountryResults([]);
-      } finally {
-        setCountryBusy(false);
-      }
-    }, 280);
+    console.log('[syncProfileToDb] Sending payload:', JSON.stringify(payload, null, 2));
+    await savePreferences(payload, session.token).catch((err) => console.error('[syncProfileToDb] error:', err));
+  }, [session?.token]); // only depends on the token — data comes from refs
 
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [countrySearch, mapboxEnvToken, hasValidMapbox]);
   const scoreLocationMatch = useCallback(
     (query: string, candidate: LocationListRow) => {
       const city = candidate.city.toLowerCase();
@@ -356,6 +412,16 @@ export function OnboardingPage() {
     [scoreLocationMatch],
   );
 
+  const commitEntry = useCallback((key: string) => {
+    setCommittedKeys((s) => { const n = new Set(s); n.add(key); return n; });
+    // Small delay so React flushes the latest state into refs before we read them
+    window.setTimeout(() => { void syncProfileToDb(); }, 50);
+  }, [syncProfileToDb]);
+
+  const uncommitEntry = useCallback((key: string) => {
+    setCommittedKeys((s) => { const n = new Set(s); n.delete(key); return n; });
+  }, []);
+
   const addBlankWorkExp = useCallback(() =>
     setWorkExperiences((c) => [
       ...c,
@@ -388,91 +454,35 @@ export function OnboardingPage() {
       setLocationBusy(true);
       setLocationErr(null);
       try {
-        const fetchPhoton = async (queryText: string) => {
-          const photonParams = new URLSearchParams({ q: queryText, limit: "8" });
-          const res = await fetch(`https://photon.komoot.io/api/?${photonParams.toString()}`, {
-            signal: controller.signal,
-            headers: { Accept: "application/json" },
-          });
-          if (!res.ok) return [] as LocationListRow[];
-          const json = (await res.json()) as {
-            features?: Array<{
-              properties?: {
-                name?: string;
-                city?: string;
-                county?: string;
-                state?: string;
-                country?: string;
-                postcode?: string;
-              };
-            }>;
-          };
-          return (json.features ?? [])
-            .map((feature) => {
-              const p = feature.properties;
-              const city = p?.city || p?.name || p?.county || "Unknown City";
-              const regionParts = [p?.state, p?.country, p?.postcode].filter(Boolean);
-              const region = regionParts.length ? regionParts.join(", ") : "Unknown Region";
-              const label = [city, region].filter(Boolean).join(", ");
-              return { label, city, region, source: "photon" as const };
-            })
-            .filter((entry) => entry.label.trim().length > 0);
-        };
-
-        const fetchNominatim = async (queryText: string) => {
-          const params = new URLSearchParams({
-            format: "jsonv2",
-            addressdetails: "1",
-            limit: "8",
-            q: queryText,
-          });
+        let rows: LocationListRow[] = [];
+        try {
+          rows = await mapboxForwardGeocode(q, mapboxEnvToken, undefined, controller.signal);
+        } catch (apiErr) {
+          if (apiErr instanceof DOMException && apiErr.name === "AbortError") return;
+          // LocationIQ key invalid or unavailable — fall back to Nominatim
+          const params = new URLSearchParams({ format: "jsonv2", addressdetails: "1", limit: "8", q });
           const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
             signal: controller.signal,
             headers: { Accept: "application/json" },
           });
-          if (!res.ok) return [] as LocationListRow[];
-          const json = (await res.json()) as Array<{
-            display_name?: string;
-            address?: {
-              city?: string;
-              town?: string;
-              village?: string;
-              county?: string;
-              state?: string;
-              country?: string;
-              postcode?: string;
-            };
-          }>;
-          return json
-            .map((entry) => {
-              const city =
-                entry.address?.city ||
-                entry.address?.town ||
-                entry.address?.village ||
-                entry.address?.county ||
-                "Unknown City";
-              const regionParts = [entry.address?.state, entry.address?.country, entry.address?.postcode].filter(Boolean);
-              const region = regionParts.length ? regionParts.join(", ") : "Unknown Region";
+          if (res.ok) {
+            const json = (await res.json()) as Array<{
+              display_name?: string; lat?: string; lon?: string;
+              address?: { city?: string; town?: string; village?: string; county?: string; state?: string; country?: string };
+            }>;
+            rows = json.map((entry) => {
+              const city = entry.address?.city || entry.address?.town || entry.address?.village || entry.address?.county || q;
+              const region = [entry.address?.state, entry.address?.country].filter(Boolean).join(", ");
               const label = entry.display_name || `${city}, ${region}`;
-              return { label, city, region, source: "nominatim" as const };
-            })
-            .filter((entry) => entry.label.trim().length > 0);
-        };
-
-        if (hasValidMapbox) {
-          const mapboxRows = await mapboxForwardGeocode(q, mapboxEnvToken, undefined, controller.signal);
-          setLocationResults(finalizeLocationResults(q, mapboxRows));
-        } else {
-          const combinedResults = [...(await fetchPhoton(q)), ...(await fetchNominatim(q))];
-          setLocationResults(finalizeLocationResults(q, combinedResults));
+              const lat = Number(entry.lat); const lon = Number(entry.lon);
+              return { label, city, region, source: "nominatim" as const, lngLat: Number.isFinite(lat) && Number.isFinite(lon) ? [lon, lat] as [number, number] : undefined };
+            }).filter((r) => r.label.trim().length > 0);
+          }
         }
+        setLocationResults(finalizeLocationResults(q, rows));
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        if (err instanceof Error && err.message === "LOCATIONIQ_AUTH") {
-          setLocationErr("LocationIQ key rejected. Falling back to alternate providers.");
-        } else {
-          setLocationErr("Could not load locations right now. You can still use your typed location.");
-        }
+        setLocationErr("Could not load locations right now. Type a location and select it directly.");
         setLocationResults([]);
       } finally {
         setLocationBusy(false);
@@ -483,29 +493,44 @@ export function OnboardingPage() {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [locationSearch, finalizeLocationResults, mapboxEnvToken, hasValidMapbox]);
+  }, [locationSearch, finalizeLocationResults, mapboxEnvToken]);
 
   const selectTypedLocation = useCallback(async () => {
     const q = locationSearch.trim();
     if (!q) return;
     setSelectedBaseLocation(q);
-    if (!hasValidMapbox) return;
     setLocationBusy(true);
     setLocationErr(null);
     try {
-      const rows = await mapboxForwardGeocode(q, mapboxEnvToken);
+      let rows: LocationListRow[] = [];
+      try {
+        rows = await mapboxForwardGeocode(q, mapboxEnvToken);
+      } catch {
+        // LocationIQ unavailable — try Nominatim for coordinates
+        const params = new URLSearchParams({ format: "jsonv2", addressdetails: "1", limit: "1", q });
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { headers: { Accept: "application/json" } });
+        if (res.ok) {
+          const json = (await res.json()) as Array<{ lat?: string; lon?: string }>;
+          const first = json[0];
+          if (first?.lat && first?.lon) {
+            setBaseMapLngLat({ lng: Number(first.lon), lat: Number(first.lat) });
+            setLocationBusy(false);
+            return;
+          }
+        }
+      }
       const first = rows[0];
-      if (first) setBaseMapLngLat({ lng: first.lngLat[0], lat: first.lngLat[1] });
+      if (first?.lngLat) setBaseMapLngLat({ lng: first.lngLat[0], lat: first.lngLat[1] });
     } catch {
-      setLocationErr("Could not place that text on the map.");
+      // Map pin stays at current position — not a blocking error.
     } finally {
       setLocationBusy(false);
     }
-  }, [locationSearch, mapboxEnvToken, hasValidMapbox]);
+  }, [locationSearch, mapboxEnvToken]);
 
   useEffect(() => {
-    const q = newTargetCity.trim();
-    if (!hasValidMapbox || q.length < 2) {
+    const q = targetLocationSearch.trim();
+    if (q.length < 2) {
       setTargetSuggestBusy(false);
       setTargetSuggestErr(null);
       setTargetSuggestRows([]);
@@ -517,21 +542,35 @@ export function OnboardingPage() {
       setTargetSuggestBusy(true);
       setTargetSuggestErr(null);
       try {
-        const query = newTargetCountry.trim() ? `${q}, ${newTargetCountry.trim()}` : q;
-        const rows = await mapboxForwardGeocode(
-          query,
-          mapboxEnvToken,
-          { limit: 6, types: "place,locality,neighborhood,district,region" },
-          controller.signal,
-        );
+        let rows: LocationListRow[] = [];
+        try {
+          rows = await mapboxForwardGeocode(q, mapboxEnvToken, { limit: 6 }, controller.signal);
+        } catch (apiErr) {
+          if (apiErr instanceof DOMException && apiErr.name === "AbortError") return;
+          // LocationIQ unavailable — fall back to Nominatim
+          const params = new URLSearchParams({ format: "jsonv2", addressdetails: "1", limit: "6", q });
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+            signal: controller.signal,
+            headers: { Accept: "application/json" },
+          });
+          if (res.ok) {
+            const json = (await res.json()) as Array<{
+              display_name?: string; lat?: string; lon?: string;
+              address?: { city?: string; town?: string; village?: string; county?: string; state?: string; country?: string };
+            }>;
+            rows = json.map((entry) => {
+              const city = entry.address?.city || entry.address?.town || entry.address?.village || entry.address?.county || q;
+              const region = [entry.address?.state, entry.address?.country].filter(Boolean).join(", ");
+              const label = entry.display_name || `${city}, ${region}`;
+              const lat = Number(entry.lat); const lon = Number(entry.lon);
+              return { label, city, region, country: entry.address?.country, source: "nominatim" as const, lngLat: Number.isFinite(lat) && Number.isFinite(lon) ? [lon, lat] as [number, number] : undefined };
+            }).filter((r) => r.label.trim().length > 0);
+          }
+        }
         setTargetSuggestRows(rows);
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        if (err instanceof Error && err.message === "LOCATIONIQ_AUTH") {
-          setTargetSuggestErr("LocationIQ key rejected. Suggestions are disabled.");
-        } else {
-          setTargetSuggestErr("Could not load suggestions.");
-        }
+        setTargetSuggestErr("Could not load suggestions.");
         setTargetSuggestRows([]);
       } finally {
         setTargetSuggestBusy(false);
@@ -542,56 +581,7 @@ export function OnboardingPage() {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [newTargetCity, newTargetCountry, mapboxEnvToken, hasValidMapbox]);
-
-  const requestCurrentLocation = useCallback(() => {
-    if (!hasValidMapbox) {
-      setLocationErr(
-        mapboxEnvToken
-          ? "LocationIQ key rejected. Fix VITE_LOCATIONIQ_API_KEY to enable current location."
-          : "LocationIQ key required for current location. Set VITE_LOCATIONIQ_API_KEY in .env.",
-      );
-      return;
-    }
-    if (!navigator.geolocation) {
-      setLocationErr("This browser does not support location services.");
-      return;
-    }
-    setLocationGeoBusy(true);
-    setLocationErr(null);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { longitude, latitude } = pos.coords;
-        try {
-          const place = await mapboxReverseGeocode(longitude, latitude, mapboxEnvToken);
-          if (place) {
-            setSelectedBaseLocation(place);
-            setBaseMapLngLat({ lng: longitude, lat: latitude });
-          } else {
-            setLocationErr("Could not resolve this position to an address.");
-          }
-        } catch {
-          setLocationErr("Could not resolve this position to an address.");
-        } finally {
-          setLocationGeoBusy(false);
-        }
-      },
-      (geoErr) => {
-        setLocationGeoBusy(false);
-        const code = geoErr.code;
-        if (code === geoErr.PERMISSION_DENIED) {
-          setLocationErr("Location permission denied. Enable location in your browser settings.");
-        } else if (code === geoErr.POSITION_UNAVAILABLE) {
-          setLocationErr("Current position is unavailable.");
-        } else if (code === geoErr.TIMEOUT) {
-          setLocationErr("Location request timed out.");
-        } else {
-          setLocationErr("Could not read your current location.");
-        }
-      },
-      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 },
-    );
-  }, [hasValidMapbox, mapboxEnvToken]);
+  }, [targetLocationSearch, mapboxEnvToken]);
 
   const next = useCallback(() => {
     setStep((currentStep) => {
@@ -600,16 +590,10 @@ export function OnboardingPage() {
           setStepError("Please wait until resume upload is complete.");
           return currentStep;
         }
-        if (resumeOk) {
-          setStepError(null);
-          return 4; // Go to Resume Builder with pre-filled extracted data
+        if (!resumeOk && entryMode !== "manual") {
+          setStepError("Upload and parse your resume, or choose fill out manually.");
+          return currentStep;
         }
-        if (entryMode === "manual") {
-          setStepError(null);
-          return 2;
-        }
-        setStepError("Upload and parse your resume, or choose fill out manually.");
-        return currentStep;
       }
 
       if (currentStep === 2) {
@@ -627,10 +611,7 @@ export function OnboardingPage() {
         return currentStep;
       }
 
-      if (currentStep === 7 && selectedCountries.length === 0) {
-        setStepError("Select at least one country to continue.");
-        return currentStep;
-      }
+      // Step 7 (Available Countries) removed — jump straight from 6 to 8.
 
       if (currentStep === 9 && targetLocations.length === 0) {
         setStepError("Add at least one target location before continuing.");
@@ -652,8 +633,23 @@ export function OnboardingPage() {
         return currentStep;
       }
 
+      let nextStep = currentStep;
+      if (currentStep === 1) {
+        if (resumeOk || entryMode === "manual") nextStep = 2;
+      } else if (currentStep === 6) {
+        nextStep = 8;
+      } else {
+        nextStep = Math.min(currentStep + 1, 12);
+      }
+
+      // Background save when progressing
+      if (currentStep !== 12 && nextStep !== currentStep) {
+        void syncProfileToDb(nextStep);
+      }
+
       setStepError(null);
-      return Math.min(currentStep + 1, 12);
+      setNavDir('forward');
+      return nextStep;
     });
   }, [
     entryMode,
@@ -663,15 +659,19 @@ export function OnboardingPage() {
     personalEmail,
     personalPhone,
     roles.length,
-    selectedCountries.length,
     targetLocations.length,
     employment.length,
     experienceLevel,
     workPrefs.length,
+    syncProfileToDb,
   ]);
   const back = useCallback(() => {
     setStepError(null);
-    setStep((s) => Math.max(s - 1, 0));
+    setNavDir('back');
+    setStep((s) => {
+      if (s === 8) return 6; // step 7 removed
+      return Math.max(s - 1, 0);
+    });
   }, []);
 
   const submitResumePdf = useCallback(
@@ -715,6 +715,54 @@ export function OnboardingPage() {
             onboardingStep: 1,
             ...(profile !== undefined ? { profile } : {}),
           });
+          // Seed resume builder state directly so the data shows on step 4
+          if (profile) {
+            profileSeededRef.current = false; // allow effect to re-run with fresh data
+            
+            // Seed personal info
+            const fName = profile.firstName?.trim() || "";
+            const lName = profile.lastName?.trim() || "";
+            if (fName || lName) setPersonalFullName(`${fName} ${lName}`.trim());
+            if (profile.phone?.trim()) setPersonalPhone(profile.phone.trim());
+            // Session email is fallback if profile doesn't have it parsed
+            setPersonalEmail(session.email || "");
+
+            let newWe: WorkExperienceEntry[] = [];
+            if (profile.workExperience?.length) {
+              newWe = profile.workExperience.map((we, i) => ({
+                id: `extract-${i}`,
+                title: we.title ?? "",
+                employer: we.company ?? "",
+                startMonth: toMonthStr(we.startDate),
+                endMonth: we.endDate ? toMonthStr(we.endDate) : null,
+                location: we.location ?? "",
+              }));
+              setWorkExperiences(newWe);
+            }
+            const newEdu = profile.education ? profile.education.map((e) => ({ ...e, date: toMonthStr(e.date) })) : [];
+            if (newEdu.length) setEducation(newEdu);
+
+            const newProj = profile.projects ? profile.projects.map((p) => ({ ...p, date: toMonthStr(p.date) })) : [];
+            if (newProj.length) setProjects(newProj);
+
+            if (profile.skills?.length) setSkills(profile.skills);
+            
+            const newCert = profile.certifications ? profile.certifications : [];
+            if (newCert.length) setCertifications(newCert);
+
+            if (profile.interests?.length) setInterests(profile.interests);
+
+            setCommittedKeys((prev) => {
+              const added = deriveCommittedKeys(newWe, newEdu, newProj, newCert);
+              return new Set([...prev, ...added]);
+            });
+            // Auto-open the first section that has data
+            if (profile.workExperience?.length) setActiveBuildSection("work");
+            else if (profile.education?.length) setActiveBuildSection("edu");
+            else if (profile.projects?.length) setActiveBuildSection("proj");
+            else if (profile.skills?.length) setActiveBuildSection("skills");
+            else if (profile.certifications?.length) setActiveBuildSection("cert");
+          }
         }
       } catch {
         setResumeErr("Resume upload failed. Please try again.");
@@ -738,16 +786,41 @@ export function OnboardingPage() {
     const normalizedBaseLocation = selectedBaseLocation.trim();
 
     setPrefsBusy(true);
+
+    const profilePayload = {
+      gender: genderRef.current,
+      firstName: personalFullNameRef.current.split(' ')[0] || '',
+      lastName: personalFullNameRef.current.split(' ').slice(1).join(' ') || '',
+      phone: personalPhoneRef.current ? `${personalDialCodeRef.current}${personalPhoneRef.current}` : '',
+      workExperience: workExperiencesRef.current.map(w => ({
+        title: w.title,
+        company: w.employer,
+        location: w.location,
+        startDate: w.startMonth,
+        endDate: w.endMonth || ''
+      })),
+      education: educationRef.current.map(e => ({
+        school: e.school,
+        degree: e.degree,
+        date: e.date
+      })),
+      projects: projectsRef.current,
+      skills: skillsRef.current,
+      certifications: certificationsRef.current,
+      interests: interestsRef.current
+    };
+
     const { ok, json } = await savePreferences(
       {
         jobTitles: normalizeList(roles),
-        targetCountries: normalizeList(selectedCountries),
+        targetCountries: [],
         baseLocation: normalizedBaseLocation,
         workLocations: normalizedWorkLocations,
         workMode: normalizeList(workPrefs.map((pref) => workPrefLabel(pref))),
         jobTypes: normalizeList(employment),
         experienceLevel: experienceLevel ? [experienceLevel] : [],
         onboardingStep: ONBOARDING_COMPLETE_STEP,
+        profile: profilePayload,
       },
       session.token,
     );
@@ -773,6 +846,7 @@ export function OnboardingPage() {
         ...(preferences !== undefined ? { preferences } : {}),
       });
     }
+    clearDraft();
     navigate('/onboarding/complete');
   }, [
     navigate,
@@ -782,9 +856,18 @@ export function OnboardingPage() {
     workPrefs,
     employment,
     experienceLevel,
-    selectedCountries,
     selectedBaseLocation,
     targetLocations,
+    gender,
+    personalFullName,
+    personalPhone,
+    personalDialCode,
+    workExperiences,
+    education,
+    projects,
+    skills,
+    certifications,
+    interests,
   ]);
 
   const toggleRole = (name: string) => {
@@ -799,16 +882,9 @@ export function OnboardingPage() {
     setExperienceLevel(name);
   };
 
-  const addCountry = (country: string) => {
-    setSelectedCountries((current) => (current.includes(country) ? current : [...current, country]));
-  };
-
-  const removeCountry = (country: string) => {
-    setSelectedCountries((current) => current.filter((entry) => entry !== country));
-  };
-  const addTargetLocation = () => {
-    const cityRaw = newTargetCity.trim();
-    const countryRaw = newTargetCountry.trim();
+  const addTargetLocation = (city: string, country: string) => {
+    const cityRaw = city.trim();
+    const countryRaw = country.trim();
     if (!cityRaw || !countryRaw) return;
     setTargetLocations((current) => {
       const exists = current.some(
@@ -819,8 +895,8 @@ export function OnboardingPage() {
       if (exists) return current;
       return [...current, { city: cityRaw, country: countryRaw }];
     });
-    setNewTargetCity("");
-    setNewTargetCountry("");
+    setTargetLocationSearch("");
+    setTargetSuggestRows([]);
   };
 
   const removeTargetLocation = (city: string, country: string) => {
@@ -873,6 +949,24 @@ export function OnboardingPage() {
     </div>
   );
 
+  // ── Derived navigation state for TopBar / BottomBar ──────────────────────────
+  const isMapStep     = step === 8 || step === 9;
+  const isBuilderStep = step === 4;
+  const showBottomBar = !isMapStep && !isBuilderStep && step !== 5;
+
+  const continueLabel =
+    step === 3  ? 'Save Preferences' :
+    step === 10 ? 'Save Preferences' :
+    step === 11 ? 'Save & Continue'  :
+    step === 12 ? 'Continue to Profile' :
+    'Continue';
+
+  const continueDisabled =
+    (step === 1 && (resumeBusy || (!resumeOk && entryMode !== 'manual'))) ||
+    (step === 12 && (prefsBusy || !experienceLevel));
+
+  const handleContinue = step === 12 ? () => { void finish(); } : next;
+
   return (
     <div
       className={`onb page-fill${step === 8 ? " onb--loc-step" : ""}${step === 9 ? " onb--target-step" : ""}`}
@@ -886,11 +980,19 @@ export function OnboardingPage() {
           : undefined
       }
     >
+      {/* ── Shared sticky Top Bar (Back button + progress dots) ── */}
+      <OnboardingTopBar
+        step={step}
+        totalSteps={13}
+        canGoBack={step > 0}
+        onBack={back}
+      />
+
       {stepError ? (
         <div
           role="alert"
           style={{
-            margin: "16px auto 0",
+            margin: "8px auto 0",
             maxWidth: 960,
             width: "calc(100% - 48px)",
             border: "1px solid #fecaca",
@@ -904,7 +1006,8 @@ export function OnboardingPage() {
           {stepError}
         </div>
       ) : null}
-      <div key={step} className="onb-step-stage">
+      <div key={step} className={`onb-step-stage onb-step-stage--${navDir}`}>
+
       {step === 0 && (
         <>
           <div className="onb-gender-layout">
@@ -937,22 +1040,11 @@ export function OnboardingPage() {
                     </button>
                   ))}
                 </div>
-                <div className="onb-btn-row">
-                  <button type="button" className="onb-btn onb-btn-ghost" onClick={back} disabled>
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    className="onb-btn onb-btn-primary onb-btn-primary--brand"
-                    onClick={next}
-                  >
-                    Continue
-                  </button>
-                </div>
+
               </div>
             </div>
           </div>
-          {footer()}
+
         </>
       )}
 
@@ -1147,23 +1239,7 @@ export function OnboardingPage() {
               </div>
             </div>
           </div>
-          <div className="onb-resume-bottom">
-            <div className="onb-resume-bottom-inner">
-              <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
-                <img src={ast.resume.backArrow} alt="" width={13} height={13} />
-                Back
-              </button>
-              <button
-                type="button"
-                className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap onb-btn-continue"
-                disabled={resumeBusy || (!resumeOk && entryMode !== "manual")}
-                onClick={next}
-              >
-                {resumeBusy ? "Uploading..." : "Continue"}
-                <img src={ast.resume.forwardArrow} alt="" width={13} height={13} />
-              </button>
-            </div>
-          </div>
+
         </>
       )}
 
@@ -1295,20 +1371,11 @@ export function OnboardingPage() {
                     </div>
                   </div>
                 </div>
-                <div className="onb-btn-row">
-                  <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
-                    <img src={ast.personal.back} alt="" width={13} height={13} />
-                    Back
-                  </button>
-                  <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap" onClick={next}>
-                    Continue
-                    <img src={ast.personal.forward} alt="" width={14} height={14} />
-                  </button>
-                </div>
+
               </div>
             </div>
           </div>
-          {footer("narrow")}
+
         </>
       )}
 
@@ -1363,17 +1430,10 @@ export function OnboardingPage() {
                   "appInfo",
                 )}
               </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, paddingTop: 25, borderTop: "1px solid #e2e8f0" }}>
-                <button type="button" className="onb-btn onb-btn-ghost" style={{ fontSize: 14 }} onClick={back}>
-                  Cancel
-                </button>
-                <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand" style={{ padding: "10px 32px", fontSize: 14 }} onClick={next}>
-                  Save Preferences
-                </button>
-              </div>
+
             </div>
           </div>
-          {footer()}
+
         </>
       )}
 
@@ -1410,42 +1470,76 @@ export function OnboardingPage() {
                       <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
                     )}
                     {workExperiences.map((entry) => (
-                      <div key={entry.id} className="onb-rb-edit-card">
-                        <div className="onb-rb-edit-card-head">
-                          <span className="onb-rb-edit-card-label">Work Experience</span>
-                          <button type="button" className="onb-rb-remove" onClick={() => setWorkExperiences((c) => c.filter((x) => x.id !== entry.id))} aria-label="Remove entry">×</button>
-                        </div>
-                        <div className="onb-we-card-grid">
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Job title</label>
-                            <input className="onb-input onb-we-field-control" value={entry.title} onChange={(e) => updateWorkExp(entry.id, "title", e.target.value)} placeholder="e.g. Senior Frontend Developer" />
-                          </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Employer</label>
-                            <input className="onb-input onb-we-field-control" value={entry.employer} onChange={(e) => updateWorkExp(entry.id, "employer", e.target.value)} placeholder="e.g. TechNova Solutions" />
-                          </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Start date</label>
-                            <input className="onb-input onb-we-field-control" type="month" value={entry.startMonth} onChange={(e) => updateWorkExp(entry.id, "startMonth", e.target.value)} />
-                          </div>
-                          <div className="onb-we-field">
-                            <span className="onb-we-field-label">End date</span>
-                            <div className="onb-we-end-wrap">
-                              {entry.endMonth !== null && (
-                                <input type="month" className="onb-input onb-we-field-control onb-we-end-month" value={entry.endMonth} onChange={(e) => updateWorkExp(entry.id, "endMonth", e.target.value)} />
-                              )}
-                              <label className="onb-we-inline-check">
-                                <input type="checkbox" checked={entry.endMonth === null} onChange={(e) => updateWorkExp(entry.id, "endMonth", e.target.checked ? null : "")} />
-                                <span>I currently work here</span>
-                              </label>
+                      <React.Fragment key={entry.id}>
+                        {committedKeys.has(`we-${entry.id}`) ? (
+                          <div className="onb-rb-summary-card">
+                            <div className="onb-rb-summary-avatar">
+                              {entry.employer ? entry.employer.charAt(0).toUpperCase() : entry.title ? entry.title.charAt(0).toUpperCase() : "W"}
                             </div>
+                            <div className="onb-rb-summary-main">
+                              <strong>{entry.title || "Untitled Role"}</strong>
+                              <span className="onb-rb-summary-sub">{entry.employer || "Unknown Employer"}</span>
+                              <span className="onb-muted-sm">
+                                {entry.startMonth || "?"} – {entry.endMonth === null ? "Present" : entry.endMonth || "?"} {entry.location ? `· ${entry.location}` : ""}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-edit-icon-btn"
+                              onClick={() => uncommitEntry(`we-${entry.id}`)}
+                              aria-label="Edit entry"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            </button>
                           </div>
-                          <div className="onb-we-field onb-we-field--full">
-                            <label className="onb-we-field-label">Location</label>
-                            <input className="onb-input onb-we-field-control" value={entry.location} onChange={(e) => updateWorkExp(entry.id, "location", e.target.value)} placeholder="e.g. San Francisco, CA" />
+                        ) : (
+                          <div className="onb-rb-edit-card">
+                            <div className="onb-rb-edit-card-head">
+                              <span className="onb-rb-edit-card-label">Work Experience</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => setWorkExperiences((c) => c.filter((x) => x.id !== entry.id))} aria-label="Remove entry">×</button>
+                            </div>
+                            <div className="onb-we-card-grid">
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Job title</label>
+                                <input className="onb-input onb-we-field-control" value={entry.title} onChange={(e) => updateWorkExp(entry.id, "title", e.target.value)} placeholder="e.g. Senior Frontend Developer" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Employer</label>
+                                <input className="onb-input onb-we-field-control" value={entry.employer} onChange={(e) => updateWorkExp(entry.id, "employer", e.target.value)} placeholder="e.g. TechNova Solutions" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Start date</label>
+                                <input className="onb-input onb-we-field-control" type="month" value={entry.startMonth} onChange={(e) => updateWorkExp(entry.id, "startMonth", e.target.value)} />
+                              </div>
+                              <div className="onb-we-field">
+                                <span className="onb-we-field-label">End date</span>
+                                <div className="onb-we-end-wrap">
+                                  {entry.endMonth !== null && (
+                                    <input type="month" className="onb-input onb-we-field-control onb-we-end-month" value={entry.endMonth} onChange={(e) => updateWorkExp(entry.id, "endMonth", e.target.value)} />
+                                  )}
+                                  <label className="onb-we-inline-check">
+                                    <input type="checkbox" checked={entry.endMonth === null} onChange={(e) => updateWorkExp(entry.id, "endMonth", e.target.checked ? null : "")} />
+                                    <span>I currently work here</span>
+                                  </label>
+                                </div>
+                              </div>
+                              <div className="onb-we-field onb-we-field--full">
+                                <label className="onb-we-field-label">Location</label>
+                                <input className="onb-input onb-we-field-control" value={entry.location} onChange={(e) => updateWorkExp(entry.id, "location", e.target.value)} placeholder="e.g. San Francisco, CA" />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-add-btn"
+                              style={{ alignSelf: "flex-end", marginTop: 16 }}
+                              disabled={!entry.title.trim() && !entry.employer.trim()}
+                              onClick={() => commitEntry(`we-${entry.id}`)}
+                            >
+                              Save
+                            </button>
                           </div>
-                        </div>
-                      </div>
+                        )}
+                      </React.Fragment>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={addBlankWorkExp}>+ Add Entry</button>
                   </div>
@@ -1471,26 +1565,58 @@ export function OnboardingPage() {
                       <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
                     )}
                     {education.map((entry, i) => (
-                      <div key={i} className="onb-rb-edit-card">
-                        <div className="onb-rb-edit-card-head">
-                          <span className="onb-rb-edit-card-label">Education</span>
-                          <button type="button" className="onb-rb-remove" onClick={() => setEducation((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
-                        </div>
-                        <div className="onb-we-card-grid">
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">School / University</label>
-                            <input className="onb-input onb-we-field-control" value={entry.school} onChange={(e) => updateEducation(i, "school", e.target.value)} placeholder="e.g. MIT" />
+                      <React.Fragment key={i}>
+                        {committedKeys.has(`edu-${i}`) ? (
+                          <div className="onb-rb-summary-card">
+                            <div className="onb-rb-summary-avatar">
+                              {entry.school ? entry.school.charAt(0).toUpperCase() : entry.degree ? entry.degree.charAt(0).toUpperCase() : "E"}
+                            </div>
+                            <div className="onb-rb-summary-main">
+                              <strong>{entry.degree || "Untitled Degree"}</strong>
+                              <span className="onb-rb-summary-sub">{entry.school || "Unknown School"}</span>
+                              <span className="onb-muted-sm">{entry.date || "?"}</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-edit-icon-btn"
+                              onClick={() => uncommitEntry(`edu-${i}`)}
+                              aria-label="Edit entry"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            </button>
                           </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Degree</label>
-                            <input className="onb-input onb-we-field-control" value={entry.degree} onChange={(e) => updateEducation(i, "degree", e.target.value)} placeholder="e.g. B.Sc. Computer Science" />
+                        ) : (
+                          <div className="onb-rb-edit-card">
+                            <div className="onb-rb-edit-card-head">
+                              <span className="onb-rb-edit-card-label">Education</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => setEducation((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
+                            </div>
+                            <div className="onb-we-card-grid">
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">School / University</label>
+                                <input className="onb-input onb-we-field-control" value={entry.school} onChange={(e) => updateEducation(i, "school", e.target.value)} placeholder="e.g. MIT" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Degree</label>
+                                <input className="onb-input onb-we-field-control" value={entry.degree} onChange={(e) => updateEducation(i, "degree", e.target.value)} placeholder="e.g. B.Sc. Computer Science" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Graduation date</label>
+                                <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateEducation(i, "date", e.target.value)} />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-add-btn"
+                              style={{ alignSelf: "flex-end", marginTop: 16 }}
+                              disabled={!entry.school.trim() && !entry.degree.trim()}
+                              onClick={() => commitEntry(`edu-${i}`)}
+                            >
+                              Save
+                            </button>
                           </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Graduation date</label>
-                            <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateEducation(i, "date", e.target.value)} />
-                          </div>
-                        </div>
-                      </div>
+                        )}
+                      </React.Fragment>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setEducation((c) => [...c, { school: "", degree: "", date: "" }])}>+ Add Entry</button>
                   </div>
@@ -1516,30 +1642,62 @@ export function OnboardingPage() {
                       <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
                     )}
                     {projects.map((entry, i) => (
-                      <div key={i} className="onb-rb-edit-card">
-                        <div className="onb-rb-edit-card-head">
-                          <span className="onb-rb-edit-card-label">Project</span>
-                          <button type="button" className="onb-rb-remove" onClick={() => setProjects((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
-                        </div>
-                        <div className="onb-we-card-grid">
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Project name</label>
-                            <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateProject(i, "name", e.target.value)} placeholder="e.g. Portfolio Site" />
+                      <React.Fragment key={i}>
+                        {committedKeys.has(`proj-${i}`) ? (
+                          <div className="onb-rb-summary-card">
+                            <div className="onb-rb-summary-avatar">
+                              {entry.name ? entry.name.charAt(0).toUpperCase() : "P"}
+                            </div>
+                            <div className="onb-rb-summary-main">
+                              <strong>{entry.name || "Untitled Project"}</strong>
+                              <span className="onb-rb-summary-sub">{entry.website || "No link"}</span>
+                              <span className="onb-muted-sm">{entry.date || "?"}</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-edit-icon-btn"
+                              onClick={() => uncommitEntry(`proj-${i}`)}
+                              aria-label="Edit entry"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            </button>
                           </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Website / Link</label>
-                            <input className="onb-input onb-we-field-control" type="url" value={entry.website} onChange={(e) => updateProject(i, "website", e.target.value)} placeholder="https://..." />
+                        ) : (
+                          <div className="onb-rb-edit-card">
+                            <div className="onb-rb-edit-card-head">
+                              <span className="onb-rb-edit-card-label">Project</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => setProjects((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
+                            </div>
+                            <div className="onb-we-card-grid">
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Project name</label>
+                                <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateProject(i, "name", e.target.value)} placeholder="e.g. Portfolio Site" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Website / Link</label>
+                                <input className="onb-input onb-we-field-control" type="url" value={entry.website} onChange={(e) => updateProject(i, "website", e.target.value)} placeholder="https://..." />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Date</label>
+                                <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateProject(i, "date", e.target.value)} />
+                              </div>
+                              <div className="onb-we-field onb-we-field--full">
+                                <label className="onb-we-field-label">Description</label>
+                                <textarea className="onb-input onb-we-textarea" rows={2} value={entry.description} onChange={(e) => updateProject(i, "description", e.target.value)} placeholder="What did you build and how?" />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-add-btn"
+                              style={{ alignSelf: "flex-end", marginTop: 16 }}
+                              disabled={!entry.name.trim()}
+                              onClick={() => commitEntry(`proj-${i}`)}
+                            >
+                              Save
+                            </button>
                           </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Date</label>
-                            <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateProject(i, "date", e.target.value)} />
-                          </div>
-                          <div className="onb-we-field onb-we-field--full">
-                            <label className="onb-we-field-label">Description</label>
-                            <textarea className="onb-input onb-we-textarea" rows={2} value={entry.description} onChange={(e) => updateProject(i, "description", e.target.value)} placeholder="What did you build and how?" />
-                          </div>
-                        </div>
-                      </div>
+                        )}
+                      </React.Fragment>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setProjects((c) => [...c, { name: "", website: "", date: "", description: "" }])}>+ Add Entry</button>
                   </div>
@@ -1580,11 +1738,21 @@ export function OnboardingPage() {
                           setNewSkill("");
                         }
                       }} />
-                      <button type="button" className="onb-rb-add-btn" style={{ marginTop: 0 }} onClick={() => {
-                        const val = newSkill.trim();
-                        if (val && !skills.includes(val)) setSkills((c) => [...c, val]);
-                        setNewSkill("");
-                      }}>Add</button>
+                      <button
+                        type="button"
+                        className={`onb-rb-add-btn${skillJustAdded ? " onb-rb-add-btn--added" : ""}`}
+                        style={{ marginTop: 0, flexShrink: 0 }}
+                        disabled={!newSkill.trim()}
+                        onClick={() => {
+                          const val = newSkill.trim();
+                          if (val && !skills.includes(val)) {
+                            setSkills((c) => [...c, val]);
+                            setSkillJustAdded(true);
+                            setTimeout(() => setSkillJustAdded(false), 1200);
+                          }
+                          setNewSkill("");
+                        }}
+                      >{skillJustAdded ? "✓ Added" : "Add"}</button>
                     </div>
                     <p className="onb-muted-sm" style={{ marginTop: 4 }}>Press Enter or comma to add a skill</p>
                   </div>
@@ -1610,22 +1778,53 @@ export function OnboardingPage() {
                       <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
                     )}
                     {certifications.map((entry, i) => (
-                      <div key={i} className="onb-rb-edit-card">
-                        <div className="onb-rb-edit-card-head">
-                          <span className="onb-rb-edit-card-label">Certification</span>
-                          <button type="button" className="onb-rb-remove" onClick={() => setCertifications((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
-                        </div>
-                        <div className="onb-we-card-grid">
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Certification name</label>
-                            <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateCertification(i, "name", e.target.value)} placeholder="e.g. AWS Certified Developer" />
+                      <React.Fragment key={i}>
+                        {committedKeys.has(`cert-${i}`) ? (
+                          <div className="onb-rb-summary-card">
+                            <div className="onb-rb-summary-avatar">
+                              {entry.name ? entry.name.charAt(0).toUpperCase() : "C"}
+                            </div>
+                            <div className="onb-rb-summary-main">
+                              <strong>{entry.name || "Untitled Certification"}</strong>
+                              <span className="onb-rb-summary-sub">{entry.link || "No link"}</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-edit-icon-btn"
+                              onClick={() => uncommitEntry(`cert-${i}`)}
+                              aria-label="Edit entry"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            </button>
                           </div>
-                          <div className="onb-we-field">
-                            <label className="onb-we-field-label">Link / URL</label>
-                            <input className="onb-input onb-we-field-control" type="url" value={entry.link} onChange={(e) => updateCertification(i, "link", e.target.value)} placeholder="https://..." />
+                        ) : (
+                          <div className="onb-rb-edit-card">
+                            <div className="onb-rb-edit-card-head">
+                              <span className="onb-rb-edit-card-label">Certification</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => setCertifications((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
+                            </div>
+                            <div className="onb-we-card-grid">
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Certification name</label>
+                                <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateCertification(i, "name", e.target.value)} placeholder="e.g. AWS Certified Developer" />
+                              </div>
+                              <div className="onb-we-field">
+                                <label className="onb-we-field-label">Link / URL</label>
+                                <input className="onb-input onb-we-field-control" type="url" value={entry.link} onChange={(e) => updateCertification(i, "link", e.target.value)} placeholder="https://..." />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="onb-rb-add-btn"
+                              style={{ alignSelf: "flex-end", marginTop: 16 }}
+                              disabled={!entry.name.trim()}
+                              onClick={() => commitEntry(`cert-${i}`)}
+                            >
+                              Save
+                            </button>
                           </div>
-                        </div>
-                      </div>
+                        )}
+                      </React.Fragment>
                     ))}
                     <button type="button" className="onb-rb-add-btn" onClick={() => setCertifications((c) => [...c, { name: "", link: "" }])}>+ Add Entry</button>
                   </div>
@@ -1666,11 +1865,21 @@ export function OnboardingPage() {
                           setNewInterest("");
                         }
                       }} />
-                      <button type="button" className="onb-rb-add-btn" style={{ marginTop: 0 }} onClick={() => {
-                        const val = newInterest.trim();
-                        if (val && !interests.includes(val)) setInterests((c) => [...c, val]);
-                        setNewInterest("");
-                      }}>Add</button>
+                      <button
+                        type="button"
+                        className={`onb-rb-add-btn${interestJustAdded ? " onb-rb-add-btn--added" : ""}`}
+                        style={{ marginTop: 0, flexShrink: 0 }}
+                        disabled={!newInterest.trim()}
+                        onClick={() => {
+                          const val = newInterest.trim();
+                          if (val && !interests.includes(val)) {
+                            setInterests((c) => [...c, val]);
+                            setInterestJustAdded(true);
+                            setTimeout(() => setInterestJustAdded(false), 1200);
+                          }
+                          setNewInterest("");
+                        }}
+                      >{interestJustAdded ? "✓ Added" : "Add"}</button>
                     </div>
                     <p className="onb-muted-sm" style={{ marginTop: 4 }}>Press Enter or comma to add an interest</p>
                   </div>
@@ -1749,10 +1958,6 @@ export function OnboardingPage() {
                   Select all the roles that align with your next career move.
                 </p>
               </div>
-              <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap" onClick={next}>
-                Continue
-                <img src={ast.roles.continueArrow} alt="" width={13} height={13} />
-              </button>
             </div>
             <div className="onb-role-grid">
               {[
@@ -1784,208 +1989,8 @@ export function OnboardingPage() {
               ))}
             </div>
           </div>
-          <footer className="onb-footer" style={{ position: "relative" }}>
-            <p className="onb-footer-copy" style={{ fontSize: 14 }}>
-              © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
-            </p>
-            <nav className="onb-footer-links">
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-              <a href="#">Contact Support</a>
-            </nav>
-          </footer>
-        </>
-      )}
 
-      {step === 7 && (
-        <div className="onb-country">
-          <div className="onb-country-head">
-            <div className="onb-flex-gap">
-              <button type="button" className="onb-btn" style={{ width: 40, height: 40, border: "1px solid #e2e8f0", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={back}>
-                <img src={ast.country.back} alt="" width={13} height={13} />
-              </button>
-              <span style={{ fontWeight: 600, fontSize: 20, fontFamily: "Inter, sans-serif" }}>Application Setup</span>
-            </div>
-          </div>
-          <div className="onb-country-body">
-            <div className="onb-country-list onb-country-panel">
-              <h3 style={{ margin: "0 0 4px", fontSize: 18, fontFamily: "Inter, sans-serif", fontWeight: 600 }}>Available Countries</h3>
-              <p className="onb-muted-sm" style={{ fontFamily: "Inter, sans-serif" }}>
-                Select countries you are applying to.
-              </p>
-              {mapboxTokenStatus === "invalid" ? (
-                <p role="alert" style={{ margin: "8px 0 0", color: "#b91c1c", fontSize: 13 }}>
-                  LocationIQ key rejected — using the built-in country list.
-                </p>
-              ) : null}
-              <div style={{ position: "relative", marginTop: 12 }}>
-                <input
-                  className="onb-input"
-                  style={{ borderRadius: 6, background: "#f1f5f9", paddingLeft: 40, fontFamily: "Inter, sans-serif", fontSize: 14 }}
-                  placeholder="Search countries..."
-                  value={countrySearch}
-                  onChange={(e) => setCountrySearch(e.target.value)}
-                />
-                <img src={ast.country.search} alt="" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} width={18} height={18} />
-              </div>
-              <div style={{ marginTop: 8, maxHeight: 280, overflowY: "auto" }}>
-                {hasValidMapbox && countrySearch.trim().length >= 2 ? (
-                  <>
-                    {countryBusy ? (
-                      <p className="onb-muted-sm" style={{ margin: "8px 0 12px" }}>
-                        Searching countries…
-                      </p>
-                    ) : null}
-                    {countryErr ? (
-                      <p role="alert" style={{ margin: "8px 0 12px", color: "#b91c1c", fontSize: 13 }}>
-                        {countryErr}
-                      </p>
-                    ) : null}
-                    {!countryBusy && !countryErr && countryResults.length === 0 ? (
-                      <p className="onb-muted-sm" style={{ margin: "8px 0 12px" }}>
-                        No matches found.
-                      </p>
-                    ) : null}
-                    {countryResults.map((r) => {
-                      const isSelected = selectedCountries.includes(r.name);
-                      return (
-                        <button
-                          key={r.label}
-                          type="button"
-                          className={`onb-btn onb-flex-gap onb-country-select-row${isSelected ? " onb-country-select-row--selected" : ""}`}
-                          style={{
-                            width: "100%",
-                            justifyContent: "space-between",
-                            padding: 13,
-                            borderRadius: 8,
-                            border: isSelected ? "1px solid #c7d2fe" : "1px solid transparent",
-                            background: isSelected ? "#eef2ff" : "transparent",
-                          }}
-                          onClick={() => (isSelected ? removeCountry(r.name) : addCountry(r.name))}
-                          aria-pressed={isSelected}
-                          aria-label={isSelected ? `Remove ${r.name}` : `Add ${r.name}`}
-                          title={r.label}
-                        >
-                          <span className="onb-flex-gap">
-                            <span style={{ width: 32, height: 32, borderRadius: 9999, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <img src={ast.country.flag} alt="" width={12} height={12} />
-                            </span>
-                            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500 }}>{r.name}</span>
-                          </span>
-                          <span className="onb-flex-gap" style={{ color: isSelected ? "#4648d4" : "#64748b", fontSize: 12, fontWeight: 600 }}>
-                            {isSelected ? "Selected" : "Select"}
-                            <img src={isSelected ? ast.country.done : ast.country.plus} alt="" width={14} height={14} />
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </>
-                ) : (
-                  filteredCountries.map((c) => {
-                    const isSelected = selectedCountries.includes(c);
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      className={`onb-btn onb-flex-gap onb-country-select-row${isSelected ? " onb-country-select-row--selected" : ""}`}
-                      style={{
-                        width: "100%",
-                        justifyContent: "space-between",
-                        padding: 13,
-                        borderRadius: 8,
-                        border: isSelected ? "1px solid #c7d2fe" : "1px solid transparent",
-                        background: isSelected ? "#eef2ff" : "transparent",
-                      }}
-                      onClick={() => (isSelected ? removeCountry(c) : addCountry(c))}
-                      aria-pressed={isSelected}
-                      aria-label={isSelected ? `Remove ${c}` : `Add ${c}`}
-                    >
-                      <span className="onb-flex-gap">
-                        <span style={{ width: 32, height: 32, borderRadius: 9999, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <img src={ast.country.flag} alt="" width={12} height={12} />
-                        </span>
-                        <span style={{ fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500 }}>{c}</span>
-                      </span>
-                      <span className="onb-flex-gap" style={{ color: isSelected ? "#4648d4" : "#64748b", fontSize: 12, fontWeight: 600 }}>
-                        {isSelected ? "Selected" : "Select"}
-                        <img src={isSelected ? ast.country.done : ast.country.plus} alt="" width={14} height={14} />
-                      </span>
-                    </button>
-                  );
-                  })
-                )}
-              </div>
-            </div>
-            <div className="onb-country-detail">
-              <div className="onb-flex-gap" style={{ justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap" }}>
-                <div>
-                  <h2 style={{ margin: "0 0 4px", fontSize: 24, fontFamily: "Inter, sans-serif", fontWeight: 700 }}>Selected Countries</h2>
-                  <p className="onb-muted-sm" style={{ fontFamily: "Inter, sans-serif" }}>
-                    Configure your visa requirements for each selection.
-                  </p>
-                </div>
-                <div className="onb-flex-gap">
-                  <button
-                    type="button"
-                    className="onb-btn onb-btn-primary onb-btn-primary--brand onb-country-cta"
-                    style={{ borderRadius: 6, padding: "8px 24px", fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500, boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}
-                    onClick={next}
-                    disabled={selectedCountries.length === 0}
-                  >
-                    Save & Continue
-                  </button>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                {selectedCountries.map((name) => {
-                  return (
-                  <div key={name} className="onb-country-selected-card" style={{ flex: "1 1 340px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 21, boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}>
-                    <div className="onb-flex-gap" style={{ justifyContent: "space-between", marginBottom: 24 }}>
-                      <div className="onb-flex-gap">
-                        <div style={{ width: 48, height: 48, borderRadius: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <img src={ast.country.countryIcon} alt="" width={17} height={17} />
-                        </div>
-                        <div>
-                          <p style={{ margin: 0, fontWeight: 600, fontSize: 18, fontFamily: "Inter, sans-serif" }}>{name}</p>
-                          <p className="onb-muted-sm" style={{ margin: 0, fontSize: 12 }}>
-                            Added recently
-                          </p>
-                        </div>
-                      </div>
-                      <button type="button" className="onb-btn" style={{ width: 32, height: 32 }} onClick={() => removeCountry(name)} aria-label={`Remove ${name}`}>
-                        <img src={ast.country.close} alt="" width={13} height={15} />
-                      </button>
-                    </div>
-                    <div
-                      className="onb-flex-gap"
-                      style={{ alignItems: "flex-start", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: 13 }}
-                    >
-                      <img src={ast.country.infoBlue} alt="" width={18} height={18} />
-                      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: "#334155", fontFamily: "Inter, sans-serif" }}>
-                        Selected for job discovery and matching preferences.
-                      </p>
-                    </div>
-                  </div>
-                )})}
-                {selectedCountries.length === 0 ? (
-                  <div
-                    style={{
-                      width: "100%",
-                      border: "1px dashed #cbd5e1",
-                      borderRadius: 12,
-                      padding: 16,
-                      background: "#f8fafc",
-                      color: "#64748b",
-                      fontSize: 14,
-                    }}
-                  >
-                    No countries selected yet. Add at least one country to continue.
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
+        </>
       )}
 
       {step === 8 && (
@@ -2006,11 +2011,6 @@ export function OnboardingPage() {
                 <p className="onb-sub" style={{ marginTop: 8 }}>
                   We use this to find relevant opportunities near you.
                 </p>
-                {mapboxTokenStatus === "invalid" ? (
-                  <p role="alert" style={{ margin: "10px 0 0", color: "#b91c1c", fontSize: 13 }}>
-                    LocationIQ key rejected — search/map will use fallback providers and the map preview is disabled.
-                  </p>
-                ) : null}
                 <div style={{ position: "relative", marginTop: 24 }}>
                   <input
                     className="onb-input"
@@ -2038,7 +2038,7 @@ export function OnboardingPage() {
                     onClick={() => {
                       setSelectedBaseLocation(key);
                       const coords = POPULAR_BASE_LOCATION_LNG_LAT[key];
-                      if (coords && hasValidMapbox) {
+                      if (coords) {
                         setBaseMapLngLat({ lng: coords[0], lat: coords[1] });
                       }
                     }}
@@ -2079,10 +2079,7 @@ export function OnboardingPage() {
                     <button
                       type="button"
                       className={`onb-loc-chip${selectedBaseLocation === locationSearch.trim() ? " onb-loc-chip--sel" : ""}`}
-                      onClick={() => {
-                        if (hasValidMapbox) void selectTypedLocation();
-                        else setSelectedBaseLocation(locationSearch.trim());
-                      }}
+                      onClick={() => { void selectTypedLocation(); }}
                       aria-pressed={selectedBaseLocation === locationSearch.trim()}
                       disabled={!locationSearch.trim() || locationBusy}
                     >
@@ -2124,15 +2121,17 @@ export function OnboardingPage() {
                     ) : null}
                     {locationResults.map((row, idx) => {
                       const { label, city, region } = row;
+                      const country = row.country || region.split(",").slice(-1)[0]?.trim() || "";
+                      const cleanLocation = country ? `${city}, ${country}` : city;
                       const key = `${city}, ${region}`;
-                      const sel = selectedBaseLocation === key || selectedBaseLocation === label;
+                      const sel = selectedBaseLocation === key || selectedBaseLocation === label || selectedBaseLocation === cleanLocation;
                       return (
                         <button
                           key={`${label}-${idx}`}
                           type="button"
                           className={`onb-loc-chip${sel ? " onb-loc-chip--sel" : ""}`}
                           onClick={() => {
-                            setSelectedBaseLocation(label);
+                            setSelectedBaseLocation(cleanLocation);
                             if (row.lngLat) {
                               setBaseMapLngLat({ lng: row.lngLat[0], lat: row.lngLat[1] });
                             }
@@ -2177,22 +2176,6 @@ export function OnboardingPage() {
               <div className="onb-loc-side-actions">
                 <button
                   type="button"
-                  className="onb-btn onb-flex-gap onb-loc-action-secondary"
-                  onClick={requestCurrentLocation}
-                  disabled={!hasValidMapbox || locationGeoBusy}
-                  title={
-                    !hasValidMapbox
-                      ? mapboxEnvToken
-                        ? "LocationIQ key rejected. Update VITE_LOCATIONIQ_API_KEY."
-                        : "Set VITE_LOCATIONIQ_API_KEY in .env to enable current location."
-                      : undefined
-                  }
-                >
-                  <img src={ast.location.locate} alt="" width={22} height={22} />
-                  {locationGeoBusy ? "Locating…" : "Use current location"}
-                </button>
-                <button
-                  type="button"
                   className="onb-btn onb-btn-primary onb-btn-primary--brand onb-loc-action-primary"
                   onClick={next}
                   disabled={!selectedBaseLocation}
@@ -2202,50 +2185,27 @@ export function OnboardingPage() {
               </div>
             </div>
             <div className="onb-loc-map">
-              {hasValidMapbox ? (
-                <OnboardingLocationMap ref={locationMapRef} accessToken={mapboxEnvToken} lngLat={baseMapLngLat} />
-              ) : (
-                <>
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      background: "linear-gradient(129.835deg, rgba(238, 242, 255, 0.8) 0%, rgba(240, 249, 255, 0.8) 100%)",
-                    }}
-                  />
-                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ width: 192, height: 192, borderRadius: 9999, background: "rgba(70,72,212,0.05)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ width: 80, height: 80, borderRadius: 9999, background: "rgba(70,72,212,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 9999, background: "#4648d4", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", boxShadow: "0 0 0 4px rgba(255,255,255,0.5), 0 20px 25px -5px rgba(0,0,0,0.1)" }}>
-                          <img src={ast.location.mapPinCenter} alt="" width={13} height={17} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-              {hasValidMapbox ? (
-                <div style={{ position: "absolute", bottom: 32, right: 32, display: "flex", flexDirection: "column", gap: 8, zIndex: 2 }}>
-                  <button
-                    type="button"
-                    className="onb-btn"
-                    aria-label="Zoom in"
-                    style={{ width: 40, height: 40, borderRadius: 32, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
-                    onClick={() => locationMapRef.current?.zoomIn()}
-                  >
-                    <img src={ast.location.mapPlus} alt="" width={14} height={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="onb-btn"
-                    aria-label="Zoom out"
-                    style={{ width: 40, height: 40, borderRadius: 32, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
-                    onClick={() => locationMapRef.current?.zoomOut()}
-                  >
-                    <img src={ast.location.mapMinus} alt="" width={14} height={2} />
-                  </button>
-                </div>
-              ) : null}
+              <OnboardingLocationMap ref={locationMapRef} accessToken={mapboxEnvToken} lngLat={baseMapLngLat} />
+              <div style={{ position: "absolute", bottom: 32, right: 32, display: "flex", flexDirection: "column", gap: 8, zIndex: 2 }}>
+                <button
+                  type="button"
+                  className="onb-btn"
+                  aria-label="Zoom in"
+                  style={{ width: 40, height: 40, borderRadius: 32, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
+                  onClick={() => locationMapRef.current?.zoomIn()}
+                >
+                  <img src={ast.location.mapPlus} alt="" width={14} height={14} />
+                </button>
+                <button
+                  type="button"
+                  className="onb-btn"
+                  aria-label="Zoom out"
+                  style={{ width: 40, height: 40, borderRadius: 32, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
+                  onClick={() => locationMapRef.current?.zoomOut()}
+                >
+                  <img src={ast.location.mapMinus} alt="" width={14} height={2} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2271,123 +2231,113 @@ export function OnboardingPage() {
                 <p className="onb-sub" style={{ marginTop: 8 }}>
                   These are your preferred opportunity locations, not your current base location.
                 </p>
-                {mapboxTokenStatus === "invalid" ? (
-                  <p role="alert" style={{ margin: "10px 0 0", color: "#b91c1c", fontSize: 13 }}>
-                    LocationIQ key rejected — typeahead suggestions are disabled.
-                  </p>
-                ) : null}
 
-                <div className="onb-target-add-form" style={{ marginTop: 20 }}>
-                  <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
-                    <input
-                      className="onb-input"
-                      placeholder="City"
-                      value={newTargetCity}
-                      onChange={(e) => setNewTargetCity(e.target.value)}
-                      autoComplete="off"
-                    />
-                    {hasValidMapbox && newTargetCity.trim().length >= 2 ? (
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: 0,
-                          right: 0,
-                          top: "calc(100% + 6px)",
-                          background: "#fff",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 12,
-                          boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
-                          overflow: "hidden",
-                          zIndex: 10,
-                        }}
-                      >
-                        {targetSuggestBusy ? (
-                          <div className="onb-muted-sm" style={{ padding: 12 }}>
-                            Searching…
-                          </div>
-                        ) : null}
-                        {targetSuggestErr ? (
-                          <div style={{ padding: 12, color: "#b91c1c", fontSize: 13 }}>{targetSuggestErr}</div>
-                        ) : null}
-                        {!targetSuggestBusy && !targetSuggestErr && targetSuggestRows.length === 0 ? (
-                          <div className="onb-muted-sm" style={{ padding: 12 }}>
-                            No matches.
-                          </div>
-                        ) : null}
-                        {targetSuggestRows.map((r, idx) => (
-                          <button
-                            key={`${r.label}-${idx}`}
-                            type="button"
-                            className="onb-btn"
-                            style={{
-                              width: "100%",
-                              padding: "12px 12px",
-                              borderRadius: 0,
-                              border: "none",
-                              textAlign: "left",
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 2,
-                            }}
-                            onClick={() => {
-                              setNewTargetCity(r.city);
-                              if (!newTargetCountry.trim() && r.country) setNewTargetCountry(r.country);
-                              setTargetSuggestRows([]);
-                              setTargetSuggestErr(null);
-                            }}
-                            aria-label={`Use ${r.label}`}
-                          >
-                            <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{r.city}</span>
-                            <span className="onb-muted-sm" style={{ fontSize: 12 }}>
-                              {r.label}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
+                <div style={{ position: "relative", marginTop: 24 }}>
                   <input
                     className="onb-input"
-                    placeholder="Country"
-                    value={newTargetCountry}
-                    onChange={(e) => setNewTargetCountry(e.target.value)}
+                    style={{ borderRadius: 12, background: "#f1f5f9", padding: "17px 16px 17px 48px", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "none" }}
+                    placeholder="Search city or country"
+                    value={targetLocationSearch}
+                    onChange={(e) => setTargetLocationSearch(e.target.value)}
+                    autoComplete="off"
                   />
-                  <button
-                    type="button"
-                    className="onb-btn onb-btn-primary onb-btn-primary--brand"
-                    style={{ borderRadius: 12, padding: "10px 18px" }}
-                    onClick={addTargetLocation}
-                    disabled={!newTargetCity.trim() || !newTargetCountry.trim()}
-                  >
-                    Add
-                  </button>
+                  <img src={ast.location.search} alt="" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} width={18} height={18} />
                 </div>
 
-                <p style={{ margin: "20px 0 12px", fontWeight: 700, fontSize: 16 }}>Suggested targets</p>
-                <div className="onb-target-suggested">
-                  {popularLocations.map(({ city, region }) => {
-                    const normalizedCountry = region.split(",").slice(-1)[0]?.trim() || region.trim();
-                    const exists = targetLocations.some(
-                      (entry) =>
-                        entry.city.toLowerCase() === city.toLowerCase() &&
-                        entry.country.toLowerCase() === normalizedCountry.toLowerCase(),
-                    );
-                    return (
-                      <button
-                        key={`${city}-${region}`}
-                        type="button"
-                        className="onb-target-chip"
-                        onClick={() => {
-                          if (exists) return;
-                          setTargetLocations((current) => [...current, { city, country: normalizedCountry }]);
-                        }}
-                        disabled={exists}
-                      >
-                        {city}, {normalizedCountry}
-                      </button>
-                    );
-                  })}
-                </div>
+                {targetLocationSearch.trim().length < 2 ? (
+                  <>
+                    <p style={{ margin: "28px 0 16px", fontWeight: 700, fontSize: 16 }}>Suggested targets</p>
+                    {popularLocations.map(({ city, region }) => {
+                      const normalizedCountry = region.split(",").slice(-1)[0]?.trim() || region.trim();
+                      const exists = targetLocations.some(
+                        (entry) =>
+                          entry.city.toLowerCase() === city.toLowerCase() &&
+                          entry.country.toLowerCase() === normalizedCountry.toLowerCase(),
+                      );
+                      return (
+                        <button
+                          key={`${city}-${region}`}
+                          type="button"
+                          className={`onb-loc-chip${exists ? " onb-loc-chip--sel" : ""}`}
+                          onClick={() => {
+                            if (!exists) addTargetLocation(city, normalizedCountry);
+                            const key = `${city}, ${region}`;
+                            const coords = POPULAR_BASE_LOCATION_LNG_LAT[key];
+                            if (coords) setTargetMapLngLat({ lng: coords[0], lat: coords[1] });
+                          }}
+                          aria-pressed={exists}
+                        >
+                          <div className="onb-flex-gap">
+                            <div
+                              style={{
+                                width: 40, height: 40, borderRadius: 32,
+                                background: exists ? "rgba(70,72,212,0.2)" : "#efecf8",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                              }}
+                            >
+                              <img src={exists ? ast.location.pinSel : ast.location.pin} alt="" width={18} height={19} />
+                            </div>
+                            <div>
+                              <p style={{ margin: 0, fontSize: 16, color: exists ? "#4648d4" : "#0f172a" }}>{city}</p>
+                              <p style={{ margin: 0, fontSize: 14, color: exists ? "rgba(70,72,212,0.7)" : "#64748b" }}>{region}</p>
+                            </div>
+                          </div>
+                          <img src={exists ? ast.location.checkSel : ast.location.checkCircle} alt="" width={16} height={16} />
+                        </button>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <>
+                    <p style={{ margin: "24px 0 12px", fontWeight: 700, fontSize: 16 }}>Location matches</p>
+                    {targetSuggestBusy ? (
+                      <p className="onb-muted-sm" style={{ margin: "0 0 12px" }}>Searching locations...</p>
+                    ) : null}
+                    {targetSuggestErr ? (
+                      <p role="alert" style={{ margin: "0 0 12px", color: "#b91c1c", fontSize: 13 }}>{targetSuggestErr}</p>
+                    ) : null}
+                    {!targetSuggestBusy && !targetSuggestErr && targetSuggestRows.length === 0 ? (
+                      <p className="onb-muted-sm" style={{ margin: "0 0 12px" }}>No matches found.</p>
+                    ) : null}
+                    {targetSuggestRows.map((r, idx) => {
+                      const country = r.country ?? r.region.split(",").slice(-1)[0]?.trim() ?? r.region;
+                      const exists = targetLocations.some(
+                        (entry) =>
+                          entry.city.toLowerCase() === r.city.toLowerCase() &&
+                          entry.country.toLowerCase() === country.toLowerCase(),
+                      );
+                      return (
+                        <button
+                          key={`${r.label}-${idx}`}
+                          type="button"
+                          className={`onb-loc-chip${exists ? " onb-loc-chip--sel" : ""}`}
+                          onClick={() => {
+                            if (!exists) addTargetLocation(r.city, country);
+                            if (r.lngLat) setTargetMapLngLat({ lng: r.lngLat[0], lat: r.lngLat[1] });
+                          }}
+                          aria-pressed={exists}
+                        >
+                          <div className="onb-flex-gap">
+                            <div
+                              style={{
+                                width: 40, height: 40, borderRadius: 32,
+                                background: exists ? "rgba(70,72,212,0.2)" : "#efecf8",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                              }}
+                            >
+                              <img src={exists ? ast.location.pinSel : ast.location.pin} alt="" width={18} height={19} />
+                            </div>
+                            <div>
+                              <p style={{ margin: 0, fontSize: 16, color: exists ? "#4648d4" : "#0f172a" }}>{r.city}</p>
+                              <p style={{ margin: 0, fontSize: 14, color: exists ? "rgba(70,72,212,0.7)" : "#64748b" }}>{r.label}</p>
+                            </div>
+                          </div>
+                          <img src={exists ? ast.location.checkSel : ast.location.checkCircle} alt="" width={16} height={16} />
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
 
                 <div style={{ marginTop: 22 }}>
                   <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 600 }}>Selected target locations</h3>
@@ -2452,25 +2402,26 @@ export function OnboardingPage() {
             </div>
 
             <div className="onb-target-visual">
-              <div className="onb-target-visual-card">
-                <h3 style={{ margin: "0 0 10px", fontSize: 22 }}>Target locations</h3>
-                <p className="onb-sub" style={{ margin: 0 }}>
-                  Choose cities where you want to receive opportunities. Your base location and target locations are used together to improve matching quality.
-                </p>
-                <div className="onb-target-visual-points">
-                  <div className="onb-flex-gap">
-                    <img src={ast.target.pin} alt="" width={18} height={18} />
-                    <span>Add at least one preferred destination</span>
-                  </div>
-                  <div className="onb-flex-gap">
-                    <img src={ast.target.pin} alt="" width={18} height={18} />
-                    <span>Use suggestions for quick setup</span>
-                  </div>
-                  <div className="onb-flex-gap">
-                    <img src={ast.target.pin} alt="" width={18} height={18} />
-                    <span>Update this later from onboarding/profile</span>
-                  </div>
-                </div>
+              <OnboardingLocationMap ref={targetMapRef} accessToken={mapboxEnvToken} lngLat={targetMapLngLat} />
+              <div style={{ position: "absolute", bottom: 32, right: 32, display: "flex", flexDirection: "column", gap: 8, zIndex: 2 }}>
+                <button
+                  type="button"
+                  className="onb-btn"
+                  aria-label="Zoom in"
+                  style={{ width: 40, height: 40, borderRadius: 32, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
+                  onClick={() => targetMapRef.current?.zoomIn()}
+                >
+                  <img src={ast.location.mapPlus} alt="" width={14} height={14} />
+                </button>
+                <button
+                  type="button"
+                  className="onb-btn"
+                  aria-label="Zoom out"
+                  style={{ width: 40, height: 40, borderRadius: 32, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
+                  onClick={() => targetMapRef.current?.zoomOut()}
+                >
+                  <img src={ast.location.mapMinus} alt="" width={14} height={2} />
+                </button>
               </div>
             </div>
           </div>
@@ -2479,7 +2430,7 @@ export function OnboardingPage() {
 
       {step === 10 && (
         <>
-          <div style={{ flex: 1, padding: "124px 24px 172px", display: "flex", justifyContent: "center" }}>
+          <div style={{ flex: 1, padding: "32px 24px", display: "flex", justifyContent: "center" }}>
             <div className="onb-wpref-card">
               <div className="onb-center" style={{ marginBottom: 40 }}>
                 <h1 className="onb-h1">How do you prefer to work?</h1>
@@ -2559,29 +2510,10 @@ export function OnboardingPage() {
                   );
                 })}
               </div>
-              <div className="onb-btn-row" style={{ marginTop: 48 }}>
-                <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
-                  <img src={ast.workPref.back} alt="" width={9} height={9} />
-                  Back
-                </button>
-                <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap" onClick={next}>
-                  Save Preferences
-                  <img src={ast.workPref.forward} alt="" width={9} height={9} />
-                </button>
-              </div>
+
             </div>
           </div>
-          <footer className="onb-footer">
-            <nav className="onb-footer-links" style={{ fontSize: 12 }}>
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-              <a href="#">Contact Support</a>
-              <a href="#">Help Center</a>
-            </nav>
-            <p className="onb-footer-copy" style={{ fontSize: 12 }}>
-              © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
-            </p>
-          </footer>
+
         </>
       )}
 
@@ -2590,10 +2522,10 @@ export function OnboardingPage() {
           <div className="onb-emp-layout">
             <div style={{ flex: 1, maxWidth: 896 }}>
               <h1 className="onb-h1">Employment Models</h1>
-              <p className="onb-sub" style={{ marginTop: 12 }}>
+              <p className="onb-sub" style={{ marginTop: 8 }}>
                 Select the types of employment you are currently considering for your next career move. You can select multiple options.
               </p>
-              <div className="onb-emp-grid" style={{ marginTop: 40 }}>
+              <div className="onb-emp-grid" style={{ marginTop: 16 }}>
                 {(
                   [
                     ["Full Time", ast.employment.iconFullTime, "Standard 40 hours a week roles. Typically includes comprehensive benefits packages, paid time off, and long-term career growth opportunities within the company.", ["Benefits included", "W2 Status"]],
@@ -2605,12 +2537,12 @@ export function OnboardingPage() {
                   const sel = employment.includes(title);
                   return (
                     <button key={title} type="button" className={`onb-emp-card${sel ? " onb-emp-card--sel" : ""}`} onClick={() => toggleEmployment(title)}>
-                      <img src={sel ? ast.employment.cardCheckOn : ast.employment.cardCheckOff} alt="" width={20} height={20} style={{ position: "absolute", top: 16, right: 16 }} />
-                      <div style={{ marginBottom: 16 }}>
+                      <img src={sel ? ast.employment.cardCheckOn : ast.employment.cardCheckOff} alt="" width={18} height={18} style={{ position: "absolute", top: 12, right: 12 }} />
+                      <div style={{ marginBottom: 8 }}>
                         <div
                           style={{
-                            width: 48,
-                            height: 48,
+                            width: 40,
+                            height: 40,
                             borderRadius: 9999,
                             background: sel ? "rgba(99,102,241,0.1)" : "#efecf8",
                             display: "flex",
@@ -2618,11 +2550,11 @@ export function OnboardingPage() {
                             justifyContent: "center",
                           }}
                         >
-                          <img src={icon} alt="" width={20} height={20} />
+                          <img src={icon} alt="" width={18} height={18} />
                         </div>
                       </div>
-                      <h3 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 600, color: sel ? "#6366f1" : "#0f172a" }}>{title}</h3>
-                      <p className="onb-muted-sm" style={{ margin: "0 0 16px", lineHeight: 1.45 }}>
+                      <h3 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 600, color: sel ? "#6366f1" : "#0f172a" }}>{title}</h3>
+                      <p className="onb-muted-sm" style={{ margin: "0 0 8px", lineHeight: 1.4 }}>
                         {desc}
                       </p>
                       <div className="onb-flex-gap" style={{ flexWrap: "wrap" }}>
@@ -2630,9 +2562,9 @@ export function OnboardingPage() {
                           <span
                             key={t}
                             style={{
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: 500,
-                              padding: "5px 11px",
+                              padding: "3px 9px",
                               borderRadius: 9999,
                               background: sel ? "#fff" : "#efecf8",
                               border: sel ? "1px solid rgba(99,102,241,0.2)" : "none",
@@ -2647,16 +2579,7 @@ export function OnboardingPage() {
                   );
                 })}
               </div>
-              <div className="onb-btn-row" style={{ marginTop: 32 }}>
-                <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
-                  <img src={ast.employment.back} alt="" width={9} height={9} />
-                  Back
-                </button>
-                <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap" onClick={next}>
-                  Save & Continue
-                  <img src={ast.employment.forward} alt="" width={9} height={9} />
-                </button>
-              </div>
+
             </div>
           </div>
           {footer()}
@@ -2695,26 +2618,48 @@ export function OnboardingPage() {
                 );
               })}
               <div className="onb-btn-row" style={{ marginTop: 48 }}>
-                <button type="button" className="onb-btn onb-flex-gap onb-btn-ghost" onClick={back}>
-                  <img src={ast.experience.back} alt="" width={16} height={16} />
-                  Back
-                </button>
-                <button
-                  type="button"
-                  className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap"
-                  disabled={prefsBusy || !experienceLevel}
-                  onClick={() => void finish()}
-                >
-                  {prefsBusy ? "Saving…" : "Continue to Profile"}
-                  <img src={ast.experience.forward} alt="" width={16} height={16} />
-                </button>
+                {/* Back is handled by OnboardingTopBar */}
               </div>
             </div>
           </div>
-          {footer()}
+          {/* footer moved to shared location below step-stage */}
         </>
       )}
       </div>
+
+      {/* ── Continue button row — outside and above footer ── */}
+      {!isMapStep && showBottomBar && (
+        <div className="onb-continue-row">
+          <button
+            id="onb-continue-btn"
+            type="button"
+            className="onb-footer-continue-btn"
+            disabled={continueDisabled || (step === 12 && prefsBusy)}
+            onClick={handleContinue}
+            aria-busy={step === 12 && prefsBusy}
+          >
+            {step === 12 && prefsBusy ? 'Saving…' : continueLabel}
+            <svg width={13} height={13} viewBox="0 0 13 13" fill="none" aria-hidden>
+              <path d="M2.5 6.5h8M7.5 3.5l3 3-3 3" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* ── Footer — copyright + links ── */}
+      {!isMapStep && (
+        <footer className="onb-footer">
+          <p className="onb-footer-copy">
+            © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
+          </p>
+          <nav className="onb-footer-links">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">Contact Support</a>
+            <a href="#">Help Center</a>
+          </nav>
+        </footer>
+      )}
     </div>
   );
 }

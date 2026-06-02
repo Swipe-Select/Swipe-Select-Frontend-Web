@@ -22,7 +22,7 @@ export function PostOnboardingPage() {
           </div>
 
           <div className="post-onb-actions">
-            <button type="button" className="post-onb-action" onClick={() => navigate("/discover")}>
+            <button type="button" className="post-onb-action" onClick={() => navigate("/dashboard/discover")}>
               <span className="post-onb-action-icon post-onb-action-icon--jobs" aria-hidden>
                 <img src={ast.ready.match} alt="" width={33} height={33} />
               </span>
@@ -50,7 +50,7 @@ export function PostOnboardingPage() {
             <button type="button" className="post-onb-back" onClick={() => navigate(-1)}>
               Back
             </button>
-            <button type="button" className="post-onb-finish" onClick={() => navigate("/discover")}>
+            <button type="button" className="post-onb-finish" onClick={() => navigate("/dashboard/discover")}>
               Finish
             </button>
           </div>

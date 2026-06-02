@@ -4,10 +4,10 @@
   --app-navbar-height: 64px;
   --app-navbar-bg: #ffffff;
   --app-navbar-border: #4648d4;
-  --motion-duration-route: 280ms;
+  --motion-duration-route: 320ms;
   --motion-duration-section: 240ms;
   --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
-  --motion-slide-distance: 22px;
+  --motion-slide-distance: 52px;
   --motion-slide-distance-sm: 12px;
   --brand-primary: #2563eb;
   --brand-primary-hover: #1d4ed8;
@@ -92,7 +92,7 @@ body {
 
 @keyframes routeSlideForward {
   from {
-    opacity: 0.9;
+    opacity: 0.45;
     transform: translate3d(var(--motion-slide-distance), 0, 0);
   }
   to {
@@ -103,7 +103,7 @@ body {
 
 @keyframes routeSlideBack {
   from {
-    opacity: 0.9;
+    opacity: 0.45;
     transform: translate3d(calc(var(--motion-slide-distance) * -1), 0, 0);
   }
   to {

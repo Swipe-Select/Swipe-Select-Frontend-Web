@@ -44,8 +44,12 @@ export async function fetchRecommendedJobs(token: string) {
   return { ...res, ...parsed };
 }
 
-export async function refreshJobs(token: string) {
-  const res = await apiJson<JobsPayload>('/api/jobs/refresh', { method: 'POST', token });
+export async function refreshJobs(token: string, offset = 0) {
+  const res = await apiJson<JobsPayload>('/api/jobs/refresh', {
+    method: 'POST',
+    token,
+    body: JSON.stringify({ offset }),
+  });
   const parsed = parseJobsJson(res.json);
   return { ...res, ...parsed };
 }
@@ -56,4 +60,10 @@ export async function swipeJob(jobId: string, action: 'like' | 'pass' | 'apply',
     body: JSON.stringify({ action }),
     token,
   });
+}
+
+export async function fetchMatchedJobs(token: string) {
+  const res = await apiJson<JobsPayload>('/api/jobs/matches', { method: 'GET', token });
+  const parsed = parseJobsJson(res.json);
+  return { ...res, ...parsed };
 }

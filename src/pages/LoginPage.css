@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  height: 100%;
+  overflow: hidden;
   position: relative;
   background: linear-gradient(90deg, #f8fafc 0%, #f8fafc 100%);
   font-family: "Manrope", system-ui, sans-serif;
@@ -56,39 +58,6 @@
   line-height: 24px;
   margin: 0;
   color: #64748b;
-}
-
-.login-google {
-  width: 100%;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 9999px;
-  padding: 15px 25px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  font-family: inherit;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-
-.login-google:hover {
-  background: #f8fafc;
-}
-
-.login-google img {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-.login-google span {
-  font-weight: 600;
-  font-size: 15px;
-  line-height: 24px;
-  letter-spacing: 0.375px;
-  color: #0f172a;
 }
 
 .login-divider {
@@ -275,5 +244,11 @@
   .login-card-header h1 {
     font-size: 28px;
     line-height: 36px;
+  }
+}
+
+@media (max-height: 700px) {
+  .login-card {
+    zoom: 0.88;
   }
 }

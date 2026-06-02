@@ -226,7 +226,7 @@ export function WelcomePage() {
         <section className="welcome-copy" aria-label="Intro">
           <h1 className="welcome-title">Ready?</h1>
           <p className="welcome-highlight">1.5 million</p>
-          <p className="welcome-subtitle">users are waiting for you</p>
+          <p className="welcome-subtitle">jobs are waiting for you</p>
 
           <p className="welcome-description">
             Discover opportunities tailored to your unique professional profile. Our

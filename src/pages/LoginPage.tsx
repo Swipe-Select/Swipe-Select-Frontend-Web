@@ -1,5 +1,5 @@
-import { type FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BRAND_NAME } from "../brand";
 import { loginAssets } from "../figma/authAssets";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
@@ -14,11 +14,12 @@ const HAS_GOOGLE = hasGoogleClientIdCandidates();
 function landingAfterAuth() {
   const s = readSession();
   const step = s?.onboardingStep ?? 0;
-  return step >= ONBOARDING_COMPLETE_STEP ? "/discover" : "/onboarding";
+  return step >= ONBOARDING_COMPLETE_STEP ? "/dashboard/discover" : "/onboarding";
 }
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,8 +27,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const doLogin = async () => {
     setError(null);
     setPending(true);
     try {
@@ -36,7 +36,8 @@ export function LoginPage() {
         setError(msg);
         return;
       }
-      navigate(landingAfterAuth());
+      const from = (location.state as { from?: string } | null)?.from;
+      navigate(from ?? landingAfterAuth(), { replace: true });
     } catch {
       setError(
         "Unable to reach the server. Confirm the backend is running and VITE_API_URL matches its address.",
@@ -44,6 +45,16 @@ export function LoginPage() {
     } finally {
       setPending(false);
     }
+  };
+
+  const handleSubmit = (e: { preventDefault(): void }) => {
+    e.preventDefault();
+    void doLogin();
+  };
+
+  const afterGoogleSignIn = () => {
+    const from = (location.state as { from?: string } | null)?.from;
+    navigate(from ?? landingAfterAuth(), { replace: true });
   };
 
   return (
@@ -58,9 +69,9 @@ export function LoginPage() {
           {HAS_GOOGLE ? (
             <>
               <div style={{ display: "flex", justifyContent: "center" }}>
-                <GoogleSignInButton uxMode="login" width={356} onSignedIn={() => navigate(landingAfterAuth())} />
+                <GoogleSignInButton uxMode="login" width={356} onSignedIn={afterGoogleSignIn} />
               </div>
-              <div className="login-divider" role="presentation">
+              <div className="login-divider" aria-hidden="true">
                 <div className="login-divider-inner">
                   <span className="login-divider-label">OR SIGN IN WITH EMAIL</span>
                 </div>
