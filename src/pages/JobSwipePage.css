@@ -82,6 +82,34 @@
   color: #64748b;
   line-height: 16px;
   font-family: Manrope, system-ui, sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.job-swipe-badge--real {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.job-swipe-badge--fake {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  animation: pulse-fake 2s infinite ease-in-out;
+}
+
+.job-swipe-badge--checking {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+@keyframes pulse-fake {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
 }
 
 .job-swipe-title {
@@ -171,6 +199,34 @@
 
 .job-swipe-icon-btn:hover {
   background: #f8fafc;
+}
+
+.job-swipe-tailor-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 22px;
+  border-radius: 9999px;
+  border: 1.5px solid #d5d7f7;
+  background: #edeefb;
+  color: #4648d4;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(70, 72, 212, 0.12);
+  transition: all 0.2s ease;
+}
+
+.job-swipe-tailor-btn:hover {
+  background: #4648d4;
+  color: #ffffff;
+  border-color: #4648d4;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(70, 72, 212, 0.28);
 }
 
 .job-swipe-apply {

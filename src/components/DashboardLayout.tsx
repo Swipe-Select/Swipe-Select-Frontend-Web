@@ -77,10 +77,25 @@ function IconChevron() {
   );
 }
 
+function IconSparkles() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 const NAV_ITEMS = [
   { to: "/dashboard/discover", label: "Discover", icon: <IconCompass /> },
   { to: "/dashboard/matches", label: "Matches", icon: <IconHeart /> },
   { to: "/dashboard/messages", label: "Messages", icon: <IconChat /> },
+  { to: "/dashboard/ai-tools", label: "AI Tools", icon: <IconSparkles /> },
   { to: "/dashboard/profile", label: "Profile", icon: <IconUser /> },
 ] as const;
 
@@ -88,6 +103,7 @@ const SECTION_LABELS: Record<string, string> = {
   "/dashboard/discover": "Discover Jobs",
   "/dashboard/matches": "Your Matches",
   "/dashboard/messages": "Messages",
+  "/dashboard/ai-tools": "AI Tools & Resume Studio",
   "/dashboard/profile": "Profile",
 };
 

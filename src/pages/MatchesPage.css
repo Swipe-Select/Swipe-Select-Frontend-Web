@@ -117,24 +117,58 @@
   margin: 2px 0 0;
 }
 
+.match-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.match-card-tailor-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #edeefb;
+  color: #4648d4;
+  border: 1px solid #d5d7f7;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.match-card-tailor-btn:hover {
+  background: #4648d4;
+  color: #ffffff;
+  border-color: #4648d4;
+  transform: translateY(-1px);
+}
+
 .match-card-link {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-top: 10px;
   font-size: 12px;
   font-weight: 600;
-  color: #4648d4;
+  color: #64748b;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 4px 6px;
   font-family: inherit;
-  transition: opacity 140ms;
+  transition: all 140ms;
+  border-radius: 6px;
 }
 
 .match-card-link:hover {
-  opacity: 0.75;
+  color: #4648d4;
+  background: #f8fafc;
 }
 
 /* ─── Empty state ────────────────────────────────────────────────────── */

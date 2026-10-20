@@ -18,6 +18,7 @@ import { OnboardingPage } from "./pages/OnboardingPage";
 import { PostOnboardingPage } from "./pages/PostOnboardingPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { JobSwipePage } from "./pages/JobSwipePage";
+import { AiToolsPage } from "./pages/AiToolsPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { WelcomePage } from "./pages/WelcomePage";
 
@@ -111,6 +112,7 @@ function AppRoutes() {
             <Route path="discover" element={<JobSwipePage />} />
             <Route path="matches" element={<MatchesPage />} />
             <Route path="messages" element={<MessagesPage />} />
+            <Route path="ai-tools" element={<AiToolsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
 

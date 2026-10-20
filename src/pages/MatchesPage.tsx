@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { fetchMatchedJobs, type JobCard } from "../api/jobs";
 import { useAuth } from "../context/AuthContext";
 import { readSession } from "../auth/storage";
+import { TailorResumeModal } from "../components/TailorResumeModal";
 import "./MatchesPage.css";
 
 function IllustrationMatches() {
@@ -43,7 +44,7 @@ function statusLabel(status: string): string {
   return status;
 }
 
-function MatchCard({ job }: { job: JobCard }) {
+function MatchCard({ job, onTailor }: { job: JobCard; onTailor: (job: JobCard) => void }) {
   const isApplied = job.status === "applied";
   const openListing = () => {
     if (job.sourceUrl) window.open(job.sourceUrl, "_blank", "noopener,noreferrer");
@@ -66,12 +67,22 @@ function MatchCard({ job }: { job: JobCard }) {
           {job.location}
         </p>
       ) : null}
-      {job.sourceUrl ? (
-        <button type="button" className="match-card-link" onClick={openListing}>
-          View listing
-          <IconExternalLink />
+      
+      <div className="match-card-footer">
+        <button
+          type="button"
+          className="match-card-tailor-btn"
+          onClick={() => onTailor(job)}
+        >
+          ✨ Tailor Resume
         </button>
-      ) : null}
+        {job.sourceUrl ? (
+          <button type="button" className="match-card-link" onClick={openListing}>
+            View listing
+            <IconExternalLink />
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -82,6 +93,7 @@ export function MatchesPage() {
   const [jobs, setJobs] = useState<JobCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tailorJob, setTailorJob] = useState<JobCard | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,11 +164,17 @@ export function MatchesPage() {
         ) : (
           <div className="matches-grid">
             {jobs.map((job) => (
-              <MatchCard key={job.id} job={job} />
+              <MatchCard key={job.id} job={job} onTailor={setTailorJob} />
             ))}
           </div>
         )}
       </div>
+
+      <TailorResumeModal
+        job={tailorJob}
+        isOpen={Boolean(tailorJob)}
+        onClose={() => setTailorJob(null)}
+      />
     </div>
   );
 }

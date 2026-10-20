@@ -1,4 +1,4 @@
-import React, { type DragEvent, useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
+import React, { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OnboardingLocationMap, type OnboardingLocationMapHandle } from "../components/onboarding/OnboardingLocationMap";
 import { mapboxForwardGeocode } from "../lib/mapboxGeocoding";
 import type { ReactNode } from "react";
@@ -12,7 +12,6 @@ import { useAuth } from "../context/AuthContext";
 import type { ProfileEducation, ProfileProject, ProfileCertification } from "../api/types";
 import { readDraft, writeDraft, clearDraft } from "../auth/onboardingDraft";
 import { OnboardingTopBar } from "../components/onboarding/OnboardingTopBar";
-import { OnboardingBottomBar } from "../components/onboarding/OnboardingBottomBar";
 import "./OnboardingPage.css";
 
 type GenderId = "female" | "male" | "nonbinary";

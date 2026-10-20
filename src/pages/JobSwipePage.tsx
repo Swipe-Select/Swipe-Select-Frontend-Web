@@ -6,9 +6,11 @@ import {
   swipeJob,
   type JobCard,
 } from "../api/jobs";
+import { predictFakeJob, type FakeJobPrediction } from "../api/ml";
 import { readSession } from "../auth/storage";
 import { ONBOARDING_COMPLETE_STEP } from "../auth/onboardingStep";
 import { useAuth } from "../context/AuthContext";
+import { TailorResumeModal } from "../components/TailorResumeModal";
 import "./JobSwipePage.css";
 
 function IconLocation({ className }: { className?: string }) {
@@ -132,6 +134,9 @@ export function JobSwipePage() {
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [refreshOffset, setRefreshOffset] = useState(0);
+  const [fakeJobResults, setFakeJobResults] = useState<Record<string, FakeJobPrediction>>({});
+  const [fakeCheckBusy, setFakeCheckBusy] = useState(false);
+  const [tailorModalOpen, setTailorModalOpen] = useState(false);
 
   const token = session?.token?.trim() || readSession()?.token?.trim();
   const onboardingStep =
@@ -158,6 +163,35 @@ export function JobSwipePage() {
     if (!result.success && result.message) setFeedError(result.message);
   }, [session?.token, navigate, logout]);
 
+  // Run fake-job detection when jobs change
+  const checkFakeJobs = useCallback(async (jobList: JobCard[]) => {
+    const t = session?.token?.trim() || readSession()?.token?.trim();
+    if (!t || jobList.length === 0) return;
+
+    // Only check jobs we haven't checked yet
+    const unchecked = jobList.filter((j) => !fakeJobResults[j.id]);
+    if (unchecked.length === 0) return;
+
+    setFakeCheckBusy(true);
+    try {
+      // Check one at a time to be safe with model memory
+      const newResults: Record<string, FakeJobPrediction> = {};
+      for (const job of unchecked.slice(0, 10)) {
+        const res = await predictFakeJob(
+          { title: job.title, company: job.company, description: job.description, location: job.location },
+          t,
+        );
+        if (res.ok && res.data) {
+          newResults[job.id] = res.data;
+        }
+      }
+      setFakeJobResults((prev) => ({ ...prev, ...newResults }));
+    } catch {
+      // Silently fail — badge just won't show
+    }
+    setFakeCheckBusy(false);
+  }, [session?.token, fakeJobResults]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -183,12 +217,14 @@ export function JobSwipePage() {
       setJobs(result.jobs);
       if (result.message) setBannerMessage(result.message);
       if (!result.success && result.message) setFeedError(result.message);
+      // Trigger fake-job check
+      if (result.jobs.length > 0) void checkFakeJobs(result.jobs);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [refreshSession, navigate, logout]);
+  }, [refreshSession, navigate, logout, checkFakeJobs]);
 
   const handleRefresh = async () => {
     const t = token;
@@ -311,6 +347,16 @@ export function JobSwipePage() {
                   {statusBadgeLabel(current.status) ? (
                     <span className="job-swipe-badge">{statusBadgeLabel(current.status)}</span>
                   ) : null}
+                  {fakeJobResults[current.id] ? (
+                    <span
+                      className={`job-swipe-badge job-swipe-badge--${fakeJobResults[current.id].label.toLowerCase()}`}
+                      title={`${fakeJobResults[current.id].label} (${Math.round(fakeJobResults[current.id].confidence * 100)}% confidence)`}
+                    >
+                      {fakeJobResults[current.id].label === "Real" ? "✓ Verified" : "⚠ Suspicious"}
+                    </span>
+                  ) : fakeCheckBusy ? (
+                    <span className="job-swipe-badge job-swipe-badge--checking">Checking…</span>
+                  ) : null}
                 </div>
                 <h1 className="job-swipe-title">{current.title}</h1>
               </header>
@@ -387,6 +433,14 @@ export function JobSwipePage() {
                 </button>
                 <button
                   type="button"
+                  className="job-swipe-tailor-btn"
+                  title="Tailor your resume for this position with AI"
+                  onClick={() => setTailorModalOpen(true)}
+                >
+                  ✨ Tailor Resume
+                </button>
+                <button
+                  type="button"
                   className="job-swipe-apply"
                   disabled={swipeBusy}
                   onClick={() => void handleSwipe("apply")}
@@ -456,6 +510,14 @@ export function JobSwipePage() {
             </div>
           </aside>
         </div>
+      )}
+
+      {current && (
+        <TailorResumeModal
+          job={current}
+          isOpen={tailorModalOpen}
+          onClose={() => setTailorModalOpen(false)}
+        />
       )}
     </div>
   );
