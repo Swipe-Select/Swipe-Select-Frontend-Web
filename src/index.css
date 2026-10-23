@@ -1,22 +1,63 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
 
 :root {
-  --app-navbar-height: 64px;
-  --app-navbar-bg: #ffffff;
-  --app-navbar-border: #4648d4;
+  --app-navbar-height: 68px;
+  --app-navbar-bg: rgba(255, 255, 255, 0.88);
+  --app-navbar-border: rgba(99, 102, 241, 0.15);
+  
+  /* Brand colors */
+  --brand-primary: #4f46e5;
+  --brand-primary-hover: #4338ca;
+  --brand-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%);
+  --brand-purple: #7c3aed;
+  
+  /* Semantic accents */
+  --accent-emerald: #10b981;
+  --accent-emerald-light: #ecfdf5;
+  --accent-emerald-border: #a7f3d0;
+  --accent-rose: #f43f5e;
+  --accent-rose-light: #fff1f2;
+  --accent-rose-border: #fecdd3;
+  --accent-amber: #f59e0b;
+  --accent-amber-light: #fffbeb;
+  --accent-cyan: #06b6d4;
+  --primary: #f43f5e;
+  --primary-hover: #e11d48;
+
+  /* Surfaces & Backgrounds */
+  --bg-page: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-dark: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #f8fafc;
+  --border-subtle: #e2e8f0;
+  --border-focus: #818cf8;
+
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-bg-hover: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-blur: blur(14px);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 6px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 16px 32px -4px rgba(15, 23, 42, 0.08), 0 6px 12px -2px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 24px 48px -8px rgba(15, 23, 42, 0.12);
+  --shadow-glow-primary: 0 10px 25px -4px rgba(79, 70, 229, 0.35);
+  --shadow-glow-emerald: 0 10px 25px -4px rgba(16, 185, 129, 0.3);
+  --shadow-glow-rose: 0 10px 25px -4px rgba(244, 63, 94, 0.3);
+
+  /* Motion */
   --motion-duration-route: 320ms;
   --motion-duration-section: 240ms;
   --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
-  --motion-slide-distance: 52px;
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --motion-slide-distance: 40px;
   --motion-slide-distance-sm: 12px;
-  --brand-primary: #2563eb;
-  --brand-primary-hover: #1d4ed8;
-  --primary: #f43f5e;
-  --primary-hover: #e11d48;
-  --bg-dark: #0f172a;
-  --bg-card: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
 }
 
 *,
@@ -30,6 +71,7 @@
 html {
   height: 100%;
   overflow-x: clip;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -38,6 +80,11 @@ body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -48,7 +95,6 @@ body {
   width: 100%;
 }
 
-/* Fills viewport under #root — children handle overflow via .page-fill */
 .app-viewport {
   flex: 1 1 auto;
   display: flex;
@@ -57,13 +103,31 @@ body {
   width: 100%;
 }
 
-/* Every route fills the viewport; scroll appears only when content exceeds it */
 .page-fill {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Custom modern scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .app-main {
@@ -92,7 +156,7 @@ body {
 
 @keyframes routeSlideForward {
   from {
-    opacity: 0.45;
+    opacity: 0;
     transform: translate3d(var(--motion-slide-distance), 0, 0);
   }
   to {
@@ -103,7 +167,7 @@ body {
 
 @keyframes routeSlideBack {
   from {
-    opacity: 0.45;
+    opacity: 0;
     transform: translate3d(calc(var(--motion-slide-distance) * -1), 0, 0);
   }
   to {
@@ -113,7 +177,11 @@ body {
 }
 
 :where(button, a, [role="button"]) {
-  transition: transform 160ms ease, filter 160ms ease, box-shadow 180ms ease, background-color 180ms ease;
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), 
+              filter 160ms ease, 
+              box-shadow 180ms ease, 
+              background-color 180ms ease,
+              border-color 180ms ease;
 }
 
 :where(button, a, [role="button"]):hover {
@@ -121,7 +189,7 @@ body {
 }
 
 :where(button, a, [role="button"]):active {
-  transform: translateY(0);
+  transform: translateY(1px);
 }
 
 :where(.login-card, .signup-form-wrap, .onb-card, .post-onb-card, .welcome-card-front) {
@@ -136,6 +204,66 @@ body {
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Micro-animations */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(79, 70, 229, 0);
+  }
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes shimmerEffect {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes stampPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-12deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08) rotate(-6deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-6deg);
+  }
+}
+
+@keyframes celebrationBounce {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 

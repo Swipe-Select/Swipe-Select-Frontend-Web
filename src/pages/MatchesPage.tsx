@@ -1,42 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchMatchedJobs, type JobCard } from "../api/jobs";
 import { useAuth } from "../context/AuthContext";
 import { readSession } from "../auth/storage";
 import { TailorResumeModal } from "../components/TailorResumeModal";
+import {
+  Heart,
+  Sparkles,
+  ExternalLink,
+  Search,
+  MapPin,
+  CheckCircle2
+} from "lucide-react";
 import "./MatchesPage.css";
 
-function IllustrationMatches() {
-  return (
-    <svg width="120" height="120" viewBox="0 0 120 120" fill="none" aria-hidden>
-      <circle cx="60" cy="60" r="56" fill="#f5f2fe" />
-      <rect x="34" y="52" width="52" height="36" rx="6" fill="#ffffff" stroke="#e2e8f0" strokeWidth="2" />
-      <rect x="44" y="46" width="32" height="14" rx="4" fill="#ffffff" stroke="#e2e8f0" strokeWidth="2" />
-      <line x1="34" y1="64" x2="86" y2="64" stroke="#e2e8f0" strokeWidth="2" />
-      <line x1="60" y1="60" x2="60" y2="68" stroke="#e2e8f0" strokeWidth="2" />
-      <circle cx="80" cy="44" r="14" fill="#4648d4" />
-      <path d="M80 50s-7-5.5-7-9a4 4 0 0 1 7-2.66A4 4 0 0 1 87 41c0 3.5-7 9-7 9z" fill="#ffffff" />
-    </svg>
-  );
-}
-
-function IconLocation() {
-  return (
-    <svg width="11" height="13" viewBox="0 0 11 14" fill="none" aria-hidden>
-      <path d="M5.5 0C2.46 0 0 2.35 0 5.25c0 3.92 5.5 8.75 5.5 8.75S11 9.17 11 5.25C11 2.35 8.54 0 5.5 0zm0 7.12a1.88 1.88 0 110-3.76 1.88 1.88 0 010 3.76z" fill="#94a3b8" />
-    </svg>
-  );
-}
-
-function IconExternalLink() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="15 3 21 3 21 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+type TabFilter = "all" | "liked" | "applied";
 
 function statusLabel(status: string): string {
   if (status === "liked") return "Saved";
@@ -44,11 +22,18 @@ function statusLabel(status: string): string {
   return status;
 }
 
-function MatchCard({ job, onTailor }: { job: JobCard; onTailor: (job: JobCard) => void }) {
+function MatchCard({ 
+  job, 
+  onTailor
+}: { 
+  job: JobCard; 
+  onTailor: (job: JobCard) => void;
+}) {
   const isApplied = job.status === "applied";
   const openListing = () => {
     if (job.sourceUrl) window.open(job.sourceUrl, "_blank", "noopener,noreferrer");
   };
+
   return (
     <div className="match-card">
       <div className="match-card-top">
@@ -56,16 +41,30 @@ function MatchCard({ job, onTailor }: { job: JobCard; onTailor: (job: JobCard) =
           {job.company.slice(0, 2).toUpperCase()}
         </div>
         <span className={`match-card-badge${isApplied ? " match-card-badge--applied" : ""}`}>
-          {statusLabel(job.status)}
+          {isApplied ? <CheckCircle2 size={12} /> : <Heart size={12} />}
+          <span>{statusLabel(job.status)}</span>
         </span>
       </div>
-      <p className="match-card-title">{job.title}</p>
+
+      <h3 className="match-card-title">{job.title}</h3>
       <p className="match-card-company">{job.company}</p>
+
       {job.location ? (
         <p className="match-card-location">
-          <IconLocation />
-          {job.location}
+          <MapPin size={13} />
+          <span>{job.location}</span>
         </p>
+      ) : null}
+
+      {job.skills?.length ? (
+        <div className="match-card-skills">
+          {job.skills.slice(0, 3).map((s, idx) => (
+            <span key={idx} className="match-card-skill-tag">{s}</span>
+          ))}
+          {job.skills.length > 3 && (
+            <span className="match-card-skill-tag">+{job.skills.length - 3}</span>
+          )}
+        </div>
       ) : null}
       
       <div className="match-card-footer">
@@ -73,13 +72,16 @@ function MatchCard({ job, onTailor }: { job: JobCard; onTailor: (job: JobCard) =
           type="button"
           className="match-card-tailor-btn"
           onClick={() => onTailor(job)}
+          title="Tailor resume with Qwen2.5-3B AI"
         >
-          ✨ Tailor Resume
+          <Sparkles size={13} />
+          <span>Tailor Resume</span>
         </button>
+
         {job.sourceUrl ? (
-          <button type="button" className="match-card-link" onClick={openListing}>
-            View listing
-            <IconExternalLink />
+          <button type="button" className="match-card-link" onClick={openListing} title="Open listing">
+            <ExternalLink size={14} />
+            <span>View Listing</span>
           </button>
         ) : null}
       </div>
@@ -94,6 +96,10 @@ export function MatchesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tailorJob, setTailorJob] = useState<JobCard | null>(null);
+
+  // Filter & Search states
+  const [activeTab, setActiveTab] = useState<TabFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -122,14 +128,73 @@ export function MatchesPage() {
     return () => { cancelled = true; };
   }, [session?.token, navigate, logout]);
 
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((job) => {
+      if (activeTab === "liked" && job.status !== "liked") return false;
+      if (activeTab === "applied" && job.status !== "applied") return false;
+      if (!searchQuery.trim()) return true;
+
+      const q = searchQuery.toLowerCase();
+      return (
+        job.title.toLowerCase().includes(q) ||
+        job.company.toLowerCase().includes(q) ||
+        (job.location && job.location.toLowerCase().includes(q))
+      );
+    });
+  }, [jobs, activeTab, searchQuery]);
+
+
+
   return (
     <div className="matches-page page-fill">
       <div className="matches-inner">
-        <div className="matches-header">
-          <h1 className="matches-title">Saved Jobs</h1>
-          {!loading && jobs.length > 0 && (
-            <span className="matches-count">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}</span>
-          )}
+        {/* Header & Controls */}
+        <div className="matches-header-wrap">
+          <div className="matches-header-left">
+            <h1 className="matches-title">Your Matches & Applications</h1>
+            <p className="matches-sub">
+              Roles you have swiped right on or applied to. Generate custom resumes or contact recruiters.
+            </p>
+          </div>
+
+          {/* Search bar */}
+          <div className="matches-search-wrap">
+            <Search size={16} className="matches-search-icon" />
+            <input
+              type="text"
+              className="matches-search-input"
+              placeholder="Filter by title, company, or location…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Tab Filters */}
+        <div className="matches-tabs-bar">
+          <div className="matches-tabs">
+            <button
+              type="button"
+              className={`matches-tab ${activeTab === "all" ? "matches-tab--active" : ""}`}
+              onClick={() => setActiveTab("all")}
+            >
+              All Matches ({jobs.length})
+            </button>
+            <button
+              type="button"
+              className={`matches-tab ${activeTab === "liked" ? "matches-tab--active" : ""}`}
+              onClick={() => setActiveTab("liked")}
+            >
+              Saved ({jobs.filter((j) => j.status === "liked").length})
+            </button>
+            <button
+              type="button"
+              className={`matches-tab ${activeTab === "applied" ? "matches-tab--active" : ""}`}
+              onClick={() => setActiveTab("applied")}
+            >
+              Applied ({jobs.filter((j) => j.status === "applied").length})
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -141,30 +206,39 @@ export function MatchesPage() {
                   <div className="matches-preview-line matches-preview-line--title" />
                   <div className="matches-preview-line matches-preview-line--sub" />
                 </div>
-                <div className="matches-preview-badge" />
               </div>
             ))}
           </div>
         ) : error ? (
           <div className="matches-empty">
-            <div className="matches-empty-art"><IllustrationMatches /></div>
+            <div className="matches-empty-icon"><Heart size={36} className="text-rose-400" /></div>
             <h2 className="matches-empty-title">Couldn&apos;t load saved jobs</h2>
             <p className="matches-empty-copy">{error}</p>
             <Link className="matches-empty-cta" to="/dashboard/discover">Back to Discover</Link>
           </div>
-        ) : jobs.length === 0 ? (
+        ) : filteredJobs.length === 0 ? (
           <div className="matches-empty">
-            <div className="matches-empty-art"><IllustrationMatches /></div>
-            <h2 className="matches-empty-title">No saved jobs yet</h2>
+            <div className="matches-empty-icon"><Heart size={36} className="text-indigo-400" /></div>
+            <h2 className="matches-empty-title">
+              {searchQuery ? "No matching roles found" : "No saved jobs in this category yet"}
+            </h2>
             <p className="matches-empty-copy">
-              Jobs you bookmark while swiping will appear here. Start discovering to find your next opportunity.
+              {searchQuery 
+                ? `No jobs match "${searchQuery}". Try a different keyword or reset the filter.`
+                : "Swipe right on job cards in Discover to save them to your matched queue."}
             </p>
-            <Link className="matches-empty-cta" to="/dashboard/discover">Start Discovering</Link>
+            <Link className="matches-empty-cta" to="/dashboard/discover">
+              Start Discovering Jobs
+            </Link>
           </div>
         ) : (
           <div className="matches-grid">
-            {jobs.map((job) => (
-              <MatchCard key={job.id} job={job} onTailor={setTailorJob} />
+            {filteredJobs.map((job) => (
+              <MatchCard 
+                key={job.id} 
+                job={job} 
+                onTailor={setTailorJob}
+              />
             ))}
           </div>
         )}

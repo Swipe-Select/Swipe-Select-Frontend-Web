@@ -15,6 +15,7 @@ export type ResumeGenResult = {
   generatedText: string;
   section: string;
   engine?: string;
+  extractedText?: string | null;
   extractedTextPreview?: string | null;
   extractedTextLength?: number;
 };

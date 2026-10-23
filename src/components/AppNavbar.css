@@ -1,44 +1,55 @@
 .app-navbar {
   flex-shrink: 0;
-  height: var(--app-navbar-height, 64px);
+  height: var(--app-navbar-height, 68px);
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 0 clamp(16px, 3vw, 32px);
-  background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
-  border-bottom: none;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  gap: 16px;
+  padding: 0 clamp(16px, 4vw, 48px);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.82));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+  position: sticky;
+  top: 0;
   z-index: 200;
 }
 
 .app-navbar-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   text-decoration: none;
   color: inherit;
+  transition: transform 150ms ease;
+}
+
+.app-navbar-brand:hover {
+  transform: scale(1.02);
 }
 
 .app-navbar-logo {
   display: block;
   object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(79, 70, 229, 0.25));
 }
 
 .app-navbar-title {
-  font-family: "Manrope", system-ui, sans-serif;
-  font-size: clamp(17px, 2vw, 20px);
-  font-weight: 700;
-  letter-spacing: -0.4px;
-  color: #4648d4;
+  font-family: "Plus Jakarta Sans", "Manrope", system-ui, sans-serif;
+  font-size: clamp(18px, 2.2vw, 21px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .app-navbar-cta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -48,38 +59,49 @@
 }
 
 .app-navbar-cta-text {
-  color: #475569;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .app-navbar-cta-link {
-  font-weight: 500;
-  color: var(--brand-primary, #2563eb);
+  font-weight: 600;
+  color: #4f46e5;
   text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: rgba(79, 70, 229, 0.08);
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  transition: all 180ms ease;
 }
 
 .app-navbar-cta-link:hover {
-  text-decoration: underline;
+  background: rgba(79, 70, 229, 0.14);
+  border-color: rgba(79, 70, 229, 0.3);
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
 }
 
 .app-navbar-logout {
   appearance: none;
-  border: 1px solid #dbe4ff;
+  border: 1px solid #e2e8f0;
   background: #ffffff;
   color: #334155;
-  border-radius: 999px;
-  padding: 8px 16px;
+  border-radius: 9999px;
+  padding: 8px 18px;
   font-family: "Inter", system-ui, sans-serif;
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: transform 140ms ease, box-shadow 180ms ease, border-color 180ms ease, color 180ms ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  transition: all 160ms ease;
 }
 
 .app-navbar-logout:hover {
-  border-color: #a5b4fc;
-  color: #3730a3;
-  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.16);
+  border-color: #fca5a5;
+  color: #dc2626;
+  background: #fff5f5;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
   transform: translateY(-1px);
 }
 

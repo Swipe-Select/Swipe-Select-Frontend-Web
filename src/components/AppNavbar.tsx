@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BRAND_LOGO_SRC, BRAND_NAME } from "../brand";
+import { BRAND_NAME } from "../brand";
 import { useAuth } from "../context/AuthContext";
+import { SwipeSelectLogo } from "./SwipeSelectLogo";
 import "./AppNavbar.css";
 
 export function AppNavbar() {
@@ -47,7 +48,7 @@ export function AppNavbar() {
   return (
     <header className="app-navbar" role="banner">
       <Link className="app-navbar-brand" to="/">
-        <img src={BRAND_LOGO_SRC} alt="" width={32} height={32} className="app-navbar-logo" />
+        <SwipeSelectLogo size={32} showText={false} />
         <span className="app-navbar-title">{BRAND_NAME}</span>
       </Link>
       {renderNavAction()}

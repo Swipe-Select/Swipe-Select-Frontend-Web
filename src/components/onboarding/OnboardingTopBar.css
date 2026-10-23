@@ -1,160 +1,288 @@
-/* OnboardingTopBar — Modern glassmorphism sticky navigation */
+/* ==========================================================================
+   OnboardingTopBar — Unified, Premium Glassmorphism Navigation Bar
+   ========================================================================== */
 
-/* ── Core bar ── */
-.onb-topbar-persistent {
+.onb-unified-topbar {
   position: sticky;
   top: 0;
-  z-index: 30;
-  height: 62px;
-  flex-shrink: 0;
+  z-index: 50;
+  height: 68px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 clamp(16px, 4vw, 36px);
-  background: #ffffff;
-  border-bottom: 1px solid #f1f5f9;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* ── Brand wordmark (center-left on mobile) ── */
-.onb-topbar-brand {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #4648d4 0%, #818cf8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  white-space: nowrap;
-  pointer-events: none;
+  padding: 0 clamp(16px, 3.5vw, 36px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.04);
+  transition: all 200ms ease;
   user-select: none;
 }
 
-/* ── Left — Back button ── */
-.onb-topbar-back {
-  display: inline-flex;
+/* ── Left Zone ── */
+.onb-unified-left {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0 14px 0 10px;
-  border-radius: 9999px;
-  border: 1px solid rgba(99, 102, 241, 0.15);
-  background: rgba(99, 102, 241, 0.05);
-  color: #4648d4;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition:
-    background 200ms ease,
-    border-color 200ms ease,
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 200ms ease;
-  white-space: nowrap;
-}
-
-.onb-topbar-back:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.1);
-  border-color: rgba(99, 102, 241, 0.3);
-  transform: translateX(-2px);
-  box-shadow: 0 2px 8px rgba(70, 72, 212, 0.15);
-}
-
-.onb-topbar-back:active:not(:disabled) {
-  transform: translateX(0) scale(0.97);
-}
-
-.onb-topbar-back:disabled {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.onb-topbar-back-icon {
+  gap: 14px;
   flex-shrink: 0;
-  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.onb-topbar-back:hover:not(:disabled) .onb-topbar-back-icon {
-  transform: translateX(-2px);
-}
-
-/* ── Center — progress pill ── */
-.onb-topbar-progress-wrap {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+.onb-unified-brand-wrap {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.onb-topbar-dots {
-  display: flex;
+.onb-unified-tag {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-}
-
-.onb-topbar-dot {
-  height: 5px;
+  padding: 3px 9px;
   border-radius: 9999px;
-  background: #e0e7ff;
-  transition:
-    width 300ms cubic-bezier(0.22, 1, 0.36, 1),
-    background 280ms ease;
-  width: 5px;
-}
-
-.onb-topbar-dot--active {
-  width: 22px;
-  background: linear-gradient(90deg, #4648d4, #818cf8);
-}
-
-.onb-topbar-dot--done {
-  background: #c7d2fe;
-  width: 5px;
-}
-
-/* Step counter label */
-.onb-topbar-step-label {
+  background: rgba(79, 70, 229, 0.08);
+  border: 1px solid rgba(79, 70, 229, 0.18);
+  color: #4f46e5;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #6366f1;
   text-transform: uppercase;
-  white-space: nowrap;
 }
 
-/* ── Right spacer ── */
-.onb-topbar-right {
-  min-width: 80px;
+.onb-unified-nav-divider {
+  width: 1px;
+  height: 22px;
+  background: #e2e8f0;
+}
+
+.onb-unified-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 15px 7px 11px;
+  border-radius: 9999px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.onb-unified-back-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateX(-2px);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.onb-unified-back-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.onb-unified-back-btn.is-disabled,
+.onb-unified-back-btn:disabled {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  overflow: hidden;
+}
+
+.onb-unified-back-icon {
+  flex-shrink: 0;
+  transition: transform 180ms ease;
+}
+
+.onb-unified-back-btn:hover:not(:disabled) .onb-unified-back-icon {
+  transform: translateX(-2px);
+}
+
+/* ── Center Zone (Step Progress) ── */
+.onb-unified-center {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 440px;
+  width: 100%;
+  pointer-events: none;
 }
 
-/* ── Mobile: hide step label, shrink dots ── */
-@media (max-width: 480px) {
-  .onb-topbar-step-label {
+.onb-unified-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.onb-unified-step-count {
+  font-weight: 700;
+  color: #4f46e5;
+  letter-spacing: -0.01em;
+}
+
+.onb-unified-meta-dot {
+  color: #cbd5e1;
+  font-size: 11px;
+}
+
+.onb-unified-step-title {
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.onb-unified-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+.onb-unified-progress-track {
+  width: clamp(160px, 22vw, 260px);
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  position: relative;
+}
+
+.onb-unified-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 65%, #06b6d4 100%);
+  border-radius: 9999px;
+  position: relative;
+  transition: width 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 10px rgba(79, 70, 229, 0.35);
+}
+
+.onb-unified-progress-glow {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 9999px;
+  box-shadow: 0 0 8px #ffffff;
+}
+
+.onb-unified-pct-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+}
+
+/* ── Right Zone ── */
+.onb-unified-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.onb-unified-save-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #059669;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.onb-unified-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.onb-unified-logout-btn:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.08);
+  transform: translateY(-1px);
+}
+
+.onb-unified-logout-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ── Responsive Refinements ── */
+@media (max-width: 900px) {
+  .onb-unified-step-title,
+  .onb-unified-meta-dot,
+  .onb-unified-tag,
+  .onb-unified-nav-divider {
     display: none;
   }
 
-  .onb-topbar-back span {
-    display: none;  /* icon only */
+  .onb-unified-progress-track {
+    width: 140px;
+  }
+}
+
+@media (max-width: 640px) {
+  .onb-unified-topbar {
+    height: 62px;
+    padding: 0 12px;
   }
 
-  .onb-topbar-back {
-    padding: 0 10px;
+  .onb-unified-save-badge {
+    display: none;
+  }
+
+  .onb-unified-logout-btn span {
+    display: none;
+  }
+
+  .onb-unified-logout-btn {
+    padding: 8px;
     border-radius: 50%;
-    width: 44px;
-    justify-content: center;
   }
-}
 
-@media (max-width: 360px) {
-  .onb-topbar-dots {
-    display: none;
+  .onb-unified-center {
+    position: static;
+    transform: none;
+    max-width: unset;
+    width: auto;
+    align-items: flex-start;
+  }
+
+  .onb-unified-progress-track {
+    width: 90px;
   }
 }

@@ -67,3 +67,18 @@ export async function fetchMatchedJobs(token: string) {
   const parsed = parseJobsJson(res.json);
   return { ...res, ...parsed };
 }
+
+export type UserStatsPayload = {
+  swiped: number;
+  liked: number;
+  applied: number;
+  matches: number;
+};
+
+export async function fetchUserStats(token: string) {
+  return apiJson<UserStatsPayload>('/api/jobs/stats', {
+    method: 'GET',
+    token,
+  });
+}
+

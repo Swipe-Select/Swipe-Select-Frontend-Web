@@ -35,10 +35,10 @@ export type OnboardingDraft = {
   personalDialCode: string;
   personalPhone: string;
 
-  // Step 3 — notifications
-  notifAppStatus: boolean;
-  notifJobRec: boolean;
-  notifAppInfo: boolean;
+  // Step 3 — notifications (removed)
+  notifAppStatus?: boolean;
+  notifJobRec?: boolean;
+  notifAppInfo?: boolean;
 
   // Step 4 — resume builder
   workExperiences: WorkExperienceEntry[];

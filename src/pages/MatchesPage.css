@@ -1,100 +1,182 @@
 .matches-page {
-  background: #f1f5fb;
-  font-family: Manrope, system-ui, sans-serif;
+  background: radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.03) 0%, transparent 40%),
+              #f8fafc;
+  font-family: "Inter", "Manrope", system-ui, sans-serif;
   color: #0f172a;
 }
 
 .matches-inner {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 40px 28px 64px;
+  padding: 32px clamp(16px, 3vw, 36px) 64px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 24px;
 }
 
-/* ─── Header ─────────────────────────────────────────────────────────── */
-.matches-header {
+.matches-header-wrap {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.matches-header-left {
+  max-width: 600px;
 }
 
 .matches-title {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.4px;
+  font-family: "Plus Jakarta Sans", "Manrope", system-ui, sans-serif;
+  font-size: clamp(22px, 2.5vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
   margin: 0;
   color: #0f172a;
 }
 
-.matches-count {
+.matches-sub {
+  margin: 6px 0 0;
   font-size: 14px;
-  font-weight: 600;
   color: #64748b;
+  line-height: 1.5;
 }
 
-/* ─── Real job cards grid ─────────────────────────────────────────────── */
+.matches-search-wrap {
+  position: relative;
+  min-width: 280px;
+  flex: 1;
+  max-width: 380px;
+}
+
+.matches-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.matches-search-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 16px 0 40px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: #0f172a;
+  outline: none;
+  transition: all 160ms ease;
+}
+
+.matches-search-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.matches-tabs-bar {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 4px;
+}
+
+.matches-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.matches-tab {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.matches-tab:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.matches-tab--active {
+  background: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+  font-weight: 700;
+}
+
+/* ─── Grid & Cards ─── */
 .matches-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
   width: 100%;
 }
 
 .match-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 18px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  transition: box-shadow 160ms, transform 160ms;
+  gap: 12px;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  transition: all 180ms ease;
 }
 
 .match-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.08);
   transform: translateY(-2px);
+  border-color: #cbd5e1;
 }
 
 .match-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
 }
 
 .match-card-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #e9e6f3 0%, #dde3f0 100%);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(124, 58, 237, 0.12) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: #4648d4;
-  letter-spacing: 0.5px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #4f46e5;
+  border: 1px solid rgba(79, 70, 229, 0.18);
 }
 
 .match-card-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
   border-radius: 9999px;
-  background: #ede9fe;
-  color: #5b21b6;
+  background: #fdf2f8;
+  color: #db2777;
+  border: 1px solid #fbcfe8;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .match-card-badge--applied {
-  background: #dcfce7;
-  color: #166534;
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
 }
 
 .match-card-title {
-  font-size: 15px;
+  font-family: "Plus Jakarta Sans", "Manrope", system-ui, sans-serif;
+  font-size: 16px;
   font-weight: 700;
   color: #0f172a;
   margin: 0;
@@ -102,185 +184,165 @@
 }
 
 .match-card-company {
-  font-size: 13px;
-  font-weight: 500;
-  color: #4648d4;
-  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #4f46e5;
+  margin: -6px 0 0;
 }
 
 .match-card-location {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 12.5px;
   color: #64748b;
-  margin: 2px 0 0;
+  margin: 0;
+}
+
+.match-card-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.match-card-skill-tag {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
 }
 
 .match-card-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  margin-top: 12px;
-  padding-top: 10px;
+  margin-top: auto;
+  padding-top: 12px;
   border-top: 1px solid #f1f5f9;
 }
 
 .match-card-tailor-btn {
+  flex: 1;
+  height: 38px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(79, 70, 229, 0.08) 100%);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  color: #7c3aed;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  background: #edeefb;
-  color: #4648d4;
-  border: 1px solid #d5d7f7;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
+  transition: all 160ms ease;
 }
 
 .match-card-tailor-btn:hover {
-  background: #4648d4;
-  color: #ffffff;
-  border-color: #4648d4;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.16) 0%, rgba(79, 70, 229, 0.16) 100%);
   transform: translateY(-1px);
 }
 
-.match-card-link {
+.match-card-chat-btn {
+  height: 38px;
+  padding: 0 14px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-  background: none;
-  border: none;
   cursor: pointer;
-  padding: 4px 6px;
-  font-family: inherit;
-  transition: all 140ms;
-  border-radius: 6px;
+  transition: all 160ms ease;
+}
+
+.match-card-chat-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.match-card-link {
+  width: 38px;
+  height: 38px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 140ms ease;
 }
 
 .match-card-link:hover {
-  color: #4648d4;
-  background: #f8fafc;
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
-/* ─── Empty state ────────────────────────────────────────────────────── */
+/* Empty States */
 .matches-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
   text-align: center;
-  max-width: 380px;
-  margin: 24px auto 0;
+  padding: 64px 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  max-width: 520px;
+  margin: 20px auto;
 }
 
-.matches-empty-art {
-  margin-bottom: 8px;
+.matches-empty-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
 }
 
 .matches-empty-title {
-  font-size: 22px;
-  font-weight: 700;
+  font-family: "Plus Jakarta Sans", "Manrope", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
   color: #0f172a;
-  margin: 0;
-  letter-spacing: -0.3px;
+  margin: 0 0 8px;
 }
 
 .matches-empty-copy {
-  font-size: 15px;
-  font-weight: 400;
+  font-size: 14px;
   color: #64748b;
-  line-height: 24px;
-  margin: 0;
+  line-height: 1.55;
+  max-width: 380px;
+  margin: 0 0 20px;
 }
 
 .matches-empty-cta {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  margin-top: 8px;
-  padding: 11px 28px;
-  border-radius: 9999px;
-  background: #4648d4;
+  padding: 11px 22px;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
   color: #ffffff;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 4px 10px rgba(70, 72, 212, 0.28);
-  transition: filter 160ms, transform 160ms;
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.3);
+  transition: all 160ms ease;
 }
 
 .matches-empty-cta:hover {
-  filter: brightness(1.08);
   transform: translateY(-1px);
-}
-
-/* ─── Loading skeleton grid ──────────────────────────────────────────── */
-.matches-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
-  width: 100%;
-}
-
-.matches-preview-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  animation: matchesPulse 1.4s ease-in-out infinite;
-}
-
-@keyframes matchesPulse {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 0.2; }
-}
-
-.matches-preview-logo {
-  flex-shrink: 0;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #e9e6f3 0%, #dde3f0 100%);
-}
-
-.matches-preview-lines {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.matches-preview-line {
-  border-radius: 4px;
-  background: #e2e8f0;
-}
-
-.matches-preview-line--title {
-  height: 13px;
-  width: 70%;
-}
-
-.matches-preview-line--sub {
-  height: 11px;
-  width: 50%;
-}
-
-.matches-preview-badge {
-  flex-shrink: 0;
-  width: 30px;
-  height: 18px;
-  border-radius: 9999px;
-  background: #e9e6f3;
+  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.4);
 }

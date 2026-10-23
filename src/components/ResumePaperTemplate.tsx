@@ -1,5 +1,16 @@
 import { useRef, useState, useEffect } from "react";
-import { exportElementToPdf } from "../utils/pdfExport";
+import { exportElementToPdf, elementToPdfBlob } from "../utils/pdfExport";
+import { readSession } from "../auth/storage";
+import { saveBaseResume } from "../auth/resumeStorage";
+import {
+  Download,
+  BookmarkCheck,
+  Printer,
+  Copy,
+  Check,
+  Sparkles,
+  Edit3,
+} from "lucide-react";
 import "./ResumePaperTemplate.css";
 
 export interface ResumePaperProps {
@@ -7,21 +18,33 @@ export interface ResumePaperProps {
   targetJobTitle?: string;
   targetCompany?: string;
   onTextChange?: (newText: string) => void;
+  candidateName?: string;
+  candidateEmail?: string;
+  onSavedAsBaseResume?: () => void;
 }
 
 export function ResumePaperTemplate({
   rawMarkdown,
   targetJobTitle,
   targetCompany,
+  candidateName,
+  candidateEmail,
+  onSavedAsBaseResume,
 }: ResumePaperProps) {
   const paperRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isSavingBase, setIsSavingBase] = useState(false);
+  const [savedBase, setSavedBase] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const activeSession = readSession();
+  const defaultName = candidateName?.trim() || activeSession?.name?.trim() || "Candidate Name";
+  const defaultEmail = candidateEmail?.trim() || activeSession?.email?.trim() || "candidate@swipeselect.io";
+
   // Editable fields with default values from user profile & generated text
-  const [name, setName] = useState("Muhammad Sameer Shahid");
+  const [name, setName] = useState(defaultName);
   const [contactInfo, setContactInfo] = useState(
-    "📍 Lahore, Punjab, Pakistan • ✉ sp23-bse-128@cuilahore.edu.pk • 📱 03324292913 • 💼 in/sameershahid-a05602274 • 🐙 github.com/X-SAMEER-SHAHID/"
+    `📍 Remote / Hybrid • ✉ ${defaultEmail} • 💼 Swipe Select Verified Candidate`
   );
   const [summary, setSummary] = useState("");
   const [skills, setSkills] = useState<Array<{ category: string; content: string }>>([]);
@@ -39,152 +62,158 @@ export function ResumePaperTemplate({
   useEffect(() => {
     if (!rawMarkdown) return;
 
-    // 1. Try to extract name from top heading
-    const nameMatch = rawMarkdown.match(/#\s*(?:TAILORED\s*RESUME:\s*)?([^\n\r#]+)/i);
-    if (nameMatch && nameMatch[1].trim()) {
-      const cleanName = nameMatch[1].replace(/[*#]/g, "").trim();
-      if (cleanName && cleanName.length < 50) setName(cleanName);
-    }
+    try {
+      // 1. Try to extract name from top heading
+      const nameMatch = rawMarkdown.match(/#\s*(?:TAILORED\s*RESUME:\s*)?([^\n\r#]+)/i);
+      if (nameMatch && nameMatch[1].trim()) {
+        const cleanName = nameMatch[1].replace(/[*#]/g, "").trim();
+        if (cleanName && cleanName.length < 50) setName(cleanName);
+      }
 
-    // 2. Parse sections by headers (### or ##)
-    const sections = rawMarkdown.split(/\n#{2,3}\s+/);
-    let parsedSummary = "";
-    const parsedSkills: Array<{ category: string; content: string }> = [];
-    const parsedExperience: Array<{
-      role: string;
-      company: string;
-      date: string;
-      bullets: string[];
-    }> = [];
-    const parsedProjects: Array<{
-      title: string;
-      subtitle: string;
-      bullets: string[];
-    }> = [];
-    const parsedEducation: Array<{ degree: string; institution: string; date: string }> = [];
+      // 2. Parse sections by headers (### or ##)
+      const sections = rawMarkdown.split(/\n#{2,3}\s+/);
+      let parsedSummary = "";
+      const parsedSkills: Array<{ category: string; content: string }> = [];
+      const parsedExperience: Array<{
+        role: string;
+        company: string;
+        date: string;
+        bullets: string[];
+      }> = [];
+      const parsedProjects: Array<{
+        title: string;
+        subtitle: string;
+        bullets: string[];
+      }> = [];
+      const parsedEducation: Array<{ degree: string; institution: string; date: string }> = [];
 
-    for (const sec of sections) {
-      const trimmed = sec.trim();
-      if (!trimmed) continue;
+      for (const sec of sections) {
+        const trimmed = sec.trim();
+        if (!trimmed) continue;
 
-      const lines = trimmed.split("\n").map((l) => l.trim()).filter(Boolean);
-      const header = lines[0]?.toUpperCase() || "";
+        const lines = trimmed.split("\n").map((l) => l.trim()).filter(Boolean);
+        const header = lines[0]?.toUpperCase() || "";
 
-      if (header.includes("SUMMARY") || header.includes("PROFESSIONAL SUMMARY")) {
-        parsedSummary = lines
-          .slice(1)
-          .filter((l) => !l.startsWith("---") && !l.startsWith("#"))
-          .join(" ")
-          .replace(/[*_]/g, "");
-      } else if (header.includes("COMPETENCIES") || header.includes("SKILLS") || header.includes("EXPERTISE")) {
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i];
-          if (line.startsWith("---")) continue;
-          const colonMatch = line.match(/^[-*•]?\s*\*\*([^*]+)\*\*[:\s]*(.*)/);
-          if (colonMatch) {
-            parsedSkills.push({
-              category: colonMatch[1].trim(),
-              content: colonMatch[2].trim(),
-            });
-          } else {
-            const clean = line.replace(/^[-*•]\s*/, "").replace(/[*_]/g, "");
-            if (clean) parsedSkills.push({ category: "Skills", content: clean });
-          }
-        }
-      } else if (header.includes("EXPERIENCE") || header.includes("WORK HISTORY")) {
-        let currentExp: {
-          role: string;
-          company: string;
-          date: string;
-          bullets: string[];
-        } | null = null;
-
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i];
-          if (line.startsWith("---")) continue;
-
-          // Check if line represents a job title & company
-          // e.g. **Member | RAS** or **Software Engineer Intern | Team Tech Studio**
-          const jobHeader = line.match(/^\*\*([^*|]+)(?:\||\bat\b)\s*([^*]+)\*\*/i);
-          if (jobHeader) {
-            if (currentExp) parsedExperience.push(currentExp);
-            currentExp = {
-              role: jobHeader[1].trim(),
-              company: jobHeader[2].trim(),
-              date: "Recent",
-              bullets: [],
-            };
-            continue;
-          }
-
-          // Check date/location line: *January 2025 – Present | Lahore, Punjab*
-          const dateMatch = line.match(/^\*([^*]+)\*$/);
-          if (dateMatch && currentExp) {
-            currentExp.date = dateMatch[1].trim();
-            continue;
-          }
-
-          // Bullet points
-          if (line.startsWith("*") || line.startsWith("-") || line.startsWith("•")) {
-            const cleanBullet = line.replace(/^[-*•]\s*/, "").replace(/[*_]/g, "").trim();
-            if (cleanBullet && currentExp) {
-              currentExp.bullets.push(cleanBullet);
+        if (header.includes("SUMMARY") || header.includes("PROFESSIONAL SUMMARY")) {
+          parsedSummary = lines
+            .slice(1)
+            .filter((l) => !l.startsWith("---") && !l.startsWith("#"))
+            .join(" ")
+            .replace(/[*_]/g, "");
+        } else if (header.includes("COMPETENCIES") || header.includes("SKILLS") || header.includes("EXPERTISE")) {
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line || line.startsWith("---")) continue;
+            const colonMatch = line.match(/^[-*•]?\s*\*\*([^*]+)\*\*[:\s]*(.*)/);
+            if (colonMatch) {
+              const cat = colonMatch[1].replace(/[:\s]+$/, "").trim();
+              const content = colonMatch[2].replace(/^[:\s]+/, "").trim();
+              parsedSkills.push({
+                category: cat,
+                content: content,
+              });
+            } else {
+              const clean = line.replace(/^[-*•]\s*/, "").replace(/[*_]/g, "");
+              if (clean) parsedSkills.push({ category: "Skills", content: clean });
             }
           }
-        }
-        if (currentExp) parsedExperience.push(currentExp);
-      } else if (header.includes("PROJECT")) {
-        let currentProj: { title: string; subtitle: string; bullets: string[] } | null = null;
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i];
-          if (line.startsWith("---")) continue;
+        } else if (header.includes("EXPERIENCE") || header.includes("WORK HISTORY")) {
+          let currentExp: {
+            role: string;
+            company: string;
+            date: string;
+            bullets: string[];
+          } | null = null;
 
-          const projHeader = line.match(/^\*\*([^*|]+)(?:\||\b[-–]\b)?\s*([^*]*)\*\*/);
-          if (projHeader) {
-            if (currentProj) parsedProjects.push(currentProj);
-            currentProj = {
-              title: projHeader[1].trim(),
-              subtitle: projHeader[2]?.trim() || "",
-              bullets: [],
-            };
-            continue;
-          }
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line || line.startsWith("---")) continue;
 
-          if (line.startsWith("*") || line.startsWith("-") || line.startsWith("•")) {
-            const cleanBullet = line.replace(/^[-*•]\s*/, "").replace(/[*_]/g, "").trim();
-            if (cleanBullet && currentProj) {
-              currentProj.bullets.push(cleanBullet);
+            // Check if line represents a job title & company
+            const jobHeader = line.match(/^\*\*([^*|]+)(?:\||\bat\b)\s*([^*]+)\*\*/i);
+            if (jobHeader) {
+              if (currentExp) parsedExperience.push(currentExp);
+              currentExp = {
+                role: jobHeader[1].trim(),
+                company: jobHeader[2].trim(),
+                date: "Recent",
+                bullets: [],
+              };
+              continue;
+            }
+
+            // Check date/location line: *January 2025 – Present | Lahore, Punjab*
+            const dateMatch = line.match(/^\*([^*]+)\*$/);
+            if (dateMatch && currentExp) {
+              currentExp.date = dateMatch[1].trim();
+              continue;
+            }
+
+            // Bullet points
+            if (line.startsWith("*") || line.startsWith("-") || line.startsWith("•")) {
+              const cleanBullet = line.replace(/^[-*•]\s*/, "").replace(/[*_]/g, "").trim();
+              if (cleanBullet && currentExp) {
+                currentExp.bullets.push(cleanBullet);
+              }
             }
           }
-        }
-        if (currentProj) parsedProjects.push(currentProj);
-      } else if (header.includes("EDUCATION") || header.includes("CREDENTIALS")) {
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i];
-          if (line.startsWith("---")) continue;
-          const degMatch = line.match(/^\*\*([^*]+)\*\*/);
-          if (degMatch) {
-            const nextLine = lines[i + 1] || "";
-            parsedEducation.push({
-              degree: degMatch[1].trim(),
-              institution: nextLine.replace(/[*_]/g, "").trim(),
-              date: "",
-            });
-            i++;
+          if (currentExp) parsedExperience.push(currentExp);
+        } else if (header.includes("PROJECT")) {
+          let currentProj: { title: string; subtitle: string; bullets: string[] } | null = null;
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line || line.startsWith("---")) continue;
+
+            const projHeader = line.match(/^\*\*([^*|]+)(?:\||\b[-–]\b)?\s*([^*]*)\*\*/);
+            if (projHeader) {
+              if (currentProj) parsedProjects.push(currentProj);
+              currentProj = {
+                title: projHeader[1].trim(),
+                subtitle: projHeader[2]?.trim() || "",
+                bullets: [],
+              };
+              continue;
+            }
+
+            if (line.startsWith("*") || line.startsWith("-") || line.startsWith("•")) {
+              const cleanBullet = line.replace(/^[-*•]\s*/, "").replace(/[*_]/g, "").trim();
+              if (cleanBullet && currentProj) {
+                currentProj.bullets.push(cleanBullet);
+              }
+            }
+          }
+          if (currentProj) parsedProjects.push(currentProj);
+        } else if (header.includes("EDUCATION") || header.includes("CREDENTIALS")) {
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line || line.startsWith("---")) continue;
+            const degMatch = line.match(/^\*\*([^*]+)\*\*/);
+            if (degMatch) {
+              const nextLine = lines[i + 1] || "";
+              parsedEducation.push({
+                degree: degMatch[1].trim(),
+                institution: nextLine.replace(/[*_]/g, "").trim(),
+                date: "",
+              });
+              i++;
+            }
           }
         }
       }
-    }
 
-    if (parsedSummary) setSummary(parsedSummary);
-    if (parsedSkills.length > 0) setSkills(parsedSkills);
-    if (parsedExperience.length > 0) setExperience(parsedExperience);
-    if (parsedProjects.length > 0) setProjects(parsedProjects);
-    if (parsedEducation.length > 0) setEducation(parsedEducation);
+      if (parsedSummary) setSummary(parsedSummary);
+      if (parsedSkills.length > 0) setSkills(parsedSkills);
+      if (parsedExperience.length > 0) setExperience(parsedExperience);
+      if (parsedProjects.length > 0) setProjects(parsedProjects);
+      if (parsedEducation.length > 0) setEducation(parsedEducation);
 
-    // If summary was empty but we have raw text, use it
-    if (!parsedSummary && rawMarkdown) {
-      setSummary(rawMarkdown.replace(/[#*_-]/g, "").slice(0, 400));
+      // If summary was empty but we have raw text, use it
+      if (!parsedSummary && rawMarkdown) {
+        setSummary(rawMarkdown.replace(/[#*_-]/g, "").trim());
+      }
+    } catch (parseErr) {
+      console.warn("Resume markdown parsing fallback:", parseErr);
+      setSummary(rawMarkdown.replace(/[#*_-]/g, "").trim());
     }
   }, [rawMarkdown]);
 
@@ -209,6 +238,27 @@ export function ResumePaperTemplate({
     }
   };
 
+  // Handle Save as Base Resume in Settings
+  const handleSaveAsBaseResume = async () => {
+    if (!paperRef.current) return;
+    setIsSavingBase(true);
+    try {
+      const cleanName = name.replace(/[^a-zA-Z0-9]+/g, "_") || "Candidate";
+      const cleanJob = (targetJobTitle || "Tailored").replace(/[^a-zA-Z0-9]+/g, "_");
+      const filename = `${cleanName}_${cleanJob}_Resume.pdf`;
+      const blob = await elementToPdfBlob(paperRef.current);
+      const file = new File([blob], filename, { type: "application/pdf" });
+      await saveBaseResume(file);
+      setSavedBase(true);
+      onSavedAsBaseResume?.();
+      setTimeout(() => setSavedBase(false), 3500);
+    } catch (err) {
+      console.error("Save as base resume error:", err);
+    } finally {
+      setIsSavingBase(false);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -225,9 +275,11 @@ export function ResumePaperTemplate({
       {/* Action Toolbar */}
       <div className="resume-toolbar">
         <div className="resume-toolbar-left">
-          <span className="resume-toolbar-badge">Live Editable Template</span>
+          <span className="resume-toolbar-badge">
+            <Sparkles size={12} /> Live ATS Paper
+          </span>
           <span className="resume-toolbar-hint">
-            ✏️ Click any text on the paper to edit directly before downloading
+            <Edit3 size={12} /> Click any text on the sheet to edit directly before downloading
           </span>
         </div>
         <div className="resume-toolbar-actions">
@@ -237,7 +289,27 @@ export function ResumePaperTemplate({
             onClick={handleDownloadPdf}
             disabled={isExporting}
           >
-            {isExporting ? "Generating PDF…" : "⬇️ Download PDF"}
+            <Download size={14} />
+            <span>{isExporting ? "Compiling PDF…" : "Download PDF"}</span>
+          </button>
+          <button
+            type="button"
+            className="resume-tool-btn resume-tool-btn--accent"
+            onClick={handleSaveAsBaseResume}
+            disabled={isSavingBase}
+            title="Save this tailored resume PDF directly into Profile Settings"
+          >
+            {savedBase ? (
+              <>
+                <Check size={14} /> Saved to Profile!
+              </>
+            ) : isSavingBase ? (
+              "Saving…"
+            ) : (
+              <>
+                <BookmarkCheck size={14} /> Save as Base
+              </>
+            )}
           </button>
           <button
             type="button"
@@ -245,14 +317,24 @@ export function ResumePaperTemplate({
             onClick={handlePrint}
             title="Open browser print dialog for high-res vector output"
           >
-            🖨️ Print
+            <Printer size={14} />
+            <span>Print</span>
           </button>
           <button
             type="button"
             className="resume-tool-btn"
             onClick={handleCopy}
+            title="Copy text to clipboard"
           >
-            {copied ? "✓ Copied" : "📋 Copy"}
+            {copied ? (
+              <>
+                <Check size={14} className="text-emerald-500" /> Copied
+              </>
+            ) : (
+              <>
+                <Copy size={14} /> Copy
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -309,7 +391,7 @@ export function ResumePaperTemplate({
                       contentEditable
                       suppressContentEditableWarning
                     >
-                      {s.category}:
+                      {s.category.replace(/[:\s]+$/, "")}:
                     </strong>{" "}
                     <span
                       className="resume-skill-desc"

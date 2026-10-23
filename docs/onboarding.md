@@ -115,20 +115,9 @@ Collects basic profile fields (name, location, contact, etc.).
 
 ---
 
-### Step 3 — Notifications
+### Step 3 — Notifications (Removed)
 
-**Headline:** Notification settings  
-Single list of **three** toggles only (no grouped “Job / Messages / Security” sections):
-
-| Toggle | Description line |
-|---|---|
-| Application Statuses | Stay informed about application statuses. |
-| Job Recommendations | Receive job recommendations that fit your profile. |
-| Application Info Alerts | Get alerted if an application needs more info. |
-
-Each row: icon in a soft indigo circle · title · description · switch. Defaults: first two on, third off.
-
-**Buttons:** Cancel (go back) · **Save Preferences** (brand purple `#4648d4`) → continues to step 4
+*Step 3 (Notification Settings) has been removed from the onboarding wizard. The wizard flows directly from Step 2 (Contact Information) to Step 4 (Resume Builder).*
 
 ### Step 4 — Work Experience
 

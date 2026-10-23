@@ -30,6 +30,12 @@
   animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: Manrope, system-ui, sans-serif;
   color: #0f172a;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tailor-modal--wide {
+  width: min(1280px, 98vw);
+  max-width: 1280px;
 }
 
 @keyframes scaleUp {
@@ -41,7 +47,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 24px 28px 18px;
+  padding: 22px 28px 16px;
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -104,7 +110,7 @@
 .tailor-job-banner {
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
-  padding: 14px 28px;
+  padding: 12px 28px;
 }
 
 .tailor-job-summary {
@@ -168,12 +174,12 @@
 
 /* Modal Body */
 .tailor-modal-body {
-  padding: 24px 28px;
+  padding: 22px 28px;
   overflow-y: auto;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .tailor-section {
@@ -192,11 +198,13 @@
   display: flex;
   gap: 8px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .tailor-source-tab {
   flex: 1;
-  padding: 8px 12px;
+  min-width: 140px;
+  padding: 9px 12px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
@@ -216,6 +224,191 @@
   background: #4648d4;
   color: #ffffff;
   border-color: #4648d4;
+  box-shadow: 0 2px 4px rgba(70, 72, 212, 0.2);
+}
+
+/* Base Resume Card */
+.tailor-base-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tailor-base-resume-card {
+  background: #ffffff;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(70, 72, 212, 0.06);
+}
+
+.tailor-base-card-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tailor-base-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #edeefb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4648d4;
+  flex-shrink: 0;
+}
+
+.tailor-base-icon-badge--muted {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.tailor-base-meta-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.tailor-base-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tailor-base-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.tailor-base-ready-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.tailor-base-subtext {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.tailor-base-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+}
+
+.tailor-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tailor-btn-ghost:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+.tailor-btn-upload-label {
+  cursor: pointer;
+  position: relative;
+}
+
+.tailor-hidden-file-input {
+  display: none;
+}
+
+.tailor-base-inline-preview {
+  margin-top: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.tailor-base-preview-iframe {
+  width: 100%;
+  height: 280px;
+  border: none;
+}
+
+/* Base Resume Empty Card */
+.tailor-base-empty-card {
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.tailor-base-empty-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.tailor-base-empty-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.tailor-base-empty-sub {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.tailor-btn-upload-direct {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: #4648d4;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(70, 72, 212, 0.2);
+}
+
+.tailor-btn-upload-direct:hover {
+  background: #393bb3;
 }
 
 /* Upload zone */
@@ -351,6 +544,12 @@
   gap: 10px;
 }
 
+@media (max-width: 640px) {
+  .tailor-engine-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .tailor-engine-card {
   background: #f8fafc;
   border: 1.5px solid #e2e8f0;
@@ -432,6 +631,12 @@
   gap: 8px;
 }
 
+@media (max-width: 640px) {
+  .tailor-mode-pills {
+    grid-template-columns: 1fr;
+  }
+}
+
 .tailor-mode-pill {
   padding: 10px 14px;
   border-radius: 8px;
@@ -503,55 +708,15 @@
   animation: spin 0.8s infinite linear;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* View Switcher Tabs */
-.tailor-view-tabs {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #edeefb;
-  padding: 4px;
-  border-radius: 8px;
-  width: fit-content;
-  margin-bottom: 4px;
-}
-
-.tailor-view-tab {
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  background: transparent;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-family: inherit;
-}
-
-.tailor-view-tab:hover {
-  color: #0f172a;
-}
-
-.tailor-view-tab--active {
-  background: #ffffff;
-  color: #4648d4;
-  font-weight: 700;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
 /* Result Card */
 .tailor-result-card {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 18px;
+  border-radius: 14px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   animation: fadeIn 0.3s ease;
 }
 
@@ -560,10 +725,11 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .tailor-result-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: #0f172a;
   margin: 0;
@@ -574,6 +740,320 @@
   color: #64748b;
 }
 
+/* Transformation Summary Banner */
+.tailor-transform-banner {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tailor-transform-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tailor-transform-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.tailor-transform-val {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.tailor-transform-divider {
+  width: 1px;
+  height: 26px;
+  background: #e2e8f0;
+}
+
+.tailor-transform-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.tailor-badge--success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.tailor-badge--impact {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* View Switcher Tabs */
+.tailor-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #edeefb;
+  padding: 4px;
+  border-radius: 10px;
+  width: fit-content;
+  flex-wrap: wrap;
+}
+
+.tailor-view-tab {
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tailor-view-tab:hover {
+  color: #0f172a;
+}
+
+.tailor-view-tab--active {
+  background: #ffffff;
+  color: #4648d4;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* ========================================================================= */
+/* SIDE-BY-SIDE BEFORE & AFTER SPLIT VIEW                                    */
+/* ========================================================================= */
+
+.tailor-split-container {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 16px;
+  min-height: 600px;
+}
+
+@media (max-width: 900px) {
+  .tailor-split-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tailor-split-col {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.tailor-split-col--before {
+  border-top: 3px solid #94a3b8;
+}
+
+.tailor-split-col--after {
+  border-top: 3px solid #4648d4;
+  box-shadow: 0 4px 12px rgba(70, 72, 212, 0.08);
+}
+
+.tailor-split-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tailor-split-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tailor-split-badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.tailor-split-badge--before {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.tailor-split-badge--after {
+  background: #4648d4;
+  color: #ffffff;
+}
+
+.tailor-split-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.tailor-split-match-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #166534;
+  background: #dcfce7;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.tailor-pill-toggle {
+  display: flex;
+  background: #e2e8f0;
+  padding: 2px;
+  border-radius: 6px;
+  gap: 2px;
+}
+
+.tailor-pill-btn {
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tailor-pill-btn--active {
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.tailor-split-body {
+  padding: 14px;
+  overflow-y: auto;
+  max-height: 700px;
+  flex: 1;
+}
+
+.tailor-split-body--paper {
+  padding: 10px;
+  background: #f1f5f9;
+}
+
+.tailor-split-pdf-frame {
+  width: 100%;
+  height: 640px;
+  border: none;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+/* Original unoptimized document paper view */
+.tailor-original-doc {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 480px;
+}
+
+.tailor-original-doc--full {
+  max-height: 650px;
+  overflow-y: auto;
+}
+
+.tailor-original-doc-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.tailor-original-doc-content {
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #334155;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+/* Standalone Before Tab */
+.tailor-before-standalone {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tailor-before-standalone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tailor-before-standalone-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.tailor-before-standalone-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+.tailor-standalone-pdf-wrap {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.tailor-standalone-pdf-frame {
+  width: 100%;
+  height: 620px;
+  border: none;
+}
+
+/* Actions and Textarea */
 .tailor-result-actions {
   display: flex;
   gap: 8px;

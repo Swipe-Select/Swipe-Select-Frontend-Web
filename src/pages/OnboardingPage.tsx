@@ -1,7 +1,7 @@
 import React, { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OnboardingLocationMap, type OnboardingLocationMapHandle } from "../components/onboarding/OnboardingLocationMap";
 import { mapboxForwardGeocode } from "../lib/mapboxGeocoding";
-import type { ReactNode } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { BRAND_NAME } from "../brand";
 import { onboardingAssets as ast } from "../figma/onboardingAssets";
@@ -113,16 +113,12 @@ export function OnboardingPage() {
   const [entryMode, setEntryMode] = useState<OnboardingEntryMode>(() => _draft.entryMode ?? null);
   const [prefsBusy, setPrefsBusy] = useState(false);
   const [step, setStep] = useState<number>(() => {
-    return Math.max(_draft.step ?? 0, session?.onboardingStep ?? 0);
+    const initial = Math.max(_draft.step ?? 0, session?.onboardingStep ?? 0);
+    return initial === 3 ? 4 : initial;
   });
   const [navDir, setNavDir] = useState<'forward' | 'back'>('forward');
   const [stepError, setStepError] = useState<string | null>(null);
   const [gender, setGender] = useState<GenderId>(() => _draft.gender ?? "female");
-  const [notif, setNotif] = useState(() => ({
-    appStatus: _draft.notifAppStatus ?? true,
-    jobRec:    _draft.notifJobRec    ?? true,
-    appInfo:   _draft.notifAppInfo   ?? false,
-  }));
   const [roles, setRoles] = useState<string[]>(() => _draft.roles ?? ["Software Engineer", "Product Manager"]);
   const [workPrefs, setWorkPrefs] = useState<WorkPrefId[]>(() => (_draft.workPrefs as WorkPrefId[] | undefined) ?? ["hybrid"]);
   const [employment, setEmployment] = useState<string[]>(() => _draft.employment ?? ["Full Time"]);
@@ -281,9 +277,6 @@ export function OnboardingPage() {
         step,
         entryMode,
         gender,
-        notifAppStatus: notif.appStatus,
-        notifJobRec:    notif.jobRec,
-        notifAppInfo:   notif.appInfo,
         roles,
         workPrefs,
         employment,
@@ -304,7 +297,7 @@ export function OnboardingPage() {
     }, 300);
     return () => window.clearTimeout(tid);
   }, [
-    step, entryMode, gender, notif,
+    step, entryMode, gender,
     roles, workPrefs, employment, experienceLevel,
     personalFullName, personalEmail, personalDialCode, personalPhone,
     workExperiences, education, projects, skills, certifications, interests,
@@ -635,6 +628,10 @@ export function OnboardingPage() {
       let nextStep = currentStep;
       if (currentStep === 1) {
         if (resumeOk || entryMode === "manual") nextStep = 2;
+      } else if (currentStep === 2) {
+        nextStep = 4; // Step 3 (notifications) removed
+      } else if (currentStep === 3) {
+        nextStep = 4;
       } else if (currentStep === 6) {
         nextStep = 8;
       } else {
@@ -668,6 +665,7 @@ export function OnboardingPage() {
     setStepError(null);
     setNavDir('back');
     setStep((s) => {
+      if (s === 4) return 2; // step 3 (notifications) removed
       if (s === 8) return 6; // step 7 removed
       return Math.max(s - 1, 0);
     });
@@ -920,41 +918,12 @@ export function OnboardingPage() {
     </footer>
   );
 
-  const notificationSwitchRow = (
-    icon: ReactNode,
-    heading: string,
-    line: string,
-    key: keyof typeof notif,
-  ) => (
-    <div className="onb-notif-row onb-notif-row--prefs">
-      <div className="onb-notif-pref-copy">
-        <div className="onb-notif-icon-wrap" aria-hidden>
-          {icon}
-        </div>
-        <div>
-          <p className="onb-notif-heading">{heading}</p>
-          <p className="onb-notif-line">{line}</p>
-        </div>
-      </div>
-      <button
-        type="button"
-        className={`onb-switch ${notif[key] ? "onb-switch--on" : "onb-switch--off"}`}
-        onClick={() => setNotif((n) => ({ ...n, [key]: !n[key] }))}
-        aria-pressed={notif[key]}
-        aria-label={heading}
-      >
-        <span className="onb-switch-knob" />
-      </button>
-    </div>
-  );
-
   // ── Derived navigation state for TopBar / BottomBar ──────────────────────────
   const isMapStep     = step === 8 || step === 9;
   const isBuilderStep = step === 4;
   const showBottomBar = !isMapStep && !isBuilderStep && step !== 5;
 
   const continueLabel =
-    step === 3  ? 'Save Preferences' :
     step === 10 ? 'Save Preferences' :
     step === 11 ? 'Save & Continue'  :
     step === 12 ? 'Continue to Profile' :
@@ -972,8 +941,8 @@ export function OnboardingPage() {
       style={
         step === 8 || step === 9
           ? {
-              height: "calc(100dvh - var(--app-navbar-height))",
-              maxHeight: "calc(100dvh - var(--app-navbar-height))",
+              height: "calc(100dvh - 68px)",
+              maxHeight: "calc(100dvh - 68px)",
               overflow: "hidden",
             }
           : undefined
@@ -1051,7 +1020,7 @@ export function OnboardingPage() {
         <>
           <div className="onb-resume-wrap">
             <div className="onb-resume-grid">
-              <div className="onb-card">
+              <div className="onb-card onb-resume-upload-card">
                 <div>
                   <h1 className="onb-h1">Upload your resume</h1>
                   <p className="onb-sub" style={{ marginTop: 8 }}>
@@ -1059,6 +1028,7 @@ export function OnboardingPage() {
                   </p>
                 </div>
                 <input
+                  id="onboarding-resume-input"
                   ref={fileInputRef}
                   type="file"
                   accept=".pdf,application/pdf"
@@ -1147,7 +1117,7 @@ export function OnboardingPage() {
                   </div>
                 ) : null}
               </div>
-              <div className="onb-card">
+              <div className="onb-card onb-resume-benefit-card">
                 <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Why build your profile?</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
                   <div className="onb-flex-gap" style={{ alignItems: "flex-start" }}>
@@ -1378,63 +1348,7 @@ export function OnboardingPage() {
         </>
       )}
 
-      {step === 3 && (
-        <>
-          <div className="onb-notif-shell">
-            <div className="onb-notif-card">
-              <div className="onb-center" style={{ marginBottom: 32 }}>
-                <h2 className="onb-h2" style={{ fontSize: 28, fontWeight: 400 }}>
-                  Notification Settings
-                </h2>
-                <p className="onb-sub" style={{ marginTop: 8, maxWidth: 645, margin: "8px auto 0" }}>
-                  Choose how {BRAND_NAME} keeps you updated.
-                </p>
-              </div>
-              <div className="onb-notif-list">
-                {notificationSwitchRow(
-                  <svg width={22} height={22} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                    <path
-                      d="M9 5H7a2 2 0 00-2 2v11a3 3 0 003 3h8a3 3 0 003-3V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                      stroke="#6366f1"
-                      strokeWidth={1.6}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>,
-                  "Application Statuses",
-                  "Stay informed about application statuses.",
-                  "appStatus",
-                )}
-                {notificationSwitchRow(
-                  <svg width={22} height={22} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                    <path
-                      d="M7 10v12M7 11.5v-1a2.5 2.5 0 012.5-2.5H12a8 8 0 018 8 .5.5 0 01-.5.5H15a2 2 0 00-2-2v-5.5"
-                      stroke="#6366f1"
-                      strokeWidth={1.5}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>,
-                  "Job Recommendations",
-                  "Receive job recommendations that fit your profile.",
-                  "jobRec",
-                )}
-                {notificationSwitchRow(
-                  <svg width={22} height={22} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                    <circle cx={12} cy={12} r={10} stroke="#6366f1" strokeWidth={1.6} />
-                    <path d="M12 16v-4M12 8h.02" stroke="#6366f1" strokeWidth={1.8} strokeLinecap="round" />
-                  </svg>,
-                  "Application Info Alerts",
-                  "Get alerted if an application needs more info.",
-                  "appInfo",
-                )}
-              </div>
 
-            </div>
-          </div>
-
-        </>
-      )}
 
       {step === 4 && (
         <div className="onb-rb-shell">
@@ -1997,15 +1911,6 @@ export function OnboardingPage() {
           <div className="onb-loc-split">
             <div className="onb-loc-side">
               <div className="onb-loc-side-scroll">
-                <button
-                  type="button"
-                  className="onb-btn"
-                  style={{ width: 40, height: 40, border: "1px solid #e2e8f0", borderRadius: 9999, marginBottom: 16 }}
-                  onClick={back}
-                  aria-label="Back"
-                >
-                  <img src={ast.location.backCircle} alt="" width={16} height={16} />
-                </button>
                 <h1 className="onb-h1">Where are you based?</h1>
                 <p className="onb-sub" style={{ marginTop: 8 }}>
                   We use this to find relevant opportunities near you.
@@ -2215,17 +2120,6 @@ export function OnboardingPage() {
           <div className="onb-target-split">
             <div className="onb-target-side">
               <div className="onb-target-side-scroll">
-                <div className="onb-flex-gap" style={{ justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-                  <button
-                    type="button"
-                    className="onb-btn"
-                    style={{ width: 40, height: 40, border: "1px solid #e2e8f0", borderRadius: 9999 }}
-                    onClick={back}
-                    aria-label="Back"
-                  >
-                    <img src={ast.location.backCircle} alt="" width={16} height={16} />
-                  </button>
-                </div>
                 <h1 className="onb-h1">Where do you want to work next?</h1>
                 <p className="onb-sub" style={{ marginTop: 8 }}>
                   These are your preferred opportunity locations, not your current base location.
@@ -2626,37 +2520,46 @@ export function OnboardingPage() {
       )}
       </div>
 
-      {/* ── Continue button row — outside and above footer ── */}
-      {!isMapStep && showBottomBar && (
-        <div className="onb-continue-row">
-          <button
-            id="onb-continue-btn"
-            type="button"
-            className="onb-footer-continue-btn"
-            disabled={continueDisabled || (step === 12 && prefsBusy)}
-            onClick={handleContinue}
-            aria-busy={step === 12 && prefsBusy}
-          >
-            {step === 12 && prefsBusy ? 'Saving…' : continueLabel}
-            <svg width={13} height={13} viewBox="0 0 13 13" fill="none" aria-hidden>
-              <path d="M2.5 6.5h8M7.5 3.5l3 3-3 3" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* ── Footer — copyright + links ── */}
+      {/* ── Unified Bottom Bar: Legal meta on left + Continue button aligned to cards on right ── */}
       {!isMapStep && (
-        <footer className="onb-footer">
-          <p className="onb-footer-copy">
-            © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
-          </p>
-          <nav className="onb-footer-links">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Contact Support</a>
-            <a href="#">Help Center</a>
-          </nav>
+        <footer className="onb-unified-bottom-bar" role="contentinfo">
+          <div className="onb-unified-bottom-inner">
+            <div className="onb-bottom-meta">
+              <span className="onb-bottom-copy">
+                © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
+              </span>
+              <span className="onb-bottom-sep" aria-hidden>•</span>
+              <nav className="onb-bottom-links" aria-label="Footer links">
+                <a href="#privacy">Privacy</a>
+                <a href="#terms">Terms</a>
+                <a href="#support">Support</a>
+              </nav>
+            </div>
+
+            {showBottomBar && (
+              <div className="onb-bottom-action">
+                <button
+                  id="onb-continue-btn"
+                  type="button"
+                  className="onb-footer-continue-btn"
+                  disabled={continueDisabled || (step === 12 && prefsBusy)}
+                  onClick={handleContinue}
+                  aria-busy={step === 12 && prefsBusy}
+                >
+                  <span>{step === 12 && prefsBusy ? 'Saving…' : continueLabel}</span>
+                  <svg width={14} height={14} viewBox="0 0 14 14" fill="none" aria-hidden>
+                    <path
+                      d="M3 7h8M8 4l3 3-3 3"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
         </footer>
       )}
     </div>
