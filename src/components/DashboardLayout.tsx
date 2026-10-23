@@ -1,94 +1,32 @@
 import { useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BRAND_LOGO_SRC, BRAND_NAME } from "../brand";
+import { NavLink, Outlet, useLocation, useNavigate, Link } from "react-router-dom";
+import { 
+  Compass, 
+  Heart, 
+  Sparkles, 
+  User, 
+  LogOut, 
+  ChevronLeft, 
+  ChevronRight,
+  Settings
+} from "lucide-react";
+import { BRAND_NAME } from "../brand";
 import { useAuth } from "../context/AuthContext";
+import { SwipeSelectLogo } from "./SwipeSelectLogo";
 import "./DashboardLayout.css";
 
-function IconCompass() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"
-        fill="currentColor"
-        fillOpacity="0.25"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconHeart() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconChat() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconUser() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M4 20c0-4 3.58-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconLogout() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconChevron() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 const NAV_ITEMS = [
-  { to: "/dashboard/discover", label: "Discover", icon: <IconCompass /> },
-  { to: "/dashboard/matches", label: "Matches", icon: <IconHeart /> },
-  { to: "/dashboard/messages", label: "Messages", icon: <IconChat /> },
-  { to: "/dashboard/profile", label: "Profile", icon: <IconUser /> },
+  { to: "/dashboard/discover", label: "Discover", icon: <Compass size={19} /> },
+  { to: "/dashboard/matches", label: "Matches", icon: <Heart size={19} /> },
+  { to: "/dashboard/ai-tools", label: "AI Tools", icon: <Sparkles size={19} /> },
+  { to: "/dashboard/profile", label: "Settings", icon: <Settings size={19} /> },
 ] as const;
 
 const SECTION_LABELS: Record<string, string> = {
-  "/dashboard/discover": "Discover Jobs",
-  "/dashboard/matches": "Your Matches",
-  "/dashboard/messages": "Messages",
-  "/dashboard/profile": "Profile",
+  "/dashboard/discover": "Discover & Swipe Jobs",
+  "/dashboard/matches": "Your Matches & Saved Jobs",
+  "/dashboard/ai-tools": "AI Tools & Resume Studio",
+  "/dashboard/profile": "Settings & Profile",
 };
 
 function getInitials(name: string): string {
@@ -123,25 +61,24 @@ export function DashboardLayout() {
 
         {/* Logo + collapse button */}
         <div className="dash-logo">
-          <div className="dash-logo-icon-wrap">
-            <img src={BRAND_LOGO_SRC} alt="" width={28} height={28} />
-          </div>
+          <Link to="/" className="dash-logo-icon-wrap" title="Go to home">
+            <SwipeSelectLogo size={26} showText={false} />
+          </Link>
           <span className="dash-logo-name">{BRAND_NAME}</span>
           <button
             type="button"
             className="dash-collapse-btn"
             onClick={() => setCollapsed((v) => !v)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <span className="dash-collapse-chevron">
-              <IconChevron />
-            </span>
+            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
         </div>
 
         {/* Nav */}
         <nav className="dash-nav" aria-label="Main">
-          <span className="dash-nav-section-label">MAIN MENU</span>
+          <span className="dash-nav-section-label">{collapsed ? "•••" : "MAIN MENU"}</span>
           {NAV_ITEMS.map(({ to, label, icon }) => (
             <NavLink
               key={to}
@@ -161,15 +98,17 @@ export function DashboardLayout() {
         {/* Spacer */}
         <div className="dash-spacer" />
 
-        {/* User card */}
+        {/* User card at bottom */}
         <div className="dash-user">
-          <div className="dash-user-avatar" aria-hidden title={displayName}>
-            {initials}
-          </div>
-          <div className="dash-user-info">
-            <p className="dash-user-name">{displayName}</p>
-            <p className="dash-user-email">{email}</p>
-          </div>
+          <Link to="/dashboard/profile" className="dash-user-link">
+            <div className="dash-user-avatar" aria-hidden title={displayName}>
+              {initials}
+            </div>
+            <div className="dash-user-info">
+              <p className="dash-user-name">{displayName}</p>
+              <p className="dash-user-email">{email}</p>
+            </div>
+          </Link>
           <button
             type="button"
             className="dash-logout-btn"
@@ -177,7 +116,7 @@ export function DashboardLayout() {
             aria-label="Sign out"
             title="Sign out"
           >
-            <IconLogout />
+            <LogOut size={16} />
           </button>
         </div>
       </aside>
@@ -193,19 +132,32 @@ export function DashboardLayout() {
                 className="dash-topbar-expand"
                 onClick={() => setCollapsed(false)}
                 aria-label="Expand sidebar"
+                title="Expand sidebar"
               >
-                <span className="dash-topbar-expand-chevron">
-                  <IconChevron />
-                </span>
+                <ChevronRight size={18} />
               </button>
             )}
-            <h1 className="dash-topbar-title">{sectionLabel}</h1>
+            <div>
+              <div className="dash-topbar-breadcrumb">
+                <span>Workspace</span>
+                <span className="dash-topbar-sep">/</span>
+                <span className="dash-topbar-curr">{sectionLabel.split(" ")[0]}</span>
+              </div>
+              <h1 className="dash-topbar-title">{sectionLabel}</h1>
+            </div>
           </div>
+
           <div className="dash-topbar-right">
-            <div className="dash-topbar-user">
+            {/* Live Model Status Pill */}
+            <div className="dash-topbar-status-pill" title="ModernBERT & Qwen2.5-3B microservices operational">
+              <span className="dash-status-dot" aria-hidden />
+              <span>AI Models Active</span>
+            </div>
+
+            <Link to="/dashboard/profile" className="dash-topbar-user" title="View profile">
               <span className="dash-topbar-name">{displayName}</span>
               <div className="dash-topbar-avatar" aria-hidden>{initials}</div>
-            </div>
+            </Link>
           </div>
         </header>
 

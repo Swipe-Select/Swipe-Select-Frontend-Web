@@ -1,73 +1,117 @@
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, CheckCircle2, LogOut } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { SwipeSelectLogo } from '../SwipeSelectLogo';
 import './OnboardingTopBar.css';
 
 type Props = {
   step: number;
-  totalSteps: number;
+  totalSteps?: number;
   canGoBack: boolean;
   onBack: () => void;
 };
 
-const VISIBLE_STEPS = [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
+const VISIBLE_STEPS = [0, 1, 2, 4, 5, 6, 8, 9, 10, 11, 12];
 
-export function OnboardingTopBar({ step, totalSteps: _totalSteps, canGoBack, onBack }: Props) {
+const STEP_TITLES: Record<number, string> = {
+  0: 'Identity & Representation',
+  1: 'Resume Upload & Extraction',
+  2: 'Contact Information',
+  4: 'Build Your Resume',
+  5: 'Ready to Swipe',
+  6: 'Target Roles & Titles',
+  8: 'Current Location',
+  9: 'Target Job Locations',
+  10: 'Work Mode Preference',
+  11: 'Employment Types',
+  12: 'Experience Level',
+};
+
+export function OnboardingTopBar({ step, canGoBack, onBack }: Props) {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
   const currentIdx = VISIBLE_STEPS.indexOf(step);
-  const stepNum    = currentIdx + 1;
-  const totalNum   = VISIBLE_STEPS.length;
+  const stepNum = currentIdx >= 0 ? currentIdx + 1 : 1;
+  const totalNum = VISIBLE_STEPS.length;
+  const progressPercent = Math.round((stepNum / totalNum) * 100);
+  const currentTitle = STEP_TITLES[step] ?? 'Profile Calibration';
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
-    <header
-      className="onb-topbar-persistent"
-      role="banner"
-      aria-label="Onboarding navigation"
-    >
-      {/* ── Left: Back button ── */}
-      <button
-        type="button"
-        className="onb-topbar-back"
-        onClick={onBack}
-        disabled={!canGoBack}
-        aria-label="Go back to previous step"
-      >
-        <svg
-          className="onb-topbar-back-icon"
-          width={14}
-          height={14}
-          viewBox="0 0 14 14"
-          fill="none"
-          aria-hidden
-        >
-          <path
-            d="M9 2L4 7l5 5"
-            stroke="currentColor"
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        <span>Back</span>
-      </button>
-
-      {/* ── Center: progress dots + step counter ── */}
-      <div className="onb-topbar-progress-wrap">
-        <div
-          className="onb-topbar-dots"
-          role="status"
-          aria-label={`Step ${stepNum} of ${totalNum}`}
-        >
-          {VISIBLE_STEPS.map((s, idx) => {
-            let cls = 'onb-topbar-dot';
-            if (s === step)    cls += ' onb-topbar-dot--active';
-            else if (idx < currentIdx) cls += ' onb-topbar-dot--done';
-            return <span key={s} className={cls} />;
-          })}
+    <header className="onb-unified-topbar" role="banner" aria-label="Onboarding header">
+      {/* ── Left: Brand identity + Integrated Back Button ── */}
+      <div className="onb-unified-left">
+        <div className="onb-unified-brand-wrap" title="Swipe Select Onboarding">
+          <SwipeSelectLogo size={32} showText={true} />
+          <span className="onb-unified-tag">Onboarding</span>
         </div>
-        <span className="onb-topbar-step-label" aria-hidden>
-          {stepNum}&nbsp;/&nbsp;{totalNum}
-        </span>
+
+        <div className="onb-unified-nav-divider" aria-hidden />
+
+        <button
+          type="button"
+          className={`onb-unified-back-btn ${!canGoBack ? 'is-disabled' : ''}`}
+          onClick={onBack}
+          disabled={!canGoBack}
+          aria-label="Go back to previous step"
+        >
+          <ArrowLeft size={16} className="onb-unified-back-icon" />
+          <span>Back</span>
+        </button>
       </div>
 
-      {/* ── Right: spacer to keep dots centered ── */}
-      <div className="onb-topbar-right" aria-hidden />
+      {/* ── Center: Step Progress Pipeline ── */}
+      <div className="onb-unified-center">
+        <div className="onb-unified-meta">
+          <span className="onb-unified-step-count">
+            Step {stepNum} of {totalNum}
+          </span>
+          <span className="onb-unified-meta-dot">•</span>
+          <span className="onb-unified-step-title">{currentTitle}</span>
+        </div>
+
+        <div className="onb-unified-progress-row">
+          <div
+            className="onb-unified-progress-track"
+            role="progressbar"
+            aria-valuenow={progressPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Onboarding progress: ${progressPercent}%`}
+          >
+            <div
+              className="onb-unified-progress-fill"
+              style={{ width: `${progressPercent}%` }}
+            >
+              <div className="onb-unified-progress-glow" />
+            </div>
+          </div>
+          <span className="onb-unified-pct-label">{progressPercent}%</span>
+        </div>
+      </div>
+
+      {/* ── Right: Autosave status + Exit & Logout action ── */}
+      <div className="onb-unified-right">
+        <div className="onb-unified-save-badge" title="Changes are automatically saved to your draft">
+          <CheckCircle2 size={15} className="text-emerald-500" />
+          <span>Draft Saved</span>
+        </div>
+
+        <button
+          type="button"
+          className="onb-unified-logout-btn"
+          onClick={handleLogout}
+          title="Save draft and exit onboarding"
+        >
+          <LogOut size={16} />
+          <span>Save & Exit</span>
+        </button>
+      </div>
     </header>
   );
 }

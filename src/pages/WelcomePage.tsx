@@ -1,6 +1,18 @@
 import { type CSSProperties, type PointerEvent, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { welcomeAssets } from "../figma/welcomeAssets";
+import { 
+  Sparkles, 
+  ShieldCheck, 
+  Bot, 
+  ArrowRight, 
+  CheckCircle2, 
+  Flame, 
+  Briefcase, 
+  Compass, 
+  Zap,
+  ThumbsUp,
+  X
+} from "lucide-react";
 import "./WelcomePage.css";
 
 type SwipeDirection = "left" | "right";
@@ -31,7 +43,7 @@ const dummyCards: WelcomeCard[] = [
     salary: "$180k - $240k",
     type: "Full-time",
     experience: "5+ years exp",
-    tags: ["Figma", "Design Systems", "Prototyping", "+3 more"],
+    tags: ["Figma", "Design Systems", "Prototyping", "UI/UX"],
   },
   {
     id: "airbnb-ux",
@@ -42,7 +54,7 @@ const dummyCards: WelcomeCard[] = [
     salary: "$165k - $225k",
     type: "Full-time",
     experience: "6+ years exp",
-    tags: ["User Research", "Design Ops", "Accessibility", "+2 more"],
+    tags: ["User Research", "Design Ops", "Accessibility"],
   },
   {
     id: "spotify-product",
@@ -53,7 +65,7 @@ const dummyCards: WelcomeCard[] = [
     salary: "$170k - $210k",
     type: "Full-time",
     experience: "7+ years exp",
-    tags: ["Mobile UX", "Experimentation", "Mentorship", "+4 more"],
+    tags: ["Mobile UX", "Experimentation", "Mentorship"],
   },
   {
     id: "stripe-designer",
@@ -64,7 +76,7 @@ const dummyCards: WelcomeCard[] = [
     salary: "$185k - $245k",
     type: "Full-time",
     experience: "8+ years exp",
-    tags: ["Payments UX", "Data Viz", "Interaction Design", "+3 more"],
+    tags: ["Payments UX", "Data Viz", "Interaction Design"],
   },
   {
     id: "notion-visual",
@@ -75,7 +87,7 @@ const dummyCards: WelcomeCard[] = [
     salary: "$150k - $195k",
     type: "Full-time",
     experience: "5+ years exp",
-    tags: ["Brand Systems", "UI Craft", "Motion Design", "+2 more"],
+    tags: ["Brand Systems", "UI Craft", "Motion Design"],
   },
   {
     id: "figma-growth",
@@ -86,7 +98,7 @@ const dummyCards: WelcomeCard[] = [
     salary: "$160k - $205k",
     type: "Full-time",
     experience: "4+ years exp",
-    tags: ["Growth UX", "A/B Testing", "Onboarding", "+3 more"],
+    tags: ["Growth UX", "A/B Testing", "Onboarding"],
   },
 ];
 
@@ -100,54 +112,41 @@ export function WelcomePage() {
   const [swipeDirection, setSwipeDirection] = useState<SwipeDirection | null>(null);
   const [dragStartX, setDragStartX] = useState<number | null>(null);
   const [dragStartY, setDragStartY] = useState<number | null>(null);
-  const [isHorizontalDrag, setIsHorizontalDrag] = useState(false);
   const [activePointerId, setActivePointerId] = useState<number | null>(null);
+  const [isHorizontalDrag, setIsHorizontalDrag] = useState(false);
   const [shouldNavigateAfterSwipe, setShouldNavigateAfterSwipe] = useState(false);
 
-  const stackCards = useMemo(
-    () =>
-      [0, 1, 2].map((offset) => dummyCards[(currentIndex + offset) % dummyCards.length]),
-    [currentIndex],
-  );
+  const stackCards = useMemo(() => {
+    return [0, 1, 2].map((offset) => {
+      const index = (currentIndex + offset) % dummyCards.length;
+      return dummyCards[index];
+    });
+  }, [currentIndex]);
 
   const triggerSwipe = (direction: SwipeDirection, navigateAfter = false) => {
-    if (isAnimating) {
-      return;
-    }
-
-    setIsDragging(false);
-    setIsReturning(false);
+    if (isAnimating) return;
     setIsAnimating(true);
     setSwipeDirection(direction);
-    setDragX(direction === "left" ? -MAX_DRAG : MAX_DRAG);
     setShouldNavigateAfterSwipe(navigateAfter);
   };
 
   const handleTopCardPointerDown = (event: PointerEvent<HTMLElement>) => {
-    if (isAnimating) {
-      return;
-    }
-
-    const targetNode = event.target as HTMLElement;
-    if (targetNode.closest("button, a")) {
-      return;
-    }
-
+    if (isAnimating) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     setActivePointerId(event.pointerId);
     setDragStartX(event.clientX);
     setDragStartY(event.clientY);
     setIsDragging(true);
-    setIsHorizontalDrag(false);
     setIsReturning(false);
+    setIsHorizontalDrag(false);
   };
 
   const handleTopCardPointerMove = (event: PointerEvent<HTMLElement>) => {
     if (
       !isDragging ||
+      isAnimating ||
       dragStartX === null ||
       dragStartY === null ||
-      isAnimating ||
       (activePointerId !== null && event.pointerId !== activePointerId)
     ) {
       return;
@@ -157,30 +156,18 @@ export function WelcomePage() {
     const deltaY = event.clientY - dragStartY;
 
     if (!isHorizontalDrag) {
-      if (Math.abs(deltaX) < DRAG_DEADZONE && Math.abs(deltaY) < DRAG_DEADZONE) {
-        return;
-      }
-
-      if (Math.abs(deltaX) <= Math.abs(deltaY) * 1.1) {
-        return;
-      }
-
+      if (Math.abs(deltaX) < DRAG_DEADZONE && Math.abs(deltaY) < DRAG_DEADZONE) return;
+      if (Math.abs(deltaX) <= Math.abs(deltaY) * 1.1) return;
       setIsHorizontalDrag(true);
     }
 
-    const nextDragX = deltaX;
-    const clamped = Math.max(-MAX_DRAG, Math.min(MAX_DRAG, nextDragX));
+    const clamped = Math.max(-MAX_DRAG, Math.min(MAX_DRAG, deltaX));
     setDragX(clamped);
   };
 
   const handleTopCardPointerEnd = (event: PointerEvent<HTMLElement>) => {
-    if (!isDragging || isAnimating) {
-      return;
-    }
-
-    if (activePointerId !== null && event.pointerId !== activePointerId) {
-      return;
-    }
+    if (!isDragging || isAnimating) return;
+    if (activePointerId !== null && event.pointerId !== activePointerId) return;
 
     event.currentTarget.releasePointerCapture(event.pointerId);
     setIsDragging(false);
@@ -192,7 +179,6 @@ export function WelcomePage() {
       triggerSwipe("left");
       return;
     }
-
     if (dragX >= SWIPE_THRESHOLD) {
       triggerSwipe("right");
       return;
@@ -204,10 +190,7 @@ export function WelcomePage() {
   };
 
   const handleSwipeAnimationEnd = () => {
-    if (!swipeDirection) {
-      return;
-    }
-
+    if (!swipeDirection) return;
     setCurrentIndex((prev) => (prev + 1) % dummyCards.length);
     setSwipeDirection(null);
     setDragX(0);
@@ -222,27 +205,68 @@ export function WelcomePage() {
 
   return (
     <div className="welcome-page page-fill">
+      {/* Background radial glow */}
+      <div className="welcome-bg-glow" aria-hidden />
+
       <main className="welcome-main">
         <section className="welcome-copy" aria-label="Intro">
-          <h1 className="welcome-title">Ready?</h1>
-          <p className="welcome-highlight">1.5 million</p>
-          <p className="welcome-subtitle">jobs are waiting for you</p>
+          {/* Hero pill badge */}
+          <div className="welcome-hero-pill">
+            <span className="welcome-hero-pill-icon"><Flame size={14} className="text-amber-500" /></span>
+            <span className="welcome-hero-pill-text">Next-Gen AI Career Discovery Engine</span>
+          </div>
+
+          <h1 className="welcome-title">
+            Match Faster.
+            <br />
+            <span className="welcome-gradient-text">Apply Smarter.</span>
+          </h1>
+
+          <p className="welcome-highlight">1.5 Million+</p>
+          <p className="welcome-subtitle">Curated live jobs are waiting for you</p>
 
           <p className="welcome-description">
-            Discover opportunities tailored to your unique professional profile. Our
-            AI-driven matching engine analyzes your skills, experience, and
-            preferences to connect you with your ideal next role.
+            Experience the Tinder of job search. Powered by <strong>ModernBERT</strong> to screen out fake postings and <strong>Qwen2.5-3B</strong> to tailor ATS-optimized resumes in seconds.
           </p>
 
           <div className="welcome-actions">
             <Link to="/signup" className="welcome-action-primary">
-              <span>Start Swiping</span>
-              <img src={welcomeAssets.startArrow} alt="" width={16} height={16} />
+              <span>Start Swiping Now</span>
+              <ArrowRight size={18} />
             </Link>
+            <Link to="/login" className="welcome-action-secondary">
+              Sign In
+            </Link>
+          </div>
+
+          {/* Trust & Model Badges */}
+          <div className="welcome-trust-row">
+            <div className="welcome-trust-item">
+              <ShieldCheck size={18} className="text-emerald-500" />
+              <span>ModernBERT Fraud Detection</span>
+            </div>
+            <div className="welcome-trust-item">
+              <Bot size={18} className="text-indigo-500" />
+              <span>Qwen2.5-3B Edge AI Model</span>
+            </div>
+            <div className="welcome-trust-item">
+              <Zap size={18} className="text-amber-500" />
+              <span>Live Multi-Platform Scraper</span>
+            </div>
           </div>
         </section>
 
         <section className="welcome-visual" aria-label="Featured match preview">
+          {/* Floating feature pills */}
+          <div className="welcome-float-chip welcome-float-chip--top">
+            <Sparkles size={14} className="text-indigo-600" />
+            <span>AI Match Score: 98%</span>
+          </div>
+          <div className="welcome-float-chip welcome-float-chip--bottom">
+            <ShieldCheck size={14} className="text-emerald-600" />
+            <span>✓ Verified Safe Employer</span>
+          </div>
+
           <div
             className="welcome-card-stack"
             aria-live="polite"
@@ -292,19 +316,19 @@ export function WelcomePage() {
                       PASS
                     </div>
                     <div className="welcome-swipe-cue welcome-swipe-cue-apply" aria-hidden>
-                      APPLY
+                      MATCH
                     </div>
                     <div className="welcome-match-badge">
-                      <img src={welcomeAssets.match} alt="" width={12} height={12} />
+                      <Sparkles size={14} />
                       <span>{card.match}</span>
                     </div>
 
                     <header className="welcome-card-header">
                       <div className="welcome-tech-avatar">
-                        <img src={welcomeAssets.techIcon} alt="" width={30} height={27} />
+                        <Briefcase size={24} className="text-indigo-600" />
                       </div>
                       <div>
-                        <p className="welcome-tech-label">Technology</p>
+                        <p className="welcome-tech-label">Featured Company</p>
                         <p className="welcome-tech-name">{card.company}</p>
                       </div>
                     </header>
@@ -313,19 +337,19 @@ export function WelcomePage() {
                       <h2>{card.role}</h2>
                       <div className="welcome-metadata-grid">
                         <p>
-                          <img src={welcomeAssets.location} alt="" width={14} height={17} />
+                          <Compass size={15} />
                           {card.location}
                         </p>
                         <p>
-                          <img src={welcomeAssets.salary} alt="" width={18} height={13} />
+                          <Flame size={15} />
                           <strong>{card.salary}</strong>
                         </p>
                         <p>
-                          <img src={welcomeAssets.type} alt="" width={17} height={17} />
+                          <CheckCircle2 size={15} />
                           {card.type}
                         </p>
                         <p>
-                          <img src={welcomeAssets.experience} alt="" width={18} height={18} />
+                          <Zap size={15} />
                           {card.experience}
                         </p>
                       </div>
@@ -347,7 +371,7 @@ export function WelcomePage() {
                         disabled={isAnimating}
                         onClick={() => triggerSwipe("left")}
                       >
-                        <img src={welcomeAssets.pass} alt="" width={14} height={14} />
+                        <X size={18} />
                         Pass
                       </button>
                       <button
@@ -357,20 +381,55 @@ export function WelcomePage() {
                         disabled={isAnimating}
                         onClick={() => triggerSwipe("right", true)}
                       >
-                        <img src={welcomeAssets.apply} alt="" width={20} height={18} />
-                        Apply
+                        <ThumbsUp size={18} />
+                        Match & Apply
                       </button>
                     </footer>
-
-                    <div className="welcome-floating-hint" aria-hidden>
-                      <img src={welcomeAssets.floating} alt="" width={25} height={26} />
-                    </div>
                   </article>
                 );
               })}
           </div>
+
+          <p className="welcome-swipe-hint">
+            💡 <em>Drag card left/right or click buttons to test swiping</em>
+          </p>
         </section>
       </main>
+
+      {/* Feature Pillars Footer */}
+      <section className="welcome-pillars" aria-label="Key features">
+        <div className="welcome-pillars-inner">
+          <div className="welcome-pillar-card">
+            <div className="welcome-pillar-icon welcome-pillar-icon--purple">
+              <Zap size={22} />
+            </div>
+            <div className="welcome-pillar-content">
+              <h3>Fast-Paced Swiping</h3>
+              <p>Skip endless job boards. Make confident decisions in seconds with intuitive card stacks.</p>
+            </div>
+          </div>
+
+          <div className="welcome-pillar-card">
+            <div className="welcome-pillar-icon welcome-pillar-icon--green">
+              <ShieldCheck size={22} />
+            </div>
+            <div className="welcome-pillar-content">
+              <h3>ModernBERT Authenticity Guard</h3>
+              <p>Transformer AI screens phantom jobs, suspicious recruitment scams, and salary traps.</p>
+            </div>
+          </div>
+
+          <div className="welcome-pillar-card">
+            <div className="welcome-pillar-icon welcome-pillar-icon--indigo">
+              <Bot size={22} />
+            </div>
+            <div className="welcome-pillar-content">
+              <h3>Qwen2.5-3B Resume Tailor</h3>
+              <p>Instantly align your resume and cover letter with the exact job description.</p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

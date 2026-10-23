@@ -13,11 +13,12 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PublicOnlyRoute } from "./components/PublicOnlyRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { MatchesPage } from "./pages/MatchesPage";
-import { MessagesPage } from "./pages/MessagesPage";
+
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { PostOnboardingPage } from "./pages/PostOnboardingPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { JobSwipePage } from "./pages/JobSwipePage";
+import { AiToolsPage } from "./pages/AiToolsPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { WelcomePage } from "./pages/WelcomePage";
 
@@ -110,7 +111,8 @@ function AppRoutes() {
             <Route index element={<Navigate to="discover" replace />} />
             <Route path="discover" element={<JobSwipePage />} />
             <Route path="matches" element={<MatchesPage />} />
-            <Route path="messages" element={<MessagesPage />} />
+
+            <Route path="ai-tools" element={<AiToolsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
 
@@ -123,7 +125,7 @@ function AppRoutes() {
 
 function AppShell() {
   const { pathname } = useLocation();
-  const showNavbar = !pathname.startsWith("/dashboard");
+  const showNavbar = !pathname.startsWith("/dashboard") && !pathname.startsWith("/onboarding");
 
   return (
     <div className="app-viewport">

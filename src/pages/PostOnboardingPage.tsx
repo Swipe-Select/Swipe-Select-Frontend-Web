@@ -1,57 +1,71 @@
 import { useNavigate } from "react-router-dom";
-import { onboardingAssets } from "../figma/onboardingAssets";
+import { CheckCircle2, Sparkles, Compass, User, ArrowRight } from "lucide-react";
 import "./PostOnboardingPage.css";
-
-const ast = onboardingAssets;
 
 export function PostOnboardingPage() {
   const navigate = useNavigate();
 
   return (
     <div className="post-onb page-fill">
+      {/* Background glow */}
+      <div className="post-onb-glow" aria-hidden />
+
       <main className="post-onb-main">
         <div className="post-onb-card">
           <div className="post-onb-hero">
-            <div className="post-onb-check" aria-hidden>
-              <img src={ast.ready.check} alt="" width={50} height={50} />
+            <div className="post-onb-check-circle" aria-hidden>
+              <CheckCircle2 size={56} className="text-emerald-500" />
             </div>
-            <h1 className="post-onb-title">You&apos;re all set!</h1>
+            <div className="post-onb-badge">
+              <Sparkles size={14} className="text-amber-500" />
+              <span>Profile Calibrated & Verified</span>
+            </div>
+            <h1 className="post-onb-title">You&apos;re All Set!</h1>
             <p className="post-onb-sub">
-              Your profile is ready and you&apos;re all set to find your next dream job.
+              Your preferences, skills, and resume have been processed. Our ML matching engine and ModernBERT fraud scanner are primed for your feed.
             </p>
           </div>
 
           <div className="post-onb-actions">
-            <button type="button" className="post-onb-action" onClick={() => navigate("/dashboard/discover")}>
+            <button
+              type="button"
+              className="post-onb-action post-onb-action--primary"
+              onClick={() => navigate("/dashboard/discover")}
+            >
               <span className="post-onb-action-icon post-onb-action-icon--jobs" aria-hidden>
-                <img src={ast.ready.match} alt="" width={33} height={33} />
+                <Compass size={28} />
               </span>
               <span className="post-onb-action-copy">
-                <span className="post-onb-action-title">Explore Jobs</span>
+                <span className="post-onb-action-title">Start Discovering Jobs</span>
                 <span className="post-onb-action-desc">
-                  Start browsing jobs that match your profile and preferences.
+                  Browse personalized recommendations and start swiping matching roles.
                 </span>
               </span>
+              <ArrowRight size={20} className="post-onb-action-arrow" />
             </button>
-            <button type="button" className="post-onb-action" onClick={() => navigate("/")}>
+
+            <button
+              type="button"
+              className="post-onb-action post-onb-action--secondary"
+              onClick={() => navigate("/dashboard/profile")}
+            >
               <span className="post-onb-action-icon post-onb-action-icon--profile" aria-hidden>
-                <img src={ast.personal.userIcon} alt="" width={28} height={28} />
+                <User size={26} />
               </span>
               <span className="post-onb-action-copy">
-                <span className="post-onb-action-title">View Profile</span>
+                <span className="post-onb-action-title">Review Profile & Stats</span>
                 <span className="post-onb-action-desc">
-                  Take a look at your completed profile and make any final adjustments.
+                  View your calibrated profile, uploaded resume details, and job targets.
                 </span>
               </span>
+              <ArrowRight size={20} className="post-onb-action-arrow" />
             </button>
           </div>
 
           <div className="post-onb-footer">
-            <button type="button" className="post-onb-back" onClick={() => navigate(-1)}>
-              Back
-            </button>
             <button type="button" className="post-onb-finish" onClick={() => navigate("/dashboard/discover")}>
-              Finish
+              <span>Enter Workspace</span>
+              <ArrowRight size={18} />
             </button>
           </div>
         </div>

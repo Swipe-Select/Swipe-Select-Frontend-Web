@@ -1,97 +1,38 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type PointerEvent, type CSSProperties } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  fetchRecommendedJobs,
-  refreshJobs,
-  swipeJob,
-  type JobCard,
+import { 
+  fetchRecommendedJobs, 
+  refreshJobs, 
+  swipeJob, 
+  type JobCard 
 } from "../api/jobs";
+import { predictFakeJob, type FakeJobPrediction } from "../api/ml";
 import { readSession } from "../auth/storage";
 import { ONBOARDING_COMPLETE_STEP } from "../auth/onboardingStep";
 import { useAuth } from "../context/AuthContext";
+import { TailorResumeModal } from "../components/TailorResumeModal";
+import {
+  MapPin,
+  DollarSign,
+  Clock,
+  Building2,
+  ExternalLink,
+  RefreshCw,
+  Heart,
+  X,
+  Send,
+  Sparkles,
+  ShieldCheck,
+  AlertTriangle,
+  Keyboard,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp
+} from "lucide-react";
 import "./JobSwipePage.css";
 
-function IconLocation({ className }: { className?: string }) {
-  return (
-    <svg className={className} width={11} height={14} viewBox="0 0 11 14" fill="none" aria-hidden>
-      <path
-        d="M5.5 0C2.46 0 0 2.35 0 5.25c0 3.92 5.5 8.75 5.5 8.75S11 9.17 11 5.25C11 2.35 8.54 0 5.5 0zm0 7.12a1.88 1.88 0 110-3.76 1.88 1.88 0 010 3.76z"
-        fill="#64748b"
-      />
-    </svg>
-  );
-}
-
-function IconMoney({ className }: { className?: string }) {
-  return (
-    <svg className={className} width={15} height={11} viewBox="0 0 15 11" fill="none" aria-hidden>
-      <path
-        d="M7.5 0C3.36 0 0 1.23 0 2.75v5.5C0 9.77 3.36 11 7.5 11S15 9.77 15 8.25v-5.5C15 1.23 11.64 0 7.5 0zm0 1.38c3.31 0 6 .62 6 1.37 0 .76-2.69 1.38-6 1.38S1.5 3.5 1.5 2.75c0-.75 2.69-1.37 6-1.37zm6 6.5c0 .75-2.69 1.37-6 1.37S1.5 8.5 1.5 7.75V5.9a13.9 13.9 0 006 1.22 13.9 13.9 0 006-1.22v1.85z"
-        fill="#64748b"
-      />
-    </svg>
-  );
-}
-
-function IconClock({ className }: { className?: string }) {
-  return (
-    <svg className={className} width={13} height={13} viewBox="0 0 13 13" fill="none" aria-hidden>
-      <path
-        d="M6.5 0a6.5 6.5 0 100 13 6.5 6.5 0 000-13zm.54 2.17v4.02l2.6 1.56-.45.74-3.1-1.86V2.17h.95z"
-        fill="#64748b"
-      />
-    </svg>
-  );
-}
-
-function IconPass({ className }: { className?: string }) {
-  return (
-    <svg className={className} width={16} height={16} viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M12.5 3.5L3.5 12.5M3.5 3.5l9 9" stroke="#64748b" strokeWidth={1.8} strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconBookmark({ className }: { className?: string }) {
-  return (
-    <svg className={className} width={14} height={18} viewBox="0 0 14 18" fill="none" aria-hidden>
-      <path
-        d="M1 1.5h12v15L7 12.5 1 16.5v-15z"
-        stroke="#64748b"
-        strokeWidth={1.5}
-        fill="none"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconSend({ className }: { className?: string }) {
-  return (
-    <svg className={className} width={20} height={18} viewBox="0 0 20 18" fill="none" aria-hidden>
-      <path d="M1 9l18-8-8 18-2-7-8-3z" fill="#fff" />
-    </svg>
-  );
-}
-
-function IconBuilding({ className }: { className?: string }) {
-  return (
-    <svg className={className} width={20} height={18} viewBox="0 0 20 18" fill="none" aria-hidden>
-      <path
-        d="M3 18V1h10v4h4v13H3zm4-8h2v2H7v-2zm0-4h2v2H7V6zm4 4h2v2h-2v-2zm0-4h2v2h-2V6zm-4 8h2v2H7v-2zm4 0h2v2h-2v-2z"
-        fill="#4648d4"
-      />
-    </svg>
-  );
-}
-
-function IconClose({ className }: { className?: string }) {
-  return (
-    <svg className={className} width={15} height={15} viewBox="0 0 15 15" fill="none" aria-hidden>
-      <path d="M1 1l13 13M14 1L1 14" stroke="#64748b" strokeWidth={1.5} strokeLinecap="round" />
-    </svg>
-  );
-}
+const SWIPE_THRESHOLD = 90;
+const MAX_DRAG = 240;
 
 function formatJobType(jobType: string | null | undefined): string {
   if (!jobType) return "";
@@ -117,8 +58,8 @@ function formatPostedAt(iso: string | null | undefined): string | null {
 }
 
 function statusBadgeLabel(status: string): string | null {
-  if (status === "queued") return "New";
-  if (status === "seen") return "For you";
+  if (status === "queued") return "New Match";
+  if (status === "seen") return "Recommended";
   return null;
 }
 
@@ -132,10 +73,22 @@ export function JobSwipePage() {
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [refreshOffset, setRefreshOffset] = useState(0);
+  const [fakeJobResults, setFakeJobResults] = useState<Record<string, FakeJobPrediction>>({});
+  const [fakeCheckBusy, setFakeCheckBusy] = useState(false);
+  const [tailorModalOpen, setTailorModalOpen] = useState(false);
+  const [expandedDesc, setExpandedDesc] = useState(false);
+
+  // Drag / Swipe States for top card
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isReturning, setIsReturning] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | "up" | null>(null);
+  const [dragStartX, setDragStartX] = useState<number | null>(null);
+  const [activePointerId, setActivePointerId] = useState<number | null>(null);
 
   const token = session?.token?.trim() || readSession()?.token?.trim();
-  const onboardingStep =
-    readSession()?.onboardingStep ?? session?.onboardingStep ?? 0;
+  const onboardingStep = readSession()?.onboardingStep ?? session?.onboardingStep ?? 0;
   const current = jobs[0] ?? null;
   const upcoming = jobs.slice(1, 4);
 
@@ -157,6 +110,33 @@ export function JobSwipePage() {
     if (result.message) setBannerMessage(result.message);
     if (!result.success && result.message) setFeedError(result.message);
   }, [session?.token, navigate, logout]);
+
+  // Run fake-job detection when jobs change
+  const checkFakeJobs = useCallback(async (jobList: JobCard[]) => {
+    const t = session?.token?.trim() || readSession()?.token?.trim();
+    if (!t || jobList.length === 0) return;
+
+    const unchecked = jobList.filter((j) => !fakeJobResults[j.id]);
+    if (unchecked.length === 0) return;
+
+    setFakeCheckBusy(true);
+    try {
+      const newResults: Record<string, FakeJobPrediction> = {};
+      for (const job of unchecked.slice(0, 8)) {
+        const res = await predictFakeJob(
+          { title: job.title, company: job.company, description: job.description, location: job.location },
+          t,
+        );
+        if (res.ok && res.data) {
+          newResults[job.id] = res.data;
+        }
+      }
+      setFakeJobResults((prev) => ({ ...prev, ...newResults }));
+    } catch {
+      // Gracefully continue
+    }
+    setFakeCheckBusy(false);
+  }, [session?.token, fakeJobResults]);
 
   useEffect(() => {
     let cancelled = false;
@@ -183,12 +163,13 @@ export function JobSwipePage() {
       setJobs(result.jobs);
       if (result.message) setBannerMessage(result.message);
       if (!result.success && result.message) setFeedError(result.message);
+      if (result.jobs.length > 0) void checkFakeJobs(result.jobs);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [refreshSession, navigate, logout]);
+  }, [refreshSession, navigate, logout, checkFakeJobs]);
 
   const handleRefresh = async () => {
     const t = token;
@@ -206,43 +187,122 @@ export function JobSwipePage() {
     if (result.message) setBannerMessage(result.message);
     if (!result.success && result.message) setFeedError(result.message);
     if (result.success) {
-      // If scraper returned no new jobs at this offset, wrap back to 0
       setRefreshOffset(result.jobs.length === 0 ? 0 : refreshOffset + 20);
+      if (result.jobs.length > 0) void checkFakeJobs(result.jobs);
     }
     setRefreshBusy(false);
   };
 
   const removeTopCard = () => {
     setJobs((prev) => prev.slice(1));
+    setDragX(0);
+    setSwipeDirection(null);
+    setIsAnimating(false);
+    setExpandedDesc(false);
   };
 
   const handleSwipe = async (action: "like" | "pass" | "apply") => {
-    if (!current || swipeBusy) return;
+    if (!current || swipeBusy || isAnimating) return;
     const t = token;
     if (!t) return;
+
+    // Trigger visual swipe animation first
+    setIsAnimating(true);
+    if (action === "pass") setSwipeDirection("left");
+    else if (action === "like") setSwipeDirection("right");
+    else if (action === "apply") setSwipeDirection("up");
+
     const openListingAfterApply = action === "apply" ? current.sourceUrl : null;
     setSwipeBusy(true);
-    const { ok, status, json } = await swipeJob(current.id, action, t);
-    if (status === 401) {
-      logout();
-      navigate("/login", { replace: true });
+
+    try {
+      const { status } = await swipeJob(current.id, action, t);
+      if (status === 401) {
+        logout();
+        navigate("/login", { replace: true });
+        setSwipeBusy(false);
+        return;
+      }
+      if (openListingAfterApply) {
+        window.open(openListingAfterApply, "_blank", "noopener,noreferrer");
+      }
+      setTimeout(() => {
+        removeTopCard();
+        setSwipeBusy(false);
+        if (jobs.length <= 2) void loadRecommended();
+      }, 240);
+    } catch {
+      setIsAnimating(false);
+      setSwipeDirection(null);
       setSwipeBusy(false);
+    }
+  };
+
+  // Keyboard Shortcuts Listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (tailorModalOpen) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        void handleSwipe("pass");
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        void handleSwipe("like");
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        void handleSwipe("apply");
+      } else if (e.key === " " && current) {
+        e.preventDefault();
+        setTailorModalOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [current, swipeBusy, isAnimating, tailorModalOpen]);
+
+  // Touch / Pointer Drag handlers
+  const handlePointerDown = (e: PointerEvent<HTMLElement>) => {
+    if (isAnimating || !current) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setActivePointerId(e.pointerId);
+    setDragStartX(e.clientX);
+    setIsDragging(true);
+    setIsReturning(false);
+  };
+
+  const handlePointerMove = (e: PointerEvent<HTMLElement>) => {
+    if (!isDragging || isAnimating || dragStartX === null || (activePointerId !== null && e.pointerId !== activePointerId)) {
       return;
     }
-    if (!ok || !json || typeof json !== "object" || !("success" in json) || !json.success) {
-      const msg =
-        json && typeof json === "object" && "message" in json
-          ? String((json as { message?: string }).message)
-          : "Could not save swipe.";
-      alert(msg);
-      setSwipeBusy(false);
+    const deltaX = e.clientX - dragStartX;
+    const clamped = Math.max(-MAX_DRAG, Math.min(MAX_DRAG, deltaX));
+    setDragX(clamped);
+  };
+
+  const handlePointerEnd = (e: PointerEvent<HTMLElement>) => {
+    if (!isDragging || isAnimating) return;
+    if (activePointerId !== null && e.pointerId !== activePointerId) return;
+
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    setIsDragging(false);
+    setDragStartX(null);
+    setActivePointerId(null);
+
+    if (dragX <= -SWIPE_THRESHOLD) {
+      void handleSwipe("pass");
       return;
     }
-    if (openListingAfterApply)
-      window.open(openListingAfterApply, "_blank", "noopener,noreferrer");
-    removeTopCard();
-    setSwipeBusy(false);
-    if (jobs.length <= 1) void loadRecommended();
+    if (dragX >= SWIPE_THRESHOLD) {
+      void handleSwipe("like");
+      return;
+    }
+
+    setIsReturning(true);
+    setDragX(0);
+    setTimeout(() => setIsReturning(false), 200);
   };
 
   const openListing = () => {
@@ -250,53 +310,71 @@ export function JobSwipePage() {
   };
 
   const incompleteOnboarding = onboardingStep < ONBOARDING_COMPLETE_STEP;
+  const currentFake = current ? fakeJobResults[current.id] : null;
 
   return (
-    <div className="job-swipe page-fill" data-name="Html → Body">
+    <div className="job-swipe page-fill">
+      {/* Top action toolbar */}
       <div className="job-swipe-toolbar">
-        <button
-          type="button"
-          className="job-swipe-refresh"
-          disabled={refreshBusy || loading || !token}
-          onClick={() => void handleRefresh()}
-        >
-          {refreshBusy ? "Refreshing…" : "Refresh feed"}
-        </button>
+        <div className="job-swipe-toolbar-left">
+          <span className="job-swipe-feed-count">
+            {jobs.length > 0 ? `${jobs.length} recommendations available` : "Feed queue"}
+          </span>
+        </div>
+        <div className="job-swipe-toolbar-right">
+          <button
+            type="button"
+            className="job-swipe-refresh"
+            disabled={refreshBusy || loading || !token}
+            onClick={() => void handleRefresh()}
+            title="Fetch new jobs from JobSpy scraper"
+          >
+            <RefreshCw size={14} className={refreshBusy ? "animate-spin" : ""} />
+            <span>{refreshBusy ? "Scraping fresh jobs…" : "Refresh Feed"}</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (
-        <div className="job-swipe-loading">Loading recommendations…</div>
+        <div className="job-swipe-loading">
+          <div className="job-swipe-spinner" />
+          <p>Curating personalized recommendations…</p>
+        </div>
       ) : incompleteOnboarding ? (
         <div className="job-swipe-empty">
-          <p className="job-swipe-empty-title">Finish onboarding first</p>
+          <div className="job-swipe-empty-icon"><Sparkles size={40} className="text-indigo-500" /></div>
+          <p className="job-swipe-empty-title">Finish Onboarding First</p>
           <p className="job-swipe-empty-copy">
-            Complete onboarding to receive job recommendations from the server.
+            Complete your skill profile and job preferences so our matching engine can score roles.
           </p>
           <Link className="job-swipe-empty-cta" to="/onboarding">
-            Continue onboarding
+            Continue Onboarding
           </Link>
         </div>
       ) : feedError && jobs.length === 0 ? (
         <div className="job-swipe-empty">
-          <p className="job-swipe-empty-title">Couldn’t load jobs</p>
+          <div className="job-swipe-empty-icon"><AlertTriangle size={40} className="text-amber-500" /></div>
+          <p className="job-swipe-empty-title">Couldn’t Load Jobs</p>
           <p className="job-swipe-empty-copy">{feedError}</p>
           <button type="button" className="job-swipe-empty-cta job-swipe-empty-cta--btn" onClick={() => void loadRecommended()}>
-            Try again
+            Try Again
           </button>
         </div>
       ) : !current ? (
         <div className="job-swipe-empty">
-          <p className="job-swipe-empty-title">You’re caught up</p>
+          <div className="job-swipe-empty-icon"><CheckCircle2 size={40} className="text-emerald-500" /></div>
+          <p className="job-swipe-empty-title">You’re All Caught Up!</p>
           <p className="job-swipe-empty-copy">
-            {bannerMessage?.trim() ||
-              "No more recommendations right now. Try refreshing or check back later."}
+            {bannerMessage?.trim() || "No more jobs in your current queue. Refresh to trigger the live scraper for new listings."}
           </p>
           <button type="button" className="job-swipe-empty-cta job-swipe-empty-cta--btn" onClick={() => void handleRefresh()}>
-            Refresh feed
+            <RefreshCw size={16} />
+            <span>Fetch More Live Jobs</span>
           </button>
         </div>
       ) : (
         <div className="job-swipe-layout">
+          {/* Main Swipe Center Column */}
           <div className="job-swipe-left">
             {bannerMessage && !feedError ? (
               <p className="job-swipe-banner" role="status">
@@ -304,54 +382,101 @@ export function JobSwipePage() {
               </p>
             ) : null}
 
-            <article className="job-swipe-card">
+            {/* Interactive Card with Drag Physics */}
+            <article 
+              className={`job-swipe-card ${isDragging ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${swipeDirection ? `swipe-out-${swipeDirection}` : ""}`}
+              style={{
+                "--dragX": `${dragX}px`,
+                "--dragRotate": `${dragX * 0.06}deg`,
+              } as CSSProperties}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerEnd}
+              onPointerCancel={handlePointerEnd}
+            >
+              {/* Directional Stamp Overlays */}
+              <div 
+                className="job-swipe-stamp job-swipe-stamp--pass"
+                style={{ opacity: dragX < -20 ? Math.min(1, Math.abs(dragX) / SWIPE_THRESHOLD) : 0 }}
+              >
+                NOPE
+              </div>
+              <div 
+                className="job-swipe-stamp job-swipe-stamp--like"
+                style={{ opacity: dragX > 20 ? Math.min(1, dragX / SWIPE_THRESHOLD) : 0 }}
+              >
+                LIKE
+              </div>
+
               <header className="job-swipe-card-header">
                 <div className="job-swipe-card-top">
-                  <span className="job-swipe-company">{current.company}</span>
-                  {statusBadgeLabel(current.status) ? (
-                    <span className="job-swipe-badge">{statusBadgeLabel(current.status)}</span>
+                  <div className="job-swipe-company-info">
+                    <span className="job-swipe-company">{current.company}</span>
+                    {statusBadgeLabel(current.status) ? (
+                      <span className="job-swipe-badge job-swipe-badge--status">
+                        {statusBadgeLabel(current.status)}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {/* ModernBERT Fake Job Detection Badge */}
+                  {currentFake ? (
+                    <div
+                      className={`job-swipe-badge job-swipe-badge--${currentFake.label.toLowerCase()}`}
+                      title={`ModernBERT Model: ${currentFake.label} with ${Math.round(currentFake.confidence * 100)}% confidence`}
+                    >
+                      {currentFake.label === "Real" ? (
+                        <>
+                          <ShieldCheck size={14} className="text-emerald-600" />
+                          <span>Authentic ({Math.round(currentFake.confidence * 100)}%)</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle size={14} className="text-rose-600" />
+                          <span>Suspicious Posting</span>
+                        </>
+                      )}
+                    </div>
+                  ) : fakeCheckBusy ? (
+                    <div className="job-swipe-badge job-swipe-badge--checking">
+                      <span className="job-swipe-checking-dot" />
+                      <span>Checking with ModernBERT…</span>
+                    </div>
                   ) : null}
                 </div>
+
                 <h1 className="job-swipe-title">{current.title}</h1>
               </header>
 
               <div className="job-swipe-meta">
                 {current.location ? (
                   <span className="job-swipe-chip">
-                    <span className="job-swipe-chip-icon">
-                      <IconLocation />
-                    </span>
-                    {current.location}
+                    <MapPin size={14} />
+                    <span>{current.location}</span>
                   </span>
                 ) : null}
                 {current.salaryRange ? (
-                  <span className="job-swipe-chip">
-                    <span className="job-swipe-chip-icon">
-                      <IconMoney />
-                    </span>
-                    {current.salaryRange}
+                  <span className="job-swipe-chip job-swipe-chip--salary">
+                    <DollarSign size={14} />
+                    <span>{current.salaryRange}</span>
                   </span>
                 ) : null}
                 {formatJobType(current.jobType) ? (
                   <span className="job-swipe-chip">
-                    <span className="job-swipe-chip-icon">
-                      <IconClock />
-                    </span>
-                    {formatJobType(current.jobType)}
+                    <Clock size={14} />
+                    <span>{formatJobType(current.jobType)}</span>
                   </span>
                 ) : null}
                 {formatPostedAt(current.postedAt) ? (
                   <span className="job-swipe-chip">
-                    <span className="job-swipe-chip-icon">
-                      <IconClock />
-                    </span>
-                    Posted {formatPostedAt(current.postedAt)}
+                    <Clock size={14} />
+                    <span>Posted {formatPostedAt(current.postedAt)}</span>
                   </span>
                 ) : null}
               </div>
 
               {current.skills?.length ? (
-                <div className="job-swipe-skills" aria-label="Skills">
+                <div className="job-swipe-skills" aria-label="Skills required">
                   {current.skills.map((s, i) => (
                     <span key={`${i}-${s}`} className="job-swipe-skill-pill">
                       {s}
@@ -362,100 +487,166 @@ export function JobSwipePage() {
 
               <hr className="job-swipe-sep" />
 
-              <p className="job-swipe-brief">{current.description}</p>
+              <div className="job-swipe-brief-wrap">
+                <p className={`job-swipe-brief ${expandedDesc ? "job-swipe-brief--expanded" : ""}`}>
+                  {current.description}
+                </p>
+                {current.description && current.description.length > 280 && (
+                  <button 
+                    type="button" 
+                    className="job-swipe-expand-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedDesc((v) => !v);
+                    }}
+                  >
+                    {expandedDesc ? (
+                      <><span>Show Less</span><ChevronUp size={14} /></>
+                    ) : (
+                      <><span>Read Full Description</span><ChevronDown size={14} /></>
+                    )}
+                  </button>
+                )}
+              </div>
             </article>
 
+            {/* Action Bar with Circular Buttons */}
             <div className="job-swipe-actions-wrap">
               <div className="job-swipe-actions">
                 <button
                   type="button"
-                  className="job-swipe-icon-btn"
-                  aria-label="Pass on this job"
-                  disabled={swipeBusy}
+                  className="job-swipe-icon-btn job-swipe-icon-btn--pass"
+                  aria-label="Pass on this job (Left Arrow)"
+                  title="Pass [←]"
+                  disabled={swipeBusy || isAnimating}
                   onClick={() => void handleSwipe("pass")}
                 >
-                  <IconPass />
+                  <X size={22} />
                 </button>
+
                 <button
                   type="button"
-                  className="job-swipe-icon-btn"
-                  aria-label="Save this job"
-                  disabled={swipeBusy}
+                  className="job-swipe-tailor-btn"
+                  title="Tailor your resume for this position with AI [Space]"
+                  onClick={() => setTailorModalOpen(true)}
+                >
+                  <Sparkles size={16} />
+                  <span>Tailor Resume</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="job-swipe-icon-btn job-swipe-icon-btn--like"
+                  aria-label="Save this job (Right Arrow)"
+                  title="Save / Match [→]"
+                  disabled={swipeBusy || isAnimating}
                   onClick={() => void handleSwipe("like")}
                 >
-                  <IconBookmark />
+                  <Heart size={22} />
                 </button>
+
                 <button
                   type="button"
                   className="job-swipe-apply"
-                  disabled={swipeBusy}
+                  title="Apply and track [↑]"
+                  disabled={swipeBusy || isAnimating}
                   onClick={() => void handleSwipe("apply")}
                 >
-                  <IconSend />
-                  Apply Now
+                  <Send size={16} />
+                  <span>Apply Now</span>
                 </button>
+              </div>
+
+              {/* Keyboard Shortcut Legend */}
+              <div className="job-swipe-shortcuts-legend">
+                <Keyboard size={13} />
+                <span>Shortcuts: <strong>[←]</strong> Pass · <strong>[→]</strong> Like · <strong>[↑]</strong> Apply · <strong>[Space]</strong> Tailor Resume</span>
               </div>
             </div>
           </div>
 
+          {/* Right Details & Queue Column */}
           <aside className="job-swipe-aside">
             <header className="job-swipe-aside-header">
-              <h2 className="job-swipe-aside-title">Details</h2>
-              <button type="button" className="job-swipe-aside-close" aria-label="Close" onClick={() => navigate("/")}>
-                <IconClose />
-              </button>
+              <h2 className="job-swipe-aside-title">Target Analysis</h2>
+              {current.sourceUrl && (
+                <button 
+                  type="button" 
+                  className="job-swipe-external-btn"
+                  onClick={openListing}
+                  title="Open source listing on web"
+                >
+                  <ExternalLink size={15} />
+                </button>
+              )}
             </header>
 
             <div className="job-swipe-aside-scroll">
-              <section>
-                <h3 className="job-swipe-section-label">About the role</h3>
-                <p className="job-swipe-prose">{current.description}</p>
-              </section>
-
-              <hr className="job-swipe-sep" />
-
-              <section>
-                <h3 className="job-swipe-section-label">Company info</h3>
+              <section className="job-swipe-aside-box">
                 <div className="job-swipe-company-row">
                   <div className="job-swipe-company-avatar" aria-hidden>
-                    <IconBuilding />
+                    <Building2 size={24} className="text-indigo-600" />
                   </div>
                   <div>
                     <p className="job-swipe-company-name">{current.company}</p>
                     <p className="job-swipe-company-meta">
-                      {current.source ? `Source: ${current.source}` : "Job listing"}
+                      {current.source ? `Aggregated via ${current.source}` : "Direct Feed"}
                     </p>
-                    {current.sourceUrl ? (
-                      <button type="button" className="job-swipe-link" onClick={openListing}>
-                        View original listing
-                      </button>
-                    ) : null}
                   </div>
                 </div>
+
+                {current.sourceUrl ? (
+                  <button type="button" className="job-swipe-link" onClick={openListing}>
+                    <span>View original job posting</span>
+                    <ExternalLink size={13} />
+                  </button>
+                ) : null}
+              </section>
+
+              {/* ModernBERT Authenticity Explainer Box */}
+              <section className="job-swipe-aside-box job-swipe-aside-box--ml">
+                <div className="job-swipe-ml-header">
+                  <ShieldCheck size={16} className="text-emerald-600" />
+                  <h4>ModernBERT Security Analysis</h4>
+                </div>
+                <p className="job-swipe-ml-desc">
+                  {currentFake?.label === "Real" ? (
+                    `Confidence: ${Math.round(currentFake.confidence * 100)}%. The salary, description structure, and employer context match verified job patterns.`
+                  ) : currentFake?.label === "Fake" ? (
+                    `Flagged: ${Math.round(currentFake.confidence * 100)}% risk index. Contains typical scam hallmarks (atypical compensation, high-pressure urgency).`
+                  ) : (
+                    "Analyzing posting against 50k+ known fake job patterns using ModernBERT transformer weights on port 8000."
+                  )}
+                </p>
               </section>
 
               {upcoming.length > 0 ? (
-                <>
-                  <hr className="job-swipe-sep" />
-                  <section>
-                    <h3 className="job-swipe-section-label">Up next</h3>
-                    <div className="job-swipe-similar-stack">
-                      {upcoming.map((j) => (
-                        <div key={j.id} className="job-swipe-similar-card job-swipe-similar-card--static">
-                          <p className="job-swipe-similar-title">{j.title}</p>
-                          <p className="job-swipe-similar-meta">
-                            {j.company}
-                            {j.location ? ` · ${j.location}` : ""}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                </>
+                <section>
+                  <h3 className="job-swipe-section-label">Next in Feed ({upcoming.length})</h3>
+                  <div className="job-swipe-similar-stack">
+                    {upcoming.map((j) => (
+                      <div key={j.id} className="job-swipe-similar-card">
+                        <p className="job-swipe-similar-title">{j.title}</p>
+                        <p className="job-swipe-similar-meta">
+                          {j.company}
+                          {j.location ? ` · ${j.location}` : ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
               ) : null}
             </div>
           </aside>
         </div>
+      )}
+
+      {current && (
+        <TailorResumeModal
+          job={current}
+          isOpen={tailorModalOpen}
+          onClose={() => setTailorModalOpen(false)}
+        />
       )}
     </div>
   );

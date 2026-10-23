@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ArrowRight, 
+  Sparkles, 
+  AlertCircle,
+  ShieldCheck 
+} from "lucide-react";
 import { BRAND_NAME } from "../brand";
-import { loginAssets } from "../figma/authAssets";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { hasGoogleClientIdCandidates } from "../auth/googleClientIds";
 import { useAuth } from "../context/AuthContext";
@@ -27,6 +36,12 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  const fillDemoAccount = () => {
+    setEmail("evaluator@swipeselect.io");
+    setPassword("Password123!");
+    setError(null);
+  };
+
   const doLogin = async () => {
     setError(null);
     setPending(true);
@@ -40,7 +55,7 @@ export function LoginPage() {
       navigate(from ?? landingAfterAuth(), { replace: true });
     } catch {
       setError(
-        "Unable to reach the server. Confirm the backend is running and VITE_API_URL matches its address.",
+        "Unable to reach the server. Confirm the backend is running on port 5002.",
       );
     } finally {
       setPending(false);
@@ -59,11 +74,31 @@ export function LoginPage() {
 
   return (
     <div className="login-page page-fill">
+      {/* Background radial glow */}
+      <div className="login-bg-glow" aria-hidden />
+
       <div className="login-canvas">
         <div className="login-card">
           <div className="login-card-header">
+            <div className="login-badge">
+              <ShieldCheck size={14} className="text-indigo-600" />
+              <span>Secure Authentication</span>
+            </div>
             <h1>Welcome Back</h1>
             <p>Sign in to your {BRAND_NAME} account</p>
+          </div>
+
+          {/* Quick Demo Credentials Helper */}
+          <div className="login-demo-helper">
+            <button
+              type="button"
+              className="login-demo-btn"
+              onClick={fillDemoAccount}
+              title="Click to pre-fill test credentials"
+            >
+              <Sparkles size={14} />
+              <span>Demo Account Fill</span>
+            </button>
           </div>
 
           {HAS_GOOGLE ? (
@@ -81,8 +116,9 @@ export function LoginPage() {
 
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="login-field">
-              <label htmlFor="login-email">Email address</label>
+              <label htmlFor="login-email">Email Address</label>
               <div className="login-input-wrap">
+                <span className="login-input-icon"><Mail size={18} /></span>
                 <input
                   id="login-email"
                   name="email"
@@ -105,6 +141,7 @@ export function LoginPage() {
                 </a>
               </div>
               <div className="login-input-wrap password">
+                <span className="login-input-icon"><Lock size={18} /></span>
                 <input
                   id="login-password"
                   name="password"
@@ -122,20 +159,28 @@ export function LoginPage() {
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  <img src={loginAssets.passwordToggle} alt="" width={18} height={17} />
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
             {error ? (
-              <p role="alert" style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>
-                {error}
-              </p>
+              <div className="login-error-banner" role="alert">
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
             ) : null}
 
             <div className="login-submit-wrap">
               <button type="submit" className="login-submit" disabled={pending}>
-                {pending ? "Signing in…" : `Sign In to ${BRAND_NAME}`}
+                {pending ? (
+                  <span>Signing in…</span>
+                ) : (
+                  <>
+                    <span>Sign In to {BRAND_NAME}</span>
+                    <ArrowRight size={18} />
+                  </>
+                )}
               </button>
             </div>
           </form>
