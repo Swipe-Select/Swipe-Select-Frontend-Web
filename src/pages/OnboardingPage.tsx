@@ -11,6 +11,7 @@ import { asUserPreferences, asUserProfile } from "../auth/normalizeSession";
 import { useAuth } from "../context/AuthContext";
 import type { ProfileEducation, ProfileProject, ProfileCertification } from "../api/types";
 import { readDraft, writeDraft, clearDraft } from "../auth/onboardingDraft";
+import { User, Mail, Briefcase, GraduationCap, FolderGit2, Sparkles, Award, Heart, Plus, Edit2, Trash2, Check, ExternalLink, ArrowRight } from "lucide-react";
 import { OnboardingTopBar } from "../components/onboarding/OnboardingTopBar";
 import "./OnboardingPage.css";
 
@@ -431,6 +432,26 @@ export function OnboardingPage() {
 
   const updateCertification = useCallback((i: number, field: keyof ProfileCertification, value: string) =>
     setCertifications((c) => c.map((e, j) => (j === i ? { ...e, [field]: value } : e))), []);
+
+  const removeWorkExp = useCallback((id: string) => {
+    setWorkExperiences((c) => c.filter((x) => x.id !== id));
+    setCommittedKeys((s) => { const n = new Set(s); n.delete(`we-${id}`); return n; });
+  }, []);
+
+  const removeEducation = useCallback((i: number) => {
+    setEducation((c) => c.filter((_, j) => j !== i));
+    setCommittedKeys((s) => { const n = new Set(s); n.delete(`edu-${i}`); return n; });
+  }, []);
+
+  const removeProject = useCallback((i: number) => {
+    setProjects((c) => c.filter((_, j) => j !== i));
+    setCommittedKeys((s) => { const n = new Set(s); n.delete(`proj-${i}`); return n; });
+  }, []);
+
+  const removeCertification = useCallback((i: number) => {
+    setCertifications((c) => c.filter((_, j) => j !== i));
+    setCommittedKeys((s) => { const n = new Set(s); n.delete(`cert-${i}`); return n; });
+  }, []);
 
   useEffect(() => {
     const q = locationSearch.trim();
@@ -920,10 +941,10 @@ export function OnboardingPage() {
 
   // ── Derived navigation state for TopBar / BottomBar ──────────────────────────
   const isMapStep     = step === 8 || step === 9;
-  const isBuilderStep = step === 4;
-  const showBottomBar = !isMapStep && !isBuilderStep && step !== 5;
+    const showBottomBar = !isMapStep && step !== 5;
 
   const continueLabel =
+    step === 5 ? "Let's Go" :
     step === 10 ? 'Save Preferences' :
     step === 11 ? 'Save & Continue'  :
     step === 12 ? 'Continue to Profile' :
@@ -952,8 +973,8 @@ export function OnboardingPage() {
       <OnboardingTopBar
         step={step}
         totalSteps={13}
-        canGoBack={step > 0}
-        onBack={back}
+        canGoBack={true}
+        onBack={() => { if (step > 0) { back(); } else { navigate('/welcome'); } }}
       />
 
       {stepError ? (
@@ -977,43 +998,51 @@ export function OnboardingPage() {
       <div key={step} className={`onb-step-stage onb-step-stage--${navDir}`}>
 
       {step === 0 && (
-        <>
-          <div className="onb-gender-layout">
-            <div className="onb-gender-main">
-              <div className="onb-gender-inner">
-                <div>
-                  <h1 className="onb-h1">How do you identify?</h1>
-                  <p className="onb-sub" style={{ maxWidth: 600, marginTop: 12 }}>
-                    This information helps us tailor your professional networking experience and ensure accurate representation. It will only be visible to you unless you choose to share it.
-                  </p>
-                </div>
-                <div className="onb-identity-grid">
-                  {(
-                    [
-                      ["male", "Male"],
-                      ["female", "Female"],
-                      ["nonbinary", "Non-binary"],
-                    ] as const
-                  ).map(([id, title]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      className={`onb-id-card${gender === id ? " onb-id-card--selected" : ""}`}
-                      onClick={() => setGender(id)}
-                    >
-                      <img src={gender === id ? ast.gender.radioOn : ast.gender.radioOff} alt="" />
-                      <div>
-                        <p className={`onb-id-title${gender === id ? " onb-id-title--selected" : ""}`}>{title}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
+        <div className="onb-step-wrapper">
+          <div className="onb-step-card onb-step-card--identity">
+            <div className="onb-step-card-header">
+              <div className="onb-step-badge">
+                <span className="onb-step-badge-dot" />
+                <span>Step 1 of 11 • Identity</span>
               </div>
+              <h1 className="onb-h1">How do you identify?</h1>
+              <p className="onb-sub">
+                This information helps us tailor your professional networking experience and ensure accurate representation. It will only be visible to you unless you choose to share it.
+              </p>
+            </div>
+
+            <div className="onb-identity-grid">
+              {(
+                [
+                  ["male", "Male", "👨"],
+                  ["female", "Female", "👩"],
+                  ["nonbinary", "Non-binary", "✨"],
+                ] as const
+              ).map(([id, title, emoji]) => {
+                const isSelected = gender === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`onb-id-card${isSelected ? " onb-id-card--selected" : ""}`}
+                    onClick={() => setGender(id)}
+                    aria-pressed={isSelected}
+                  >
+                    <div className="onb-id-avatar-circle">
+                      <span className="onb-id-avatar-emoji">{emoji}</span>
+                    </div>
+                    <div className="onb-id-text-wrap">
+                      <p className={`onb-id-title${isSelected ? " onb-id-title--selected" : ""}`}>{title}</p>
+                    </div>
+                    <div className="onb-id-radio-indicator">
+                      <img src={isSelected ? ast.gender.radioOn : ast.gender.radioOff} alt="" />
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
-
-        </>
+        </div>
       )}
 
       {step === 1 && (
@@ -1213,175 +1242,310 @@ export function OnboardingPage() {
       )}
 
       {step === 2 && (
-        <>
-          <div className="onb-personal">
-            <div className="onb-personal-inner">
-              <div className="onb-center" style={{ marginBottom: 40 }}>
-                <h1 className="onb-h1">A little about you</h1>
-                <p className="onb-sub" style={{ marginTop: 12 }}>
-                  This helps us verify your professional profile and keep your account secure.
-                </p>
+        <div className="onb-step-wrapper">
+          <div className="onb-step-card onb-step-card--personal">
+            <div className="onb-step-card-header">
+              <div className="onb-step-badge">
+                <span className="onb-step-badge-dot" />
+                <span>Step 3 of 11 • Contact Information</span>
               </div>
-              <div className="onb-form-card">
-                <div className="onb-divider">
-                  <div className="onb-section-head">
-                    <img src={ast.personal.userIcon} alt="" width={16} height={16} />
-                    <h3>Basic Details</h3>
+              <h1 className="onb-h1">A little about you</h1>
+              <p className="onb-sub">
+                This helps us verify your professional profile and keep your account secure.
+              </p>
+            </div>
+
+            <div className="onb-personal-form-body">
+              <div className="onb-form-section">
+                <div className="onb-section-head">
+                  <div className="onb-section-icon-wrap" aria-hidden>
+                    <User size={15} strokeWidth={2.2} />
                   </div>
-                  <div className="onb-personal-fields">
-                    <div>
-                      <label className="onb-label" htmlFor="onb-full-name">
-                        Full name
+                  <h3>Basic Details</h3>
+                </div>
+                <div className="onb-personal-fields">
+                  <div>
+                    <label className="onb-label" htmlFor="onb-full-name">
+                      Full name
+                    </label>
+                    <input
+                      id="onb-full-name"
+                      name="fullName"
+                      className="onb-input"
+                      type="text"
+                      autoComplete="name"
+                      placeholder="e.g. Jane Doe"
+                      value={personalFullName}
+                      onChange={(e) => setPersonalFullName(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="onb-form-divider" />
+
+              <div className="onb-form-section">
+                <div className="onb-section-head">
+                  <div className="onb-section-icon-wrap" aria-hidden>
+                    <Mail size={15} strokeWidth={2.2} />
+                  </div>
+                  <h3>Contact Information</h3>
+                </div>
+                <div className="onb-personal-fields">
+                  <div>
+                    <label className="onb-label" htmlFor="onb-work-email">
+                      Work Email
+                    </label>
+                    <input
+                      id="onb-work-email"
+                      name="email"
+                      className="onb-input"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="name@company.com"
+                      value={personalEmail}
+                      onChange={(e) => setPersonalEmail(e.target.value)}
+                    />
+                    <p className="onb-muted-sm" style={{ margin: "6px 0 0 4px" }}>
+                      We'll send verification details here.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="onb-label" htmlFor="onb-phone-local">
+                      Phone Number
+                    </label>
+                    <div className="onb-phone-row">
+                      <label htmlFor="onb-phone-dial" className="onb-visually-hidden">
+                        Country dial code
                       </label>
+                      <select
+                        id="onb-phone-dial"
+                        className="onb-input onb-select onb-phone-dial-select"
+                        value={personalDialCode}
+                        onChange={(e) => setPersonalDialCode(e.target.value)}
+                        aria-label="Country dial code"
+                      >
+                        <option value="+1">US +1</option>
+                        <option value="+44">UK +44</option>
+                        <option value="+61">AU +61</option>
+                        <option value="+91">IN +91</option>
+                        <option value="+49">DE +49</option>
+                        <option value="+33">FR +33</option>
+                        <option value="+86">CN +86</option>
+                        <option value="+81">JP +81</option>
+                        <option value="+52">MX +52</option>
+                        <option value="+55">BR +55</option>
+                        <option value="+34">ES +34</option>
+                        <option value="+39">IT +39</option>
+                        <option value="+31">NL +31</option>
+                        <option value="+46">SE +46</option>
+                        <option value="+47">NO +47</option>
+                        <option value="+65">SG +65</option>
+                        <option value="+971">AE +971</option>
+                        <option value="+966">SA +966</option>
+                        <option value="+27">ZA +27</option>
+                        <option value="+234">NG +234</option>
+                        <option value="+254">KE +254</option>
+                        <option value="+92">PK +92</option>
+                        <option value="+880">BD +880</option>
+                      </select>
                       <input
-                        id="onb-full-name"
-                        name="fullName"
-                        className="onb-input"
-                        type="text"
-                        autoComplete="name"
-                        placeholder="e.g. Jane Doe"
-                        value={personalFullName}
-                        onChange={(e) => setPersonalFullName(e.target.value)}
+                        id="onb-phone-local"
+                        name="phone"
+                        className="onb-input onb-phone-row-input"
+                        type="tel"
+                        autoComplete="tel-national"
+                        inputMode="tel"
+                        placeholder="(555) 000-0000"
+                        value={personalPhone}
+                        onChange={(e) => setPersonalPhone(e.target.value)}
                       />
                     </div>
                   </div>
                 </div>
-                <div>
-                  <div className="onb-section-head">
-                    <img src={ast.personal.mail} alt="" width={24} height={18} />
-                    <h3>Contact Information</h3>
-                  </div>
-                  <div className="onb-personal-fields">
-                    <div>
-                      <label className="onb-label" htmlFor="onb-work-email">
-                        Work Email
-                      </label>
-                      <div style={{ position: "relative" }}>
-                        <input
-                          id="onb-work-email"
-                          name="email"
-                          className="onb-input"
-                          style={{ paddingLeft: 41 }}
-                          type="email"
-                          autoComplete="email"
-                          placeholder="name@company.com"
-                          value={personalEmail}
-                          onChange={(e) => setPersonalEmail(e.target.value)}
-                        />
-                        <img
-                          src={ast.personal.mail}
-                          alt=""
-                          style={{
-                            position: "absolute",
-                            left: 16,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            pointerEvents: "none",
-                          }}
-                          width={17}
-                          height={13}
-                        />
-                      </div>
-                      <p className="onb-muted-sm" style={{ margin: "4px 0 0 8px" }}>
-                        We&apos;ll send verification details here.
-                      </p>
-                    </div>
-                    <div>
-                      <label className="onb-label" htmlFor="onb-phone-local">
-                        Phone Number
-                      </label>
-                      <div className="onb-phone-row">
-                        <label htmlFor="onb-phone-dial" className="onb-visually-hidden">
-                          Country dial code
-                        </label>
-                        <select
-                          id="onb-phone-dial"
-                          className="onb-input onb-select"
-                          value={personalDialCode}
-                          onChange={(e) => setPersonalDialCode(e.target.value)}
-                          aria-label="Country dial code"
-                        >
-                          <option value="+1">US +1</option>
-                          <option value="+44">UK +44</option>
-                          <option value="+61">AU +61</option>
-                          <option value="+91">IN +91</option>
-                          <option value="+49">DE +49</option>
-                          <option value="+33">FR +33</option>
-                          <option value="+86">CN +86</option>
-                          <option value="+81">JP +81</option>
-                          <option value="+52">MX +52</option>
-                          <option value="+55">BR +55</option>
-                          <option value="+34">ES +34</option>
-                          <option value="+39">IT +39</option>
-                          <option value="+31">NL +31</option>
-                          <option value="+46">SE +46</option>
-                          <option value="+47">NO +47</option>
-                          <option value="+65">SG +65</option>
-                          <option value="+971">AE +971</option>
-                          <option value="+966">SA +966</option>
-                          <option value="+27">ZA +27</option>
-                          <option value="+234">NG +234</option>
-                          <option value="+254">KE +254</option>
-                          <option value="+92">PK +92</option>
-                          <option value="+880">BD +880</option>
-                        </select>
-                        <input
-                          id="onb-phone-local"
-                          name="phone"
-                          className="onb-input onb-phone-row-input"
-                          type="tel"
-                          autoComplete="tel-national"
-                          inputMode="tel"
-                          placeholder="(555) 000-0000"
-                          value={personalPhone}
-                          onChange={(e) => setPersonalPhone(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
               </div>
             </div>
           </div>
-
-        </>
+        </div>
       )}
 
-
-
       {step === 4 && (
-        <div className="onb-rb-shell">
-          <div className="onb-rb-inner">
-            <div className="onb-rb-header">
-              <h1 className="onb-h1">Build Your Resume</h1>
-              <p className="onb-sub" style={{ marginTop: 8 }}>
-                {resumeOk
-                  ? "Your resume data has been imported. Review and refine each section to ensure your profile is accurate."
-                  : "Complete each section below to build a comprehensive professional profile."}
-              </p>
+        <div className="onb-step-wrapper onb-step-wrapper--builder">
+          <div className="onb-rb-header text-center">
+            <div className="onb-step-badge">
+              <span className="onb-step-badge-dot" />
+              <span>Step 4 of 11 • Build Your Resume</span>
             </div>
+            <h1 className="onb-h1">Build Your Resume</h1>
+            <p className="onb-sub" style={{ marginTop: 8, maxWidth: 640, marginLeft: "auto", marginRight: "auto" }}>
+              {resumeOk
+                ? "Your resume data has been imported. Select any section below to review, edit, or add more details."
+                : "Complete each section below to build a comprehensive professional profile."}
+            </p>
+          </div>
 
-            <div className="onb-rb-sections" aria-label="Resume sections">
-
-              {/* ── Work Experience ── */}
-              <div className={`onb-rb-card${activeBuildSection === "work" ? " onb-rb-card--open" : ""}`}>
-                <button type="button" className="onb-rb-card-row" onClick={() => setActiveBuildSection((s) => (s === "work" ? null : "work"))} aria-expanded={activeBuildSection === "work"}>
-                  <span className="onb-rb-icon-wrap">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><rect x="2" y="7" width="20" height="14" rx="2" stroke="#4648d4" strokeWidth="1.7"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" stroke="#4648d4" strokeWidth="1.7" strokeLinecap="round"/></svg>
-                  </span>
-                  <div className="onb-rb-card-text">
-                    <span className="onb-rb-card-title">Work Experience</span>
-                    <span className="onb-rb-card-desc">Professional roles and duties</span>
+          <div className="onb-rb-layout">
+            {/* ── Left Column: Master Section Navigator ── */}
+            <aside className="onb-rb-master" aria-label="Resume sections">
+              <div className="onb-rb-master-header">
+                <span className="onb-rb-master-title">Sections</span>
+                <span className="onb-rb-master-badge">6 Categories</span>
+              </div>
+              <div className="onb-rb-nav-list" role="tablist" aria-orientation="vertical">
+                {/* 1. Work Experience */}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={(activeBuildSection || "work") === "work"}
+                  className={`onb-rb-nav-item ${(activeBuildSection || "work") === "work" ? "onb-rb-nav-item--active" : ""}`}
+                  onClick={() => setActiveBuildSection("work")}
+                >
+                  <div className="onb-rb-nav-icon">
+                    <Briefcase size={18} />
                   </div>
-                  <span className="onb-rb-count">{workExperiences.length}</span>
-                  <span className="onb-rb-toggle">{activeBuildSection === "work" ? "−" : "+"}</span>
+                  <div className="onb-rb-nav-text">
+                    <span className="onb-rb-nav-label">Work Experience</span>
+                    <span className="onb-rb-nav-sub">Professional roles</span>
+                  </div>
+                  <span className={`onb-rb-nav-count ${workExperiences.length > 0 ? "onb-rb-nav-count--has" : ""}`}>
+                    {workExperiences.length}
+                  </span>
                 </button>
-                {activeBuildSection === "work" && (
-                  <div className="onb-rb-form">
-                    {workExperiences.length === 0 && (
-                      <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
-                    )}
+
+                {/* 2. Education */}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={(activeBuildSection || "work") === "edu"}
+                  className={`onb-rb-nav-item ${(activeBuildSection || "work") === "edu" ? "onb-rb-nav-item--active" : ""}`}
+                  onClick={() => setActiveBuildSection("edu")}
+                >
+                  <div className="onb-rb-nav-icon">
+                    <GraduationCap size={18} />
+                  </div>
+                  <div className="onb-rb-nav-text">
+                    <span className="onb-rb-nav-label">Education</span>
+                    <span className="onb-rb-nav-sub">Degrees &amp; schools</span>
+                  </div>
+                  <span className={`onb-rb-nav-count ${education.length > 0 ? "onb-rb-nav-count--has" : ""}`}>
+                    {education.length}
+                  </span>
+                </button>
+
+                {/* 3. Projects */}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={(activeBuildSection || "work") === "proj"}
+                  className={`onb-rb-nav-item ${(activeBuildSection || "work") === "proj" ? "onb-rb-nav-item--active" : ""}`}
+                  onClick={() => setActiveBuildSection("proj")}
+                >
+                  <div className="onb-rb-nav-icon">
+                    <FolderGit2 size={18} />
+                  </div>
+                  <div className="onb-rb-nav-text">
+                    <span className="onb-rb-nav-label">Projects</span>
+                    <span className="onb-rb-nav-sub">Portfolio work</span>
+                  </div>
+                  <span className={`onb-rb-nav-count ${projects.length > 0 ? "onb-rb-nav-count--has" : ""}`}>
+                    {projects.length}
+                  </span>
+                </button>
+
+                {/* 4. Skills */}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={(activeBuildSection || "work") === "skills"}
+                  className={`onb-rb-nav-item ${(activeBuildSection || "work") === "skills" ? "onb-rb-nav-item--active" : ""}`}
+                  onClick={() => setActiveBuildSection("skills")}
+                >
+                  <div className="onb-rb-nav-icon">
+                    <Sparkles size={18} />
+                  </div>
+                  <div className="onb-rb-nav-text">
+                    <span className="onb-rb-nav-label">Skills</span>
+                    <span className="onb-rb-nav-sub">Technical &amp; soft</span>
+                  </div>
+                  <span className={`onb-rb-nav-count ${skills.length > 0 ? "onb-rb-nav-count--has" : ""}`}>
+                    {skills.length}
+                  </span>
+                </button>
+
+                {/* 5. Certifications */}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={(activeBuildSection || "work") === "cert"}
+                  className={`onb-rb-nav-item ${(activeBuildSection || "work") === "cert" ? "onb-rb-nav-item--active" : ""}`}
+                  onClick={() => setActiveBuildSection("cert")}
+                >
+                  <div className="onb-rb-nav-icon">
+                    <Award size={18} />
+                  </div>
+                  <div className="onb-rb-nav-text">
+                    <span className="onb-rb-nav-label">Certifications</span>
+                    <span className="onb-rb-nav-sub">Licenses &amp; courses</span>
+                  </div>
+                  <span className={`onb-rb-nav-count ${certifications.length > 0 ? "onb-rb-nav-count--has" : ""}`}>
+                    {certifications.length}
+                  </span>
+                </button>
+
+                {/* 6. Interests */}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={(activeBuildSection || "work") === "interests"}
+                  className={`onb-rb-nav-item ${(activeBuildSection || "work") === "interests" ? "onb-rb-nav-item--active" : ""}`}
+                  onClick={() => setActiveBuildSection("interests")}
+                >
+                  <div className="onb-rb-nav-icon">
+                    <Heart size={18} />
+                  </div>
+                  <div className="onb-rb-nav-text">
+                    <span className="onb-rb-nav-label">Interests</span>
+                    <span className="onb-rb-nav-sub">Hobbies &amp; passions</span>
+                  </div>
+                  <span className={`onb-rb-nav-count ${interests.length > 0 ? "onb-rb-nav-count--has" : ""}`}>
+                    {interests.length}
+                  </span>
+                </button>
+              </div>
+            </aside>
+
+            {/* ── Right Column: Detail Editor ── */}
+            <main className="onb-rb-detail" role="tabpanel">
+
+              {/* 1. WORK EXPERIENCE PANE */}
+              {(activeBuildSection || "work") === "work" && (
+                <div className="onb-rb-pane">
+                  <div className="onb-rb-pane-header">
+                    <div>
+                      <h2 className="onb-rb-pane-title">Work Experience</h2>
+                      <p className="onb-rb-pane-desc">Review, edit, or add your previous and current professional roles.</p>
+                    </div>
+                    <button type="button" className="onb-rb-action-btn" onClick={addBlankWorkExp}>
+                      <Plus size={15} />
+                      <span>Add Role</span>
+                    </button>
+                  </div>
+
+                  {workExperiences.length === 0 && (
+                    <div className="onb-rb-empty-box">
+                      <div className="onb-rb-empty-icon">
+                        <Briefcase size={24} />
+                      </div>
+                      <p className="onb-rb-empty-title">No work experience added yet</p>
+                      <p className="onb-rb-empty-sub">Highlight your background to unlock tailored career opportunities.</p>
+                      <button type="button" className="onb-rb-empty-action" onClick={addBlankWorkExp}>
+                        <Plus size={14} /> Add Role
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="onb-rb-entries-stack">
                     {workExperiences.map((entry) => (
                       <React.Fragment key={entry.id}>
                         {committedKeys.has(`we-${entry.id}`) ? (
@@ -1396,20 +1560,32 @@ export function OnboardingPage() {
                                 {entry.startMonth || "?"} – {entry.endMonth === null ? "Present" : entry.endMonth || "?"} {entry.location ? `· ${entry.location}` : ""}
                               </span>
                             </div>
-                            <button
-                              type="button"
-                              className="onb-rb-edit-icon-btn"
-                              onClick={() => uncommitEntry(`we-${entry.id}`)}
-                              aria-label="Edit entry"
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                            </button>
+                            <div className="onb-rb-summary-actions">
+                              <button
+                                type="button"
+                                className="onb-rb-icon-action-btn"
+                                onClick={() => uncommitEntry(`we-${entry.id}`)}
+                                title="Edit role"
+                                aria-label="Edit role"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                className="onb-rb-icon-action-btn onb-rb-icon-action-btn--danger"
+                                onClick={() => removeWorkExp(entry.id)}
+                                title="Delete role"
+                                aria-label="Delete role"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="onb-rb-edit-card">
                             <div className="onb-rb-edit-card-head">
-                              <span className="onb-rb-edit-card-label">Work Experience</span>
-                              <button type="button" className="onb-rb-remove" onClick={() => setWorkExperiences((c) => c.filter((x) => x.id !== entry.id))} aria-label="Remove entry">×</button>
+                              <span className="onb-rb-edit-card-label">Edit Role</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => removeWorkExp(entry.id)} aria-label="Remove entry">×</button>
                             </div>
                             <div className="onb-we-card-grid">
                               <div className="onb-we-field">
@@ -1441,42 +1617,52 @@ export function OnboardingPage() {
                                 <input className="onb-input onb-we-field-control" value={entry.location} onChange={(e) => updateWorkExp(entry.id, "location", e.target.value)} placeholder="e.g. San Francisco, CA" />
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              className="onb-rb-add-btn"
-                              style={{ alignSelf: "flex-end", marginTop: 16 }}
-                              disabled={!entry.title.trim() && !entry.employer.trim()}
-                              onClick={() => commitEntry(`we-${entry.id}`)}
-                            >
-                              Save
-                            </button>
+                            <div className="onb-rb-edit-actions">
+                              <button
+                                type="button"
+                                className="onb-btn onb-btn-primary onb-btn-primary--brand onb-rb-save-btn"
+                                disabled={!entry.title.trim() && !entry.employer.trim()}
+                                onClick={() => commitEntry(`we-${entry.id}`)}
+                              >
+                                Save Role
+                              </button>
+                            </div>
                           </div>
                         )}
                       </React.Fragment>
                     ))}
-                    <button type="button" className="onb-rb-add-btn" onClick={addBlankWorkExp}>+ Add Entry</button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* ── Education ── */}
-              <div className={`onb-rb-card${activeBuildSection === "edu" ? " onb-rb-card--open" : ""}`}>
-                <button type="button" className="onb-rb-card-row" onClick={() => setActiveBuildSection((s) => (s === "edu" ? null : "edu"))} aria-expanded={activeBuildSection === "edu"}>
-                  <span className="onb-rb-icon-wrap">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M22 10L12 5 2 10l10 5 10-5z" stroke="#4648d4" strokeWidth="1.7" strokeLinejoin="round"/><path d="M6 12.5v4.5a9 9 0 0012 0v-4.5" stroke="#4648d4" strokeWidth="1.7" strokeLinecap="round"/></svg>
-                  </span>
-                  <div className="onb-rb-card-text">
-                    <span className="onb-rb-card-title">Education</span>
-                    <span className="onb-rb-card-desc">Academic background and degrees</span>
+              {/* 2. EDUCATION PANE */}
+              {(activeBuildSection || "work") === "edu" && (
+                <div className="onb-rb-pane">
+                  <div className="onb-rb-pane-header">
+                    <div>
+                      <h2 className="onb-rb-pane-title">Education</h2>
+                      <p className="onb-rb-pane-desc">Academic background, universities, and degrees obtained.</p>
+                    </div>
+                    <button type="button" className="onb-rb-action-btn" onClick={() => setEducation((c) => [...c, { school: "", degree: "", date: "" }])}>
+                      <Plus size={15} />
+                      <span>Add Degree</span>
+                    </button>
                   </div>
-                  <span className="onb-rb-count">{education.length}</span>
-                  <span className="onb-rb-toggle">{activeBuildSection === "edu" ? "−" : "+"}</span>
-                </button>
-                {activeBuildSection === "edu" && (
-                  <div className="onb-rb-form">
-                    {education.length === 0 && (
-                      <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
-                    )}
+
+                  {education.length === 0 && (
+                    <div className="onb-rb-empty-box">
+                      <div className="onb-rb-empty-icon">
+                        <GraduationCap size={24} />
+                      </div>
+                      <p className="onb-rb-empty-title">No education added yet</p>
+                      <p className="onb-rb-empty-sub">Add your university, college, or degree program.</p>
+                      <button type="button" className="onb-rb-empty-action" onClick={() => setEducation((c) => [...c, { school: "", degree: "", date: "" }])}>
+                        <Plus size={14} /> Add Degree
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="onb-rb-entries-stack">
                     {education.map((entry, i) => (
                       <React.Fragment key={i}>
                         {committedKeys.has(`edu-${i}`) ? (
@@ -1487,73 +1673,95 @@ export function OnboardingPage() {
                             <div className="onb-rb-summary-main">
                               <strong>{entry.degree || "Untitled Degree"}</strong>
                               <span className="onb-rb-summary-sub">{entry.school || "Unknown School"}</span>
-                              <span className="onb-muted-sm">{entry.date || "?"}</span>
+                              <span className="onb-muted-sm">{entry.date || "Graduation date unspecified"}</span>
                             </div>
-                            <button
-                              type="button"
-                              className="onb-rb-edit-icon-btn"
-                              onClick={() => uncommitEntry(`edu-${i}`)}
-                              aria-label="Edit entry"
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                            </button>
+                            <div className="onb-rb-summary-actions">
+                              <button
+                                type="button"
+                                className="onb-rb-icon-action-btn"
+                                onClick={() => uncommitEntry(`edu-${i}`)}
+                                title="Edit education"
+                                aria-label="Edit education"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                className="onb-rb-icon-action-btn onb-rb-icon-action-btn--danger"
+                                onClick={() => removeEducation(i)}
+                                title="Delete education"
+                                aria-label="Delete education"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="onb-rb-edit-card">
                             <div className="onb-rb-edit-card-head">
-                              <span className="onb-rb-edit-card-label">Education</span>
-                              <button type="button" className="onb-rb-remove" onClick={() => setEducation((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
+                              <span className="onb-rb-edit-card-label">Edit Education</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => removeEducation(i)} aria-label="Remove entry">×</button>
                             </div>
                             <div className="onb-we-card-grid">
                               <div className="onb-we-field">
                                 <label className="onb-we-field-label">School / University</label>
-                                <input className="onb-input onb-we-field-control" value={entry.school} onChange={(e) => updateEducation(i, "school", e.target.value)} placeholder="e.g. MIT" />
+                                <input className="onb-input onb-we-field-control" value={entry.school} onChange={(e) => updateEducation(i, "school", e.target.value)} placeholder="e.g. Stanford University" />
                               </div>
                               <div className="onb-we-field">
                                 <label className="onb-we-field-label">Degree</label>
                                 <input className="onb-input onb-we-field-control" value={entry.degree} onChange={(e) => updateEducation(i, "degree", e.target.value)} placeholder="e.g. B.Sc. Computer Science" />
                               </div>
-                              <div className="onb-we-field">
+                              <div className="onb-we-field onb-we-field--full">
                                 <label className="onb-we-field-label">Graduation date</label>
                                 <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateEducation(i, "date", e.target.value)} />
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              className="onb-rb-add-btn"
-                              style={{ alignSelf: "flex-end", marginTop: 16 }}
-                              disabled={!entry.school.trim() && !entry.degree.trim()}
-                              onClick={() => commitEntry(`edu-${i}`)}
-                            >
-                              Save
-                            </button>
+                            <div className="onb-rb-edit-actions">
+                              <button
+                                type="button"
+                                className="onb-btn onb-btn-primary onb-btn-primary--brand onb-rb-save-btn"
+                                disabled={!entry.school.trim() && !entry.degree.trim()}
+                                onClick={() => commitEntry(`edu-${i}`)}
+                              >
+                                Save Degree
+                              </button>
+                            </div>
                           </div>
                         )}
                       </React.Fragment>
                     ))}
-                    <button type="button" className="onb-rb-add-btn" onClick={() => setEducation((c) => [...c, { school: "", degree: "", date: "" }])}>+ Add Entry</button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* ── Projects ── */}
-              <div className={`onb-rb-card${activeBuildSection === "proj" ? " onb-rb-card--open" : ""}`}>
-                <button type="button" className="onb-rb-card-row" onClick={() => setActiveBuildSection((s) => (s === "proj" ? null : "proj"))} aria-expanded={activeBuildSection === "proj"}>
-                  <span className="onb-rb-icon-wrap">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><rect x="3" y="3" width="7" height="7" rx="1" stroke="#4648d4" strokeWidth="1.7"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#4648d4" strokeWidth="1.7"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#4648d4" strokeWidth="1.7"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#4648d4" strokeWidth="1.7"/></svg>
-                  </span>
-                  <div className="onb-rb-card-text">
-                    <span className="onb-rb-card-title">Projects</span>
-                    <span className="onb-rb-card-desc">Showcase your best work</span>
+              {/* 3. PROJECTS PANE */}
+              {(activeBuildSection || "work") === "proj" && (
+                <div className="onb-rb-pane">
+                  <div className="onb-rb-pane-header">
+                    <div>
+                      <h2 className="onb-rb-pane-title">Projects</h2>
+                      <p className="onb-rb-pane-desc">Showcase portfolio work, applications, or open-source software you built.</p>
+                    </div>
+                    <button type="button" className="onb-rb-action-btn" onClick={() => setProjects((c) => [...c, { name: "", website: "", date: "", description: "" }])}>
+                      <Plus size={15} />
+                      <span>Add Project</span>
+                    </button>
                   </div>
-                  <span className="onb-rb-count">{projects.length}</span>
-                  <span className="onb-rb-toggle">{activeBuildSection === "proj" ? "−" : "+"}</span>
-                </button>
-                {activeBuildSection === "proj" && (
-                  <div className="onb-rb-form">
-                    {projects.length === 0 && (
-                      <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
-                    )}
+
+                  {projects.length === 0 && (
+                    <div className="onb-rb-empty-box">
+                      <div className="onb-rb-empty-icon">
+                        <FolderGit2 size={24} />
+                      </div>
+                      <p className="onb-rb-empty-title">No projects added yet</p>
+                      <p className="onb-rb-empty-sub">Highlight projects to show real-world expertise to recruiters.</p>
+                      <button type="button" className="onb-rb-empty-action" onClick={() => setProjects((c) => [...c, { name: "", website: "", date: "", description: "" }])}>
+                        <Plus size={14} /> Add Project
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="onb-rb-entries-stack">
                     {projects.map((entry, i) => (
                       <React.Fragment key={i}>
                         {committedKeys.has(`proj-${i}`) ? (
@@ -1562,95 +1770,106 @@ export function OnboardingPage() {
                               {entry.name ? entry.name.charAt(0).toUpperCase() : "P"}
                             </div>
                             <div className="onb-rb-summary-main">
-                              <strong>{entry.name || "Untitled Project"}</strong>
-                              <span className="onb-rb-summary-sub">{entry.website || "No link"}</span>
-                              <span className="onb-muted-sm">{entry.date || "?"}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <strong>{entry.name || "Untitled Project"}</strong>
+                                {entry.website && (
+                                  <a href={entry.website} target="_blank" rel="noopener noreferrer" className="onb-rb-link-btn" title="Open project link">
+                                    <ExternalLink size={14} />
+                                  </a>
+                                )}
+                              </div>
+                              {entry.description && <span className="onb-rb-summary-sub">{entry.description}</span>}
+                              <span className="onb-muted-sm">{entry.date || "Date unspecified"}</span>
                             </div>
-                            <button
-                              type="button"
-                              className="onb-rb-edit-icon-btn"
-                              onClick={() => uncommitEntry(`proj-${i}`)}
-                              aria-label="Edit entry"
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                            </button>
+                            <div className="onb-rb-summary-actions">
+                              <button
+                                type="button"
+                                className="onb-rb-icon-action-btn"
+                                onClick={() => uncommitEntry(`proj-${i}`)}
+                                title="Edit project"
+                                aria-label="Edit project"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                className="onb-rb-icon-action-btn onb-rb-icon-action-btn--danger"
+                                onClick={() => removeProject(i)}
+                                title="Delete project"
+                                aria-label="Delete project"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="onb-rb-edit-card">
                             <div className="onb-rb-edit-card-head">
-                              <span className="onb-rb-edit-card-label">Project</span>
-                              <button type="button" className="onb-rb-remove" onClick={() => setProjects((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
+                              <span className="onb-rb-edit-card-label">Edit Project</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => removeProject(i)} aria-label="Remove entry">×</button>
                             </div>
                             <div className="onb-we-card-grid">
                               <div className="onb-we-field">
                                 <label className="onb-we-field-label">Project name</label>
-                                <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateProject(i, "name", e.target.value)} placeholder="e.g. Portfolio Site" />
+                                <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateProject(i, "name", e.target.value)} placeholder="e.g. AI Portfolio Platform" />
                               </div>
                               <div className="onb-we-field">
                                 <label className="onb-we-field-label">Website / Link</label>
-                                <input className="onb-input onb-we-field-control" type="url" value={entry.website} onChange={(e) => updateProject(i, "website", e.target.value)} placeholder="https://..." />
+                                <input className="onb-input onb-we-field-control" type="url" value={entry.website} onChange={(e) => updateProject(i, "website", e.target.value)} placeholder="https://github.com/..." />
                               </div>
-                              <div className="onb-we-field">
+                              <div className="onb-we-field onb-we-field--full">
                                 <label className="onb-we-field-label">Date</label>
                                 <input className="onb-input onb-we-field-control" type="month" value={entry.date} onChange={(e) => updateProject(i, "date", e.target.value)} />
                               </div>
                               <div className="onb-we-field onb-we-field--full">
                                 <label className="onb-we-field-label">Description</label>
-                                <textarea className="onb-input onb-we-textarea" rows={2} value={entry.description} onChange={(e) => updateProject(i, "description", e.target.value)} placeholder="What did you build and how?" />
+                                <textarea className="onb-input onb-we-textarea" rows={2} value={entry.description} onChange={(e) => updateProject(i, "description", e.target.value)} placeholder="What did you build, and which core tech stack did you use?" />
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              className="onb-rb-add-btn"
-                              style={{ alignSelf: "flex-end", marginTop: 16 }}
-                              disabled={!entry.name.trim()}
-                              onClick={() => commitEntry(`proj-${i}`)}
-                            >
-                              Save
-                            </button>
+                            <div className="onb-rb-edit-actions">
+                              <button
+                                type="button"
+                                className="onb-btn onb-btn-primary onb-btn-primary--brand onb-rb-save-btn"
+                                disabled={!entry.name.trim()}
+                                onClick={() => commitEntry(`proj-${i}`)}
+                              >
+                                Save Project
+                              </button>
+                            </div>
                           </div>
                         )}
                       </React.Fragment>
                     ))}
-                    <button type="button" className="onb-rb-add-btn" onClick={() => setProjects((c) => [...c, { name: "", website: "", date: "", description: "" }])}>+ Add Entry</button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* ── Skills ── */}
-              <div className={`onb-rb-card${activeBuildSection === "skills" ? " onb-rb-card--open" : ""}`}>
-                <button type="button" className="onb-rb-card-row" onClick={() => setActiveBuildSection((s) => (s === "skills" ? null : "skills"))} aria-expanded={activeBuildSection === "skills"}>
-                  <span className="onb-rb-icon-wrap">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><circle cx="12" cy="12" r="9" stroke="#4648d4" strokeWidth="1.7"/><path d="M9 12l2 2 4-4" stroke="#4648d4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </span>
-                  <div className="onb-rb-card-text">
-                    <span className="onb-rb-card-title">Skills</span>
-                    <span className="onb-rb-card-desc">Technical &amp; soft skills</span>
+              {/* 4. SKILLS PANE */}
+              {(activeBuildSection || "work") === "skills" && (
+                <div className="onb-rb-pane">
+                  <div className="onb-rb-pane-header">
+                    <div>
+                      <h2 className="onb-rb-pane-title">Skills &amp; Proficiencies</h2>
+                      <p className="onb-rb-pane-desc">Add technical capabilities, frameworks, tools, and domain skills.</p>
+                    </div>
                   </div>
-                  <span className="onb-rb-count">{skills.length}</span>
-                  <span className="onb-rb-toggle">{activeBuildSection === "skills" ? "−" : "+"}</span>
-                </button>
-                {activeBuildSection === "skills" && (
-                  <div className="onb-rb-form">
-                    {skills.length > 0 && (
-                      <div className="onb-rb-tags" aria-live="polite">
-                        {skills.map((skill, i) => (
-                          <span key={i} className="onb-rb-tag">
-                            {skill}
-                            <button type="button" className="onb-rb-tag-remove" onClick={() => setSkills((c) => c.filter((_, j) => j !== i))} aria-label={`Remove ${skill}`}>×</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
+
+                  <div className="onb-rb-skills-shell">
                     <div className="onb-rb-inline-add">
-                      <input className="onb-input onb-rb-tag-input" value={newSkill} onChange={(e) => setNewSkill(e.target.value)} placeholder="e.g. React, Python, Leadership…" onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === ",") {
-                          e.preventDefault();
-                          const val = newSkill.trim().replace(/,$/, "");
-                          if (val && !skills.includes(val)) setSkills((c) => [...c, val]);
-                          setNewSkill("");
-                        }
-                      }} />
+                      <input
+                        className="onb-input onb-rb-tag-input"
+                        value={newSkill}
+                        onChange={(e) => setNewSkill(e.target.value)}
+                        placeholder="Type a skill and press Enter or comma (e.g. React, Python, Figma)..."
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === ",") {
+                            e.preventDefault();
+                            const val = newSkill.trim().replace(/,$/, "");
+                            if (val && !skills.includes(val)) setSkills((c) => [...c, val]);
+                            setNewSkill("");
+                          }
+                        }}
+                      />
                       <button
                         type="button"
                         className={`onb-rb-add-btn${skillJustAdded ? " onb-rb-add-btn--added" : ""}`}
@@ -1665,31 +1884,85 @@ export function OnboardingPage() {
                           }
                           setNewSkill("");
                         }}
-                      >{skillJustAdded ? "✓ Added" : "Add"}</button>
+                      >
+                        {skillJustAdded ? "✓ Added" : "Add Skill"}
+                      </button>
                     </div>
-                    <p className="onb-muted-sm" style={{ marginTop: 4 }}>Press Enter or comma to add a skill</p>
-                  </div>
-                )}
-              </div>
 
-              {/* ── Certifications ── */}
-              <div className={`onb-rb-card${activeBuildSection === "cert" ? " onb-rb-card--open" : ""}`}>
-                <button type="button" className="onb-rb-card-row" onClick={() => setActiveBuildSection((s) => (s === "cert" ? null : "cert"))} aria-expanded={activeBuildSection === "cert"}>
-                  <span className="onb-rb-icon-wrap">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" stroke="#4648d4" strokeWidth="1.7" strokeLinejoin="round"/></svg>
-                  </span>
-                  <div className="onb-rb-card-text">
-                    <span className="onb-rb-card-title">Certifications</span>
-                    <span className="onb-rb-card-desc">Licenses and courses</span>
-                  </div>
-                  <span className="onb-rb-count">{certifications.length}</span>
-                  <span className="onb-rb-toggle">{activeBuildSection === "cert" ? "−" : "+"}</span>
-                </button>
-                {activeBuildSection === "cert" && (
-                  <div className="onb-rb-form">
-                    {certifications.length === 0 && (
-                      <p className="onb-rb-empty">No entries yet. Click Add Entry to get started.</p>
+                    {skills.length > 0 ? (
+                      <div className="onb-rb-tags" aria-live="polite">
+                        {skills.map((skill, i) => (
+                          <span key={i} className="onb-rb-tag">
+                            <span>{skill}</span>
+                            <button
+                              type="button"
+                              className="onb-rb-tag-remove"
+                              onClick={() => setSkills((c) => c.filter((_, j) => j !== i))}
+                              aria-label={`Remove ${skill}`}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="onb-rb-empty-box" style={{ padding: "32px 20px" }}>
+                        <p className="onb-rb-empty-title">No skills added yet</p>
+                        <p className="onb-rb-empty-sub">Add your top skills above or pick from popular suggestions below.</p>
+                      </div>
                     )}
+
+                    {/* Quick suggested skills */}
+                    <div className="onb-rb-suggestions">
+                      <span className="onb-rb-suggestions-label">Popular suggestions:</span>
+                      <div className="onb-rb-suggestions-chips">
+                        {["React", "TypeScript", "JavaScript", "Python", "Node.js", "SQL", "Git", "Figma", "UI/UX", "REST APIs", "Docker", "Tailwind CSS"]
+                          .filter((s) => !skills.includes(s))
+                          .slice(0, 8)
+                          .map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              className="onb-rb-suggest-chip"
+                              onClick={() => setSkills((c) => [...c, suggestion])}
+                            >
+                              <Plus size={12} /> {suggestion}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 5. CERTIFICATIONS PANE */}
+              {(activeBuildSection || "work") === "cert" && (
+                <div className="onb-rb-pane">
+                  <div className="onb-rb-pane-header">
+                    <div>
+                      <h2 className="onb-rb-pane-title">Certifications &amp; Licenses</h2>
+                      <p className="onb-rb-pane-desc">Accredited certifications, professional licenses, and verified courses.</p>
+                    </div>
+                    <button type="button" className="onb-rb-action-btn" onClick={() => setCertifications((c) => [...c, { name: "", link: "" }])}>
+                      <Plus size={15} />
+                      <span>Add Certification</span>
+                    </button>
+                  </div>
+
+                  {certifications.length === 0 && (
+                    <div className="onb-rb-empty-box">
+                      <div className="onb-rb-empty-icon">
+                        <Award size={24} />
+                      </div>
+                      <p className="onb-rb-empty-title">No certifications added yet</p>
+                      <p className="onb-rb-empty-sub">Add any industry credentials (e.g. AWS, Google, Cisco, Coursera).</p>
+                      <button type="button" className="onb-rb-empty-action" onClick={() => setCertifications((c) => [...c, { name: "", link: "" }])}>
+                        <Plus size={14} /> Add Certification
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="onb-rb-entries-stack">
                     {certifications.map((entry, i) => (
                       <React.Fragment key={i}>
                         {committedKeys.has(`cert-${i}`) ? (
@@ -1699,85 +1972,96 @@ export function OnboardingPage() {
                             </div>
                             <div className="onb-rb-summary-main">
                               <strong>{entry.name || "Untitled Certification"}</strong>
-                              <span className="onb-rb-summary-sub">{entry.link || "No link"}</span>
+                              {entry.link ? (
+                                <a href={entry.link} target="_blank" rel="noopener noreferrer" className="onb-rb-summary-sub onb-flex-gap" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                  <span>Credential Link</span>
+                                  <ExternalLink size={13} />
+                                </a>
+                              ) : (
+                                <span className="onb-muted-sm">No credential URL provided</span>
+                              )}
                             </div>
-                            <button
-                              type="button"
-                              className="onb-rb-edit-icon-btn"
-                              onClick={() => uncommitEntry(`cert-${i}`)}
-                              aria-label="Edit entry"
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                            </button>
+                            <div className="onb-rb-summary-actions">
+                              <button
+                                type="button"
+                                className="onb-rb-icon-action-btn"
+                                onClick={() => uncommitEntry(`cert-${i}`)}
+                                title="Edit certification"
+                                aria-label="Edit certification"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                className="onb-rb-icon-action-btn onb-rb-icon-action-btn--danger"
+                                onClick={() => removeCertification(i)}
+                                title="Delete certification"
+                                aria-label="Delete certification"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="onb-rb-edit-card">
                             <div className="onb-rb-edit-card-head">
-                              <span className="onb-rb-edit-card-label">Certification</span>
-                              <button type="button" className="onb-rb-remove" onClick={() => setCertifications((c) => c.filter((_, j) => j !== i))} aria-label="Remove entry">×</button>
+                              <span className="onb-rb-edit-card-label">Edit Certification</span>
+                              <button type="button" className="onb-rb-remove" onClick={() => removeCertification(i)} aria-label="Remove entry">×</button>
                             </div>
                             <div className="onb-we-card-grid">
                               <div className="onb-we-field">
                                 <label className="onb-we-field-label">Certification name</label>
-                                <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateCertification(i, "name", e.target.value)} placeholder="e.g. AWS Certified Developer" />
+                                <input className="onb-input onb-we-field-control" value={entry.name} onChange={(e) => updateCertification(i, "name", e.target.value)} placeholder="e.g. AWS Certified Solutions Architect" />
                               </div>
                               <div className="onb-we-field">
-                                <label className="onb-we-field-label">Link / URL</label>
+                                <label className="onb-we-field-label">Verification Link / URL</label>
                                 <input className="onb-input onb-we-field-control" type="url" value={entry.link} onChange={(e) => updateCertification(i, "link", e.target.value)} placeholder="https://..." />
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              className="onb-rb-add-btn"
-                              style={{ alignSelf: "flex-end", marginTop: 16 }}
-                              disabled={!entry.name.trim()}
-                              onClick={() => commitEntry(`cert-${i}`)}
-                            >
-                              Save
-                            </button>
+                            <div className="onb-rb-edit-actions">
+                              <button
+                                type="button"
+                                className="onb-btn onb-btn-primary onb-btn-primary--brand onb-rb-save-btn"
+                                disabled={!entry.name.trim()}
+                                onClick={() => commitEntry(`cert-${i}`)}
+                              >
+                                Save Certification
+                              </button>
+                            </div>
                           </div>
                         )}
                       </React.Fragment>
                     ))}
-                    <button type="button" className="onb-rb-add-btn" onClick={() => setCertifications((c) => [...c, { name: "", link: "" }])}>+ Add Entry</button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* ── Interests ── */}
-              <div className={`onb-rb-card${activeBuildSection === "interests" ? " onb-rb-card--open" : ""}`}>
-                <button type="button" className="onb-rb-card-row" onClick={() => setActiveBuildSection((s) => (s === "interests" ? null : "interests"))} aria-expanded={activeBuildSection === "interests"}>
-                  <span className="onb-rb-icon-wrap">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 21C12 21 3 14 3 8.5A5.5 5.5 0 0112 5a5.5 5.5 0 019 3.5C21 14 12 21 12 21z" stroke="#4648d4" strokeWidth="1.7" strokeLinejoin="round"/></svg>
-                  </span>
-                  <div className="onb-rb-card-text">
-                    <span className="onb-rb-card-title">Interests</span>
-                    <span className="onb-rb-card-desc">Hobbies and passions</span>
+              {/* 6. INTERESTS PANE */}
+              {(activeBuildSection || "work") === "interests" && (
+                <div className="onb-rb-pane">
+                  <div className="onb-rb-pane-header">
+                    <div>
+                      <h2 className="onb-rb-pane-title">Interests &amp; Passions</h2>
+                      <p className="onb-rb-pane-desc">Hobbies, passions, and topics that inspire your work outside the office.</p>
+                    </div>
                   </div>
-                  <span className="onb-rb-count">{interests.length}</span>
-                  <span className="onb-rb-toggle">{activeBuildSection === "interests" ? "−" : "+"}</span>
-                </button>
-                {activeBuildSection === "interests" && (
-                  <div className="onb-rb-form">
-                    {interests.length > 0 && (
-                      <div className="onb-rb-tags" aria-live="polite">
-                        {interests.map((item, i) => (
-                          <span key={i} className="onb-rb-tag">
-                            {item}
-                            <button type="button" className="onb-rb-tag-remove" onClick={() => setInterests((c) => c.filter((_, j) => j !== i))} aria-label={`Remove ${item}`}>×</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
+
+                  <div className="onb-rb-skills-shell">
                     <div className="onb-rb-inline-add">
-                      <input className="onb-input onb-rb-tag-input" value={newInterest} onChange={(e) => setNewInterest(e.target.value)} placeholder="e.g. Open Source, Hiking, Design…" onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === ",") {
-                          e.preventDefault();
-                          const val = newInterest.trim().replace(/,$/, "");
-                          if (val && !interests.includes(val)) setInterests((c) => [...c, val]);
-                          setNewInterest("");
-                        }
-                      }} />
+                      <input
+                        className="onb-input onb-rb-tag-input"
+                        value={newInterest}
+                        onChange={(e) => setNewInterest(e.target.value)}
+                        placeholder="Type an interest and press Enter (e.g. Open Source, AI, Hiking)..."
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === ",") {
+                            e.preventDefault();
+                            const val = newInterest.trim().replace(/,$/, "");
+                            if (val && !interests.includes(val)) setInterests((c) => [...c, val]);
+                            setNewInterest("");
+                          }
+                        }}
+                      />
                       <button
                         type="button"
                         className={`onb-rb-add-btn${interestJustAdded ? " onb-rb-add-btn--added" : ""}`}
@@ -1792,75 +2076,130 @@ export function OnboardingPage() {
                           }
                           setNewInterest("");
                         }}
-                      >{interestJustAdded ? "✓ Added" : "Add"}</button>
+                      >
+                        {interestJustAdded ? "✓ Added" : "Add Interest"}
+                      </button>
                     </div>
-                    <p className="onb-muted-sm" style={{ marginTop: 4 }}>Press Enter or comma to add an interest</p>
+
+                    {interests.length > 0 ? (
+                      <div className="onb-rb-tags" aria-live="polite">
+                        {interests.map((item, i) => (
+                          <span key={i} className="onb-rb-tag">
+                            <span>{item}</span>
+                            <button
+                              type="button"
+                              className="onb-rb-tag-remove"
+                              onClick={() => setInterests((c) => c.filter((_, j) => j !== i))}
+                              aria-label={`Remove ${item}`}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="onb-rb-empty-box" style={{ padding: "32px 20px" }}>
+                        <p className="onb-rb-empty-title">No interests added yet</p>
+                        <p className="onb-rb-empty-sub">Add what you're passionate about outside work.</p>
+                      </div>
+                    )}
+
+                    {/* Quick suggested interests */}
+                    <div className="onb-rb-suggestions">
+                      <span className="onb-rb-suggestions-label">Popular topics:</span>
+                      <div className="onb-rb-suggestions-chips">
+                        {["Open Source", "Artificial Intelligence", "Design Systems", "Mentorship", "Public Speaking", "Writing", "Cloud Computing"]
+                          .filter((item) => !interests.includes(item))
+                          .slice(0, 6)
+                          .map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              className="onb-rb-suggest-chip"
+                              onClick={() => setInterests((c) => [...c, suggestion])}
+                            >
+                              <Plus size={12} /> {suggestion}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-            </div>
-
-            <div className="onb-rb-footer">
-              <button type="button" className="onb-btn onb-btn-ghost onb-flex-gap" onClick={back}>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden><path d="M7.5 1.5L3 6l4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                Back
-              </button>
-              <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand onb-flex-gap onb-rb-continue" onClick={next}>
-                Continue Building
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden><path d="M4.5 1.5L9 6l-4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </button>
-            </div>
+            </main>
           </div>
         </div>
       )}
-
       {step === 5 && (
-        <div className="onb-ready">
-          <div className="onb-ready-grid">
-            <div>
-              <div className="onb-ready-check-wrap">
-                <div className="onb-ready-check">
-                  <img src={ast.ready.check} alt="" width={50} height={50} />
-                </div>
-              </div>
-              <h2 className="onb-ready-title">
-                You&apos;re almost ready
-                <br />
-                to swipe!
-              </h2>
-              <button type="button" className="onb-btn onb-btn-primary onb-btn-primary--brand" style={{ padding: "16px 64px", fontSize: 16 }} onClick={next}>
-                Let&apos;s Go
-              </button>
+        <div className="onb-ready-wrapper">
+          <div className="onb-ready-stage-card">
+            {/* Top Centered Hero */}
+            <div className="onb-step-badge">
+              <span className="onb-step-badge-dot" />
+              <span>Milestone • Step 5 of 11</span>
             </div>
-            <div>
-              <div className="onb-feature-card">
-                <div className="onb-icon-64" style={{ background: "#e1e0ff" }}>
-                  <img src={ast.ready.match} alt="" width={33} height={33} />
+
+            <div className="onb-ready-check-wrap">
+              <div className="onb-ready-check">
+                <img src={ast.ready.check} alt="" width={44} height={44} />
+              </div>
+            </div>
+
+            <h1 className="onb-ready-title">You're almost ready to swipe!</h1>
+            <p className="onb-ready-desc">
+              Your professional profile has been saved. Next, we will calibrate your job search preferences—roles, target locations, and work models.
+            </p>
+
+            {/* Symmetrical 2-Column Feature Grid */}
+            <div className="onb-ready-features-grid">
+              <div className="onb-ready-feature-card">
+                <div className="onb-ready-feature-icon onb-ready-feature-icon--indigo">
+                  <img src={ast.ready.match} alt="" width={28} height={28} />
                 </div>
-                <div>
-                  <p style={{ margin: "0 0 4px", fontSize: 18 }}>Personalized Matches</p>
-                  <p className="onb-muted-sm" style={{ lineHeight: 1.4 }}>
-                    Curated professionals aligned with your career goals
+                <div className="onb-ready-feature-content">
+                  <h3 className="onb-ready-feature-title">Personalized Matches</h3>
+                  <p className="onb-ready-feature-desc">
+                    Curated job recommendations based on your verified skills, experience, and career trajectory.
                   </p>
+                  <div className="onb-ready-feature-pills">
+                    <span className="onb-ready-pill">Skill-Matched</span>
+                    <span className="onb-ready-pill">AI Calibrated</span>
+                  </div>
                 </div>
               </div>
-              <div className="onb-feature-card" style={{ marginBottom: 0 }}>
-                <div className="onb-icon-64" style={{ background: "#c9e6ff" }}>
-                  <img src={ast.ready.chat} alt="" width={24} height={30} />
+
+              <div className="onb-ready-feature-card">
+                <div className="onb-ready-feature-icon onb-ready-feature-icon--cyan">
+                  <img src={ast.ready.chat} alt="" width={26} height={30} />
                 </div>
-                <div>
-                  <p style={{ margin: "0 0 4px", fontSize: 18 }}>Instant Connections</p>
-                  <p className="onb-muted-sm" style={{ lineHeight: 1.4 }}>
-                    Start meaningful conversations immediately upon matching
+                <div className="onb-ready-feature-content">
+                  <h3 className="onb-ready-feature-title">Instant Connections</h3>
+                  <p className="onb-ready-feature-desc">
+                    Swipe right to save and apply directly to matching hiring teams with zero friction.
                   </p>
+                  <div className="onb-ready-feature-pills">
+                    <span className="onb-ready-pill">Direct Inquiries</span>
+                    <span className="onb-ready-pill">Instant Chat</span>
+                  </div>
                 </div>
               </div>
+            </div>
+
+            {/* Centered Body CTA */}
+            <div className="onb-ready-cta-wrap">
+              <button
+                type="button"
+                className="onb-btn onb-btn-primary onb-btn-primary--brand onb-ready-cta"
+                onClick={next}
+              >
+                <span>Let's Go</span>
+                <ArrowRight size={18} />
+              </button>
             </div>
           </div>
         </div>
       )}
-
       {step === 6 && (
         <>
           <div className="onb-roles">
