@@ -11,7 +11,7 @@ import { asUserPreferences, asUserProfile } from "../auth/normalizeSession";
 import { useAuth } from "../context/AuthContext";
 import type { ProfileEducation, ProfileProject, ProfileCertification } from "../api/types";
 import { readDraft, writeDraft, clearDraft } from "../auth/onboardingDraft";
-import { User, Mail, Briefcase, GraduationCap, FolderGit2, Sparkles, Award, Heart, Plus, Edit2, Trash2, Check, ExternalLink, ArrowRight, X } from "lucide-react";
+import { User, Mail, Phone, ShieldCheck, Lock, CheckCircle2, Briefcase, GraduationCap, FolderGit2, Sparkles, Award, Heart, Plus, Edit2, Trash2, Check, ExternalLink, ArrowRight, X, Search, MapPin, MapPinOff, FileText, Clock } from "lucide-react";
 import { OnboardingTopBar } from "../components/onboarding/OnboardingTopBar";
 import "./OnboardingPage.css";
 
@@ -128,6 +128,12 @@ export function OnboardingPage() {
   const [personalEmail, setPersonalEmail] = useState<string>(() => _draft.personalEmail ?? "");
   const [personalDialCode, setPersonalDialCode] = useState<string>(() => _draft.personalDialCode ?? "+1");
   const [personalPhone, setPersonalPhone] = useState<string>(() => _draft.personalPhone ?? "");
+  const personalInitials = useMemo(() => {
+    const parts = personalFullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }, [personalFullName]);
   const [workExperiences, setWorkExperiences] = useState<WorkExperienceEntry[]>(() => _draft.workExperiences ?? []);
 
   // Resume Builder sections
@@ -940,7 +946,7 @@ export function OnboardingPage() {
   );
 
   // ── Derived navigation state for TopBar / BottomBar ──────────────────────────
-  const isMapStep     = step === 8 || step === 9;
+  const isMapStep     = step === 8;
     const showBottomBar = !isMapStep && step !== 5;
 
   const continueLabel =
@@ -958,9 +964,9 @@ export function OnboardingPage() {
 
   return (
     <div
-      className={`onb page-fill${step === 8 ? " onb--loc-step" : ""}${step === 9 ? " onb--target-step" : ""}`}
+      className={`onb page-fill${step === 8 ? " onb--loc-step" : ""}`}
       style={
-        step === 8 || step === 9
+        step === 8
           ? {
               height: "calc(100dvh - 68px)",
               maxHeight: "calc(100dvh - 68px)",
@@ -1034,8 +1040,8 @@ export function OnboardingPage() {
                     <div className="onb-id-text-wrap">
                       <p className={`onb-id-title${isSelected ? " onb-id-title--selected" : ""}`}>{title}</p>
                     </div>
-                    <div className="onb-id-radio-indicator">
-                      <img src={isSelected ? ast.gender.radioOn : ast.gender.radioOff} alt="" />
+                    <div className={`onb-id-radio${isSelected ? " onb-id-radio--sel" : ""}`}>
+                      {isSelected && <div className="onb-id-radio-dot" />}
                     </div>
                   </button>
                 );
@@ -1256,113 +1262,166 @@ export function OnboardingPage() {
             </div>
 
             <div className="onb-personal-form-body">
-              <div className="onb-form-section">
-                <div className="onb-section-head">
-                  <div className="onb-section-icon-wrap" aria-hidden>
-                    <User size={15} strokeWidth={2.2} />
+              {/* Section 1: Identity & Profile */}
+              <div className="onb-rich-card">
+                <div className="onb-rich-card-header">
+                  <div className="onb-rich-card-title-wrap">
+                    {personalInitials ? (
+                      <div className="onb-section-avatar-circle" aria-hidden title={personalFullName}>
+                        {personalInitials}
+                      </div>
+                    ) : (
+                      <div className="onb-section-icon-wrap" aria-hidden>
+                        <User size={15} strokeWidth={2.2} />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="onb-rich-card-title">Basic Details</h3>
+                      <p className="onb-rich-card-subtitle">Your identity as shown to prospective employers</p>
+                    </div>
                   </div>
-                  <h3>Basic Details</h3>
+                  <span className="onb-rich-card-badge">
+                    <CheckCircle2 size={12} className="onb-badge-icon" />
+                    Public Profile
+                  </span>
                 </div>
-                <div className="onb-personal-fields">
-                  <div>
+
+                <div className="onb-rich-card-body">
+                  <div className="onb-field-group">
                     <label className="onb-label" htmlFor="onb-full-name">
                       Full name
                     </label>
-                    <input
-                      id="onb-full-name"
-                      name="fullName"
-                      className="onb-input"
-                      type="text"
-                      autoComplete="name"
-                      placeholder="e.g. Jane Doe"
-                      value={personalFullName}
-                      onChange={(e) => setPersonalFullName(e.target.value)}
-                    />
+                    <div className="onb-input-icon-wrap">
+                      <User size={16} className="onb-input-icon" aria-hidden />
+                      <input
+                        id="onb-full-name"
+                        name="fullName"
+                        className="onb-input onb-input--with-icon"
+                        type="text"
+                        autoComplete="name"
+                        placeholder="e.g. Jane Doe"
+                        value={personalFullName}
+                        onChange={(e) => setPersonalFullName(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="onb-form-divider" />
-
-              <div className="onb-form-section">
-                <div className="onb-section-head">
-                  <div className="onb-section-icon-wrap" aria-hidden>
-                    <Mail size={15} strokeWidth={2.2} />
+              {/* Section 2: Contact Information */}
+              <div className="onb-rich-card">
+                <div className="onb-rich-card-header">
+                  <div className="onb-rich-card-title-wrap">
+                    <div className="onb-section-icon-wrap onb-section-icon-wrap--indigo" aria-hidden>
+                      <Mail size={15} strokeWidth={2.2} />
+                    </div>
+                    <div>
+                      <h3 className="onb-rich-card-title">Contact & Communication</h3>
+                      <p className="onb-rich-card-subtitle">Where verified companies deliver match updates</p>
+                    </div>
                   </div>
-                  <h3>Contact Information</h3>
+                  <span className="onb-rich-card-badge onb-rich-card-badge--secure">
+                    <Lock size={11} className="onb-badge-icon" />
+                    Private & Secure
+                  </span>
                 </div>
-                <div className="onb-personal-fields">
-                  <div>
-                    <label className="onb-label" htmlFor="onb-work-email">
-                      Work Email
-                    </label>
-                    <input
-                      id="onb-work-email"
-                      name="email"
-                      className="onb-input"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="name@company.com"
-                      value={personalEmail}
-                      onChange={(e) => setPersonalEmail(e.target.value)}
-                    />
-                    <p className="onb-muted-sm" style={{ margin: "6px 0 0 4px" }}>
-                      We'll send verification details here.
-                    </p>
-                  </div>
 
-                  <div>
-                    <label className="onb-label" htmlFor="onb-phone-local">
-                      Phone Number
-                    </label>
-                    <div className="onb-phone-row">
-                      <label htmlFor="onb-phone-dial" className="onb-visually-hidden">
-                        Country dial code
+                <div className="onb-rich-card-body">
+                  <div className="onb-field-group">
+                    <div className="onb-label-row">
+                      <label className="onb-label" htmlFor="onb-work-email">
+                        Work Email
                       </label>
-                      <select
-                        id="onb-phone-dial"
-                        className="onb-input onb-select onb-phone-dial-select"
-                        value={personalDialCode}
-                        onChange={(e) => setPersonalDialCode(e.target.value)}
-                        aria-label="Country dial code"
-                      >
-                        <option value="+1">US +1</option>
-                        <option value="+44">UK +44</option>
-                        <option value="+61">AU +61</option>
-                        <option value="+91">IN +91</option>
-                        <option value="+49">DE +49</option>
-                        <option value="+33">FR +33</option>
-                        <option value="+86">CN +86</option>
-                        <option value="+81">JP +81</option>
-                        <option value="+52">MX +52</option>
-                        <option value="+55">BR +55</option>
-                        <option value="+34">ES +34</option>
-                        <option value="+39">IT +39</option>
-                        <option value="+31">NL +31</option>
-                        <option value="+46">SE +46</option>
-                        <option value="+47">NO +47</option>
-                        <option value="+65">SG +65</option>
-                        <option value="+971">AE +971</option>
-                        <option value="+966">SA +966</option>
-                        <option value="+27">ZA +27</option>
-                        <option value="+234">NG +234</option>
-                        <option value="+254">KE +254</option>
-                        <option value="+92">PK +92</option>
-                        <option value="+880">BD +880</option>
-                      </select>
+                      <span className="onb-label-hint">Verification Required</span>
+                    </div>
+                    <div className="onb-input-icon-wrap">
+                      <Mail size={15} className="onb-input-icon" aria-hidden />
                       <input
-                        id="onb-phone-local"
-                        name="phone"
-                        className="onb-input onb-phone-row-input"
-                        type="tel"
-                        autoComplete="tel-national"
-                        inputMode="tel"
-                        placeholder="(555) 000-0000"
-                        value={personalPhone}
-                        onChange={(e) => setPersonalPhone(e.target.value)}
+                        id="onb-work-email"
+                        name="email"
+                        className="onb-input onb-input--with-icon"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="name@company.com"
+                        value={personalEmail}
+                        onChange={(e) => setPersonalEmail(e.target.value)}
                       />
                     </div>
                   </div>
+
+                  <div className="onb-field-group">
+                    <div className="onb-label-row">
+                      <label className="onb-label" htmlFor="onb-phone-local">
+                        Phone Number
+                      </label>
+                      <span className="onb-label-hint">Optional</span>
+                    </div>
+                    <div className="onb-phone-input-group">
+                      <div className="onb-phone-select-wrap">
+                        <label htmlFor="onb-phone-dial" className="onb-visually-hidden">
+                          Country dial code
+                        </label>
+                        <select
+                          id="onb-phone-dial"
+                          className="onb-phone-dial-select"
+                          value={personalDialCode}
+                          onChange={(e) => setPersonalDialCode(e.target.value)}
+                          aria-label="Country dial code"
+                        >
+                          <option value="+1">US +1</option>
+                          <option value="+44">UK +44</option>
+                          <option value="+61">AU +61</option>
+                          <option value="+91">IN +91</option>
+                          <option value="+49">DE +49</option>
+                          <option value="+33">FR +33</option>
+                          <option value="+86">CN +86</option>
+                          <option value="+81">JP +81</option>
+                          <option value="+52">MX +52</option>
+                          <option value="+55">BR +55</option>
+                          <option value="+34">ES +34</option>
+                          <option value="+39">IT +39</option>
+                          <option value="+31">NL +31</option>
+                          <option value="+46">SE +46</option>
+                          <option value="+47">NO +47</option>
+                          <option value="+65">SG +65</option>
+                          <option value="+971">AE +971</option>
+                          <option value="+966">SA +966</option>
+                          <option value="+27">ZA +27</option>
+                          <option value="+234">NG +234</option>
+                          <option value="+254">KE +254</option>
+                          <option value="+92">PK +92</option>
+                          <option value="+880">BD +880</option>
+                        </select>
+                      </div>
+                      <div className="onb-phone-input-wrap">
+                        <Phone size={15} className="onb-phone-icon" aria-hidden />
+                        <input
+                          id="onb-phone-local"
+                          name="phone"
+                          className="onb-phone-local-input"
+                          type="tel"
+                          autoComplete="tel-national"
+                          inputMode="tel"
+                          placeholder="(555) 000-0000"
+                          value={personalPhone}
+                          onChange={(e) => setPersonalPhone(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Trust & Privacy Guarantee Banner */}
+              <div className="onb-privacy-banner">
+                <div className="onb-privacy-icon-pill">
+                  <ShieldCheck size={18} className="onb-privacy-shield" />
+                </div>
+                <div className="onb-privacy-content">
+                  <p className="onb-privacy-headline">Enterprise-Grade Privacy</p>
+                  <p className="onb-privacy-sub">
+                    Your contact information is strictly protected. We never sell your personal data or reveal your direct phone number without your permission.
+                  </p>
                 </div>
               </div>
             </div>
@@ -2203,50 +2262,51 @@ export function OnboardingPage() {
         </div>
       )}
       {step === 6 && (
-        <>
-          <div className="onb-roles">
-            <div className="onb-roles-head">
-              <div>
-                <h1 className="onb-h1">What are you looking for?</h1>
-                <p className="onb-sub" style={{ marginTop: 12 }}>
-                  Select all the roles that align with your next career move.
-                </p>
+        <div className="onb-step-wrapper">
+          <div className="onb-step-card onb-step-card--roles">
+            <div className="onb-step-card-header">
+              <div className="onb-step-badge">
+                <span className="onb-step-badge-dot" />
+                <span>Step 6 of 11 • Target Roles &amp; Titles</span>
               </div>
+              <h1 className="onb-h1">What are you looking for?</h1>
+              <p className="onb-sub">
+                Select all the roles that align with your next career move.
+              </p>
             </div>
+
             <div className="onb-role-grid">
-              {[
-                ["Software Engineer", "Design, develop, and maintain software applications and systems across various platforms. Build the technical foundation of products."],
-                ["Product Designer", "Create intuitive, user-centric interfaces and experiences. Work closely with product and engineering to bring ideas to life."],
-                ["Data Analyst", "Interpret complex data sets, generate insights, and help businesses make informed, data-driven decisions."],
-                ["Product Manager", "Guide the success of a product and lead the cross-functional team responsible for improving it."],
-                ["Marketing Director", "Develop overarching marketing strategies, manage campaigns, and oversee a team of marketing professionals."],
-                ["UX Researcher", "Conduct user research, analyze behavior, and provide insights to inform product strategy and design decisions."],
-              ].map(([title, desc]) => (
-                <button
-                  key={title as string}
-                  type="button"
-                  className={`onb-role-card${roles.includes(title as string) ? " onb-role-card--selected" : ""}`}
-                  onClick={() => toggleRole(title as string)}
-                >
-                  <div className={`onb-role-title${roles.includes(title as string) ? " onb-role-title--sel" : ""}`}>
-                    {title as string}
-                    <img src={roles.includes(title as string) ? ast.roles.checkOn : ast.roles.checkOff} alt="" width={20} height={20} />
-                  </div>
-                  <p className="onb-muted-sm" style={{ margin: "0 0 24px", lineHeight: 1.45 }}>
-                    {desc as string}
-                  </p>
-                  <div className="onb-flex-gap" style={{ color: roles.includes(title as string) ? "#4648d4" : "#64748b", fontSize: 14 }}>
-                    Learn More
-                    <img src={roles.includes(title as string) ? ast.roles.learnMoreOn : ast.roles.learnMoreOff} alt="" width={11} height={11} />
-                  </div>
-                </button>
-              ))}
-            </div>
+            {[
+              ["Software Engineer", "Design, develop, and maintain software applications and systems across various platforms. Build the technical foundation of products."],
+              ["Product Designer", "Create intuitive, user-centric interfaces and experiences. Work closely with product and engineering to bring ideas to life."],
+              ["Data Analyst", "Interpret complex data sets, generate insights, and help businesses make informed, data-driven decisions."],
+              ["Product Manager", "Guide the success of a product and lead the cross-functional team responsible for improving it."],
+              ["Marketing Director", "Develop overarching marketing strategies, manage campaigns, and oversee a team of marketing professionals."],
+              ["UX Researcher", "Conduct user research, analyze behavior, and provide insights to inform product strategy and design decisions."],
+            ].map(([title, desc]) => (
+              <button
+                key={title as string}
+                type="button"
+                className={`onb-role-card${roles.includes(title as string) ? " onb-role-card--selected" : ""}`}
+                onClick={() => toggleRole(title as string)}
+              >
+                <div className={`onb-role-title${roles.includes(title as string) ? " onb-role-title--sel" : ""}`}>
+                  <span>{title as string}</span>
+                  <img src={roles.includes(title as string) ? ast.roles.checkOn : ast.roles.checkOff} alt="" width={20} height={20} />
+                </div>
+                <p className="onb-role-desc">
+                  {desc as string}
+                </p>
+                <div className="onb-role-footer">
+                  <span>Learn More</span>
+                  <img src={roles.includes(title as string) ? ast.roles.learnMoreOn : ast.roles.learnMoreOff} alt="" width={11} height={11} />
+                </div>
+              </button>
+            ))}
           </div>
-
-        </>
-      )}
-
+        </div>
+      </div>
+    )}
       {step === 8 && (
         <div className="onb-loc-step-shell">
           <div className="onb-loc-split">
@@ -2256,167 +2316,120 @@ export function OnboardingPage() {
                 <p className="onb-sub" style={{ marginTop: 8 }}>
                   We use this to find relevant opportunities near you.
                 </p>
-                <div style={{ position: "relative", marginTop: 24 }}>
+                <div className="onb-search-input-wrap">
+                  <Search size={18} className="onb-search-icon" />
                   <input
-                    className="onb-input"
-                    style={{ borderRadius: 12, background: "#f1f5f9", padding: "17px 16px 17px 48px", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "none" }}
+                    className="onb-search-input"
                     placeholder="Search city, area, or country"
                     value={locationSearch}
                     onChange={(e) => setLocationSearch(e.target.value)}
+                    autoComplete="off"
                   />
-                  <img src={ast.location.search} alt="" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} width={18} height={18} />
-                </div>
-                <p style={{ margin: "32px 0 16px", fontWeight: 700, fontSize: 16 }}>Popular locations</p>
-                {filteredPopularLocations.map(({ city, region }) => {
-                  const key = `${city}, ${region}`;
-                  const sel = selectedBaseLocation === key;
-                  const icon = sel
-                    ? ast.location.pinSel
-                    : region === "United Kingdom"
-                      ? ast.location.pinAlt
-                      : ast.location.pin;
-                  return (
-                  <button
-                    key={city}
-                    type="button"
-                    className={`onb-loc-chip${sel ? " onb-loc-chip--sel" : ""}`}
-                    onClick={() => {
-                      setSelectedBaseLocation(key);
-                      const coords = POPULAR_BASE_LOCATION_LNG_LAT[key];
-                      if (coords) {
-                        setBaseMapLngLat({ lng: coords[0], lat: coords[1] });
-                      }
-                    }}
-                    aria-pressed={sel}
-                  >
-                    <div className="onb-flex-gap">
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 32,
-                          background: sel ? "rgba(70,72,212,0.2)" : "#efecf8",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <img src={icon as string} alt="" width={18} height={19} />
-                      </div>
-                      <div>
-                        <p style={{ margin: 0, fontSize: 16, color: sel ? "#4648d4" : "#0f172a" }}>{city as string}</p>
-                        <p style={{ margin: 0, fontSize: 14, color: sel ? "rgba(70,72,212,0.7)" : "#64748b" }}>{region as string}</p>
-                      </div>
-                    </div>
-                    <img src={sel ? ast.location.checkSel : ast.location.checkCircle} alt="" width={16} height={16} />
-                  </button>
-                )})}
-                {locationSearch.trim().length >= 2 ? (
-                  <>
-                    <p style={{ margin: "24px 0 12px", fontWeight: 700, fontSize: 16 }}>
-                      Global location matches
-                    </p>
-                    {locationBusy ? (
-                      <p className="onb-muted-sm" style={{ margin: "0 0 12px" }}>
-                        Searching locations...
-                      </p>
-                    ) : null}
+                  {locationSearch.trim().length > 0 && (
                     <button
                       type="button"
-                      className={`onb-loc-chip${selectedBaseLocation === locationSearch.trim() ? " onb-loc-chip--sel" : ""}`}
-                      onClick={() => { void selectTypedLocation(); }}
-                      aria-pressed={selectedBaseLocation === locationSearch.trim()}
-                      disabled={!locationSearch.trim() || locationBusy}
+                      className="onb-search-clear-btn"
+                      onClick={() => {
+                        setLocationSearch("");
+                        setLocationResults([]);
+                      }}
+                      aria-label="Clear search"
                     >
-                      <div className="onb-flex-gap">
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 32,
-                            background: "rgba(70,72,212,0.12)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <img src={ast.location.pinSel} alt="" width={18} height={19} />
-                        </div>
-                        <div>
-                          <p style={{ margin: 0, fontSize: 16, color: "#4648d4" }}>{locationSearch.trim()}</p>
-                          <p style={{ margin: 0, fontSize: 14, color: "#64748b" }}>Use exactly what I typed</p>
-                        </div>
-                      </div>
-                      <img
-                        src={selectedBaseLocation === locationSearch.trim() ? ast.location.checkSel : ast.location.checkCircle}
-                        alt=""
-                        width={16}
-                        height={16}
-                      />
+                      <X size={14} />
                     </button>
-                    {locationErr ? (
-                      <p role="alert" style={{ margin: "0 0 12px", color: "#b91c1c", fontSize: 13 }}>
-                        {locationErr}
-                      </p>
-                    ) : null}
-                    {!locationBusy && !locationErr && locationResults.length === 0 ? (
-                      <p className="onb-muted-sm" style={{ margin: "0 0 12px" }}>
-                        No direct matches found for this query.
-                      </p>
-                    ) : null}
-                    {locationResults.map((row, idx) => {
-                      const { label, city, region } = row;
-                      const country = row.country || region.split(",").slice(-1)[0]?.trim() || "";
-                      const cleanLocation = country ? `${city}, ${country}` : city;
+                  )}
+                </div>
+
+                {locationSearch.trim().length < 2 ? (
+                  <>
+                    <p style={{ margin: "28px 0 16px", fontWeight: 700, fontSize: 16 }}>Popular locations</p>
+                    {filteredPopularLocations.map(({ city, region }) => {
                       const key = `${city}, ${region}`;
-                      const sel = selectedBaseLocation === key || selectedBaseLocation === label || selectedBaseLocation === cleanLocation;
+                      const sel = selectedBaseLocation === key;
                       return (
                         <button
-                          key={`${label}-${idx}`}
+                          key={city}
                           type="button"
                           className={`onb-loc-chip${sel ? " onb-loc-chip--sel" : ""}`}
                           onClick={() => {
-                            setSelectedBaseLocation(cleanLocation);
-                            if (row.lngLat) {
-                              setBaseMapLngLat({ lng: row.lngLat[0], lat: row.lngLat[1] });
+                            setSelectedBaseLocation(key);
+                            const coords = POPULAR_BASE_LOCATION_LNG_LAT[key];
+                            if (coords) {
+                              setBaseMapLngLat({ lng: coords[0], lat: coords[1] });
                             }
                           }}
                           aria-pressed={sel}
                         >
-                          <div className="onb-flex-gap">
-                            <div
-                              style={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: 32,
-                                background: sel ? "rgba(70,72,212,0.2)" : "#efecf8",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <img src={sel ? ast.location.pinSel : ast.location.pin} alt="" width={18} height={19} />
+                          <div className="onb-flex-gap" style={{ minWidth: 0, flex: 1 }}>
+                            <div className={`onb-loc-icon-badge${sel ? " onb-loc-icon-badge--sel" : ""}`}>
+                              <MapPin size={18} />
                             </div>
-                            <div>
-                              {row.source === "locationiq" ? (
-                                <>
-                                  <p style={{ margin: 0, fontSize: 16, color: sel ? "#4648d4" : "#0f172a" }}>{city}</p>
-                                  <p style={{ margin: 0, fontSize: 14, color: sel ? "rgba(70,72,212,0.7)" : "#64748b" }}>{label}</p>
-                                </>
-                              ) : (
-                                <>
-                                  <p style={{ margin: 0, fontSize: 16, color: sel ? "#4648d4" : "#0f172a" }}>{city}</p>
-                                  <p style={{ margin: 0, fontSize: 14, color: sel ? "rgba(70,72,212,0.7)" : "#64748b" }}>{region}</p>
-                                </>
-                              )}
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <p style={{ margin: 0, fontSize: 15.5, fontWeight: 600, color: sel ? "#4648d4" : "#0f172a" }}>{city as string}</p>
+                              <p style={{ margin: 0, fontSize: 13.5, color: sel ? "rgba(70,72,212,0.8)" : "#64748b" }}>{region as string}</p>
                             </div>
                           </div>
-                          <img src={sel ? ast.location.checkSel : ast.location.checkCircle} alt="" width={16} height={16} />
+                          <div className={`onb-loc-check-indicator${sel ? " onb-loc-check-indicator--sel" : ""}`}>
+                            {sel && <Check size={12} strokeWidth={3} />}
+                          </div>
                         </button>
                       );
                     })}
                   </>
-                ) : null}
+                ) : (
+                  <div style={{ marginTop: 24 }}>
+                    {locationBusy ? (
+                      <p className="onb-loc-status">Searching locations...</p>
+                    ) : null}
+                    {!locationBusy && locationResults.length === 0 ? (
+                      <div className="onb-loc-not-found">
+                        <MapPinOff size={22} className="onb-loc-not-found-icon" />
+                        <p className="onb-loc-not-found-text">Location not found</p>
+                      </div>
+                    ) : null}
+                    {!locationBusy && locationResults.length > 0 && (
+                      <>
+                        <p style={{ margin: "0 0 16px", fontWeight: 700, fontSize: 16 }}>Location matches</p>
+                        {locationResults.map((row, idx) => {
+                          const { label, city, region } = row;
+                          const country = row.country || region.split(",").slice(-1)[0]?.trim() || "";
+                          const cleanLocation = country ? `${city}, ${country}` : city;
+                          const key = `${city}, ${region}`;
+                          const sel = selectedBaseLocation === key || selectedBaseLocation === label || selectedBaseLocation === cleanLocation;
+                          return (
+                            <button
+                              key={`${label}-${idx}`}
+                              type="button"
+                              className={`onb-loc-chip${sel ? " onb-loc-chip--sel" : ""}`}
+                              onClick={() => {
+                                setSelectedBaseLocation(cleanLocation);
+                                if (row.lngLat) {
+                                  setBaseMapLngLat({ lng: row.lngLat[0], lat: row.lngLat[1] });
+                                }
+                              }}
+                              aria-pressed={sel}
+                            >
+                              <div className="onb-flex-gap" style={{ minWidth: 0, flex: 1 }}>
+                                <div className={`onb-loc-icon-badge${sel ? " onb-loc-icon-badge--sel" : ""}`}>
+                                  <MapPin size={18} />
+                                </div>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <p style={{ margin: 0, fontSize: 15.5, fontWeight: 600, color: sel ? "#4648d4" : "#0f172a" }}>{city}</p>
+                                  <p style={{ margin: 0, fontSize: 13, color: sel ? "rgba(70,72,212,0.8)" : "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {row.source === "locationiq" ? label : region}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className={`onb-loc-check-indicator${sel ? " onb-loc-check-indicator--sel" : ""}`}>
+                                {sel && <Check size={12} strokeWidth={3} />}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="onb-loc-side-actions">
                 <button
@@ -2457,31 +2470,62 @@ export function OnboardingPage() {
       )}
 
       {step === 9 && (
-        <div className="onb-target-shell">
-          <div className="onb-target-split">
-            <div className="onb-target-side">
-              <div className="onb-target-side-scroll">
-                <h1 className="onb-h1">Where do you want to work next?</h1>
-                <p className="onb-sub" style={{ marginTop: 8 }}>
-                  These are your preferred opportunity locations, not your current base location.
-                </p>
+        <div className="onb-step-wrapper">
+          <div className="onb-step-card onb-step-card--target">
+            <div className="onb-step-card-header">
+              <div className="onb-step-badge">
+                <span className="onb-step-badge-dot" />
+                <span>Step 8 of 11 • Target Job Locations</span>
+              </div>
+              <h1 className="onb-h1">Where do you want to work next?</h1>
+              <p className="onb-sub">
+                Select all the locations where you are open to career opportunities.
+              </p>
+            </div>
 
-                <div style={{ position: "relative", marginTop: 24 }}>
-                  <input
-                    className="onb-input"
-                    style={{ borderRadius: 12, background: "#f1f5f9", padding: "17px 16px 17px 48px", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "none" }}
-                    placeholder="Search city or country"
-                    value={targetLocationSearch}
-                    onChange={(e) => setTargetLocationSearch(e.target.value)}
-                    autoComplete="off"
-                  />
-                  <img src={ast.location.search} alt="" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} width={18} height={18} />
+            <div className="onb-target-twin-grid">
+              {/* Left Panel: Explore & Add Locations */}
+              <div className="onb-target-panel">
+                <div className="onb-target-panel-header">
+                  <div>
+                    <h3 className="onb-target-panel-title">Explore Locations</h3>
+                    <p className="onb-target-panel-sub">
+                      {targetLocationSearch.trim().length >= 2
+                        ? "Search matches"
+                        : "Popular destination hubs"}
+                    </p>
+                  </div>
                 </div>
 
-                {targetLocationSearch.trim().length < 2 ? (
-                  <>
-                    <p style={{ margin: "28px 0 16px", fontWeight: 700, fontSize: 16 }}>Suggested targets</p>
-                    {popularLocations.map(({ city, region }) => {
+                <div className="onb-target-search-bar">
+                  <div className="onb-search-input-wrap" style={{ marginTop: 0 }}>
+                    <Search size={16} className="onb-search-icon" />
+                    <input
+                      className="onb-search-input"
+                      placeholder="Search city or country"
+                      value={targetLocationSearch}
+                      onChange={(e) => setTargetLocationSearch(e.target.value)}
+                      autoComplete="off"
+                    />
+                    {targetLocationSearch.trim().length > 0 && (
+                      <button
+                        type="button"
+                        className="onb-search-clear-btn"
+                        onClick={() => {
+                          setTargetLocationSearch("");
+                          setTargetSuggestRows([]);
+                        }}
+                        aria-label="Clear search"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="onb-target-scroll-list">
+                  {targetLocationSearch.trim().length < 2 ? (
+                    popularLocations.map(({ city, region }) => {
                       const normalizedCountry = region.split(",").slice(-1)[0]?.trim() || region.trim();
                       const exists = targetLocations.some(
                         (entry) =>
@@ -2492,170 +2536,136 @@ export function OnboardingPage() {
                         <button
                           key={`${city}-${region}`}
                           type="button"
-                          className={`onb-loc-chip${exists ? " onb-loc-chip--sel" : ""}`}
+                          className={`onb-target-opt-card${exists ? " onb-target-opt-card--sel" : ""}`}
                           onClick={() => {
-                            if (!exists) addTargetLocation(city, normalizedCountry);
-                            const key = `${city}, ${region}`;
-                            const coords = POPULAR_BASE_LOCATION_LNG_LAT[key];
-                            if (coords) setTargetMapLngLat({ lng: coords[0], lat: coords[1] });
+                            if (!exists) {
+                              addTargetLocation(city, normalizedCountry);
+                            } else {
+                              removeTargetLocation(city, normalizedCountry);
+                            }
                           }}
                           aria-pressed={exists}
                         >
-                          <div className="onb-flex-gap">
-                            <div
-                              style={{
-                                width: 40, height: 40, borderRadius: 32,
-                                background: exists ? "rgba(70,72,212,0.2)" : "#efecf8",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                              }}
-                            >
-                              <img src={exists ? ast.location.pinSel : ast.location.pin} alt="" width={18} height={19} />
+                          <div className="onb-flex-gap" style={{ minWidth: 0, flex: 1 }}>
+                            <div className="onb-target-opt-pin">
+                              <MapPin size={15} />
                             </div>
-                            <div>
-                              <p style={{ margin: 0, fontSize: 16, color: exists ? "#4648d4" : "#0f172a" }}>{city}</p>
-                              <p style={{ margin: 0, fontSize: 14, color: exists ? "rgba(70,72,212,0.7)" : "#64748b" }}>{region}</p>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <p className="onb-target-opt-city">{city}</p>
+                              <p className="onb-target-opt-region">{region}</p>
                             </div>
                           </div>
-                          <img src={exists ? ast.location.checkSel : ast.location.checkCircle} alt="" width={16} height={16} />
-                        </button>
-                      );
-                    })}
-                  </>
-                ) : (
-                  <>
-                    <p style={{ margin: "24px 0 12px", fontWeight: 700, fontSize: 16 }}>Location matches</p>
-                    {targetSuggestBusy ? (
-                      <p className="onb-muted-sm" style={{ margin: "0 0 12px" }}>Searching locations...</p>
-                    ) : null}
-                    {targetSuggestErr ? (
-                      <p role="alert" style={{ margin: "0 0 12px", color: "#b91c1c", fontSize: 13 }}>{targetSuggestErr}</p>
-                    ) : null}
-                    {!targetSuggestBusy && !targetSuggestErr && targetSuggestRows.length === 0 ? (
-                      <p className="onb-muted-sm" style={{ margin: "0 0 12px" }}>No matches found.</p>
-                    ) : null}
-                    {targetSuggestRows.map((r, idx) => {
-                      const country = r.country ?? r.region.split(",").slice(-1)[0]?.trim() ?? r.region;
-                      const exists = targetLocations.some(
-                        (entry) =>
-                          entry.city.toLowerCase() === r.city.toLowerCase() &&
-                          entry.country.toLowerCase() === country.toLowerCase(),
-                      );
-                      return (
-                        <button
-                          key={`${r.label}-${idx}`}
-                          type="button"
-                          className={`onb-loc-chip${exists ? " onb-loc-chip--sel" : ""}`}
-                          onClick={() => {
-                            if (!exists) addTargetLocation(r.city, country);
-                            if (r.lngLat) setTargetMapLngLat({ lng: r.lngLat[0], lat: r.lngLat[1] });
-                          }}
-                          aria-pressed={exists}
-                        >
-                          <div className="onb-flex-gap">
-                            <div
-                              style={{
-                                width: 40, height: 40, borderRadius: 32,
-                                background: exists ? "rgba(70,72,212,0.2)" : "#efecf8",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                              }}
-                            >
-                              <img src={exists ? ast.location.pinSel : ast.location.pin} alt="" width={18} height={19} />
-                            </div>
-                            <div>
-                              <p style={{ margin: 0, fontSize: 16, color: exists ? "#4648d4" : "#0f172a" }}>{r.city}</p>
-                              <p style={{ margin: 0, fontSize: 14, color: exists ? "rgba(70,72,212,0.7)" : "#64748b" }}>{r.label}</p>
-                            </div>
+                          <div className="onb-target-opt-action-icon">
+                            {exists ? <Check size={12} strokeWidth={3} /> : <Plus size={13} />}
                           </div>
-                          <img src={exists ? ast.location.checkSel : ast.location.checkCircle} alt="" width={16} height={16} />
                         </button>
                       );
-                    })}
-                  </>
-                )}
+                    })
+                  ) : (
+                    <>
+                      {targetSuggestBusy && (
+                        <p className="onb-loc-status">Searching locations...</p>
+                      )}
+                      {!targetSuggestBusy && targetSuggestRows.length === 0 && (
+                        <div className="onb-loc-not-found" style={{ margin: "auto 0" }}>
+                          <MapPinOff size={22} className="onb-loc-not-found-icon" />
+                          <p className="onb-loc-not-found-text">Location not found</p>
+                        </div>
+                      )}
+                      {!targetSuggestBusy && targetSuggestRows.map((r, idx) => {
+                        const country = r.country ?? r.region.split(",").slice(-1)[0]?.trim() ?? r.region;
+                        const exists = targetLocations.some(
+                          (entry) =>
+                            entry.city.toLowerCase() === r.city.toLowerCase() &&
+                            entry.country.toLowerCase() === country.toLowerCase(),
+                        );
+                        return (
+                          <button
+                            key={`${r.label}-${idx}`}
+                            type="button"
+                            className={`onb-target-opt-card${exists ? " onb-target-opt-card--sel" : ""}`}
+                            onClick={() => {
+                              if (!exists) {
+                                addTargetLocation(r.city, country);
+                              } else {
+                                removeTargetLocation(r.city, country);
+                              }
+                            }}
+                            aria-pressed={exists}
+                          >
+                            <div className="onb-flex-gap" style={{ minWidth: 0, flex: 1 }}>
+                              <div className="onb-target-opt-pin">
+                                <MapPin size={15} />
+                              </div>
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <p className="onb-target-opt-city">{r.city}</p>
+                                <p className="onb-target-opt-region">{r.label}</p>
+                              </div>
+                            </div>
+                            <div className="onb-target-opt-action-icon">
+                              {exists ? <Check size={12} strokeWidth={3} /> : <Plus size={13} />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+              </div>
 
-                <div style={{ marginTop: 22 }}>
-                  <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 600 }}>Selected target locations</h3>
-                  <p className="onb-muted-sm" style={{ marginBottom: 12 }}>
-                    Add at least one location to continue.
-                  </p>
-                  <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-                    {targetLocations.map(({ city, country }, i) => (
-                      <div
-                        key={`${city}-${country}`}
-                        className="onb-target-list-row"
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          padding: "14px 16px",
-                          borderTop: i ? "1px solid #e2e8f0" : undefined,
-                        }}
-                      >
-                        <div className="onb-flex-gap onb-target-list-main">
-                          <img src={ast.target.pin} alt="" width={22} height={22} />
-                          <div>
-                            <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{city}</p>
-                            <p className="onb-muted-sm" style={{ margin: 0, fontSize: 12 }}>
-                              {country}
-                            </p>
+              {/* Right Panel: Selected Targets (Identical geometry & height!) */}
+              <div className="onb-target-panel">
+                <div className="onb-target-panel-header">
+                  <div>
+                    <h3 className="onb-target-panel-title">Selected Targets</h3>
+                    <p className="onb-target-panel-sub">
+                      {targetLocations.length === 0
+                        ? "Select at least 1 location to continue"
+                        : `${targetLocations.length} location${targetLocations.length > 1 ? "s" : ""} added`}
+                    </p>
+                  </div>
+                  {targetLocations.length > 0 && (
+                    <span className="onb-target-badge-pill">
+                      {targetLocations.length}
+                    </span>
+                  )}
+                </div>
+
+                <div className="onb-target-scroll-list">
+                  {targetLocations.length === 0 ? (
+                    <div className="onb-target-panel-empty">
+                      <div className="onb-target-panel-empty-icon">
+                        <MapPin size={22} />
+                      </div>
+                      <p className="onb-target-panel-empty-title">No locations selected yet</p>
+                      <p className="onb-target-panel-empty-desc">
+                        Click any location on the left or search to add your target preferences.
+                      </p>
+                    </div>
+                  ) : (
+                    targetLocations.map(({ city, country }) => (
+                      <div key={`${city}-${country}`} className="onb-target-selected-card">
+                        <div className="onb-flex-gap" style={{ minWidth: 0, flex: 1 }}>
+                          <div className="onb-target-selected-pin">
+                            <MapPin size={15} />
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <p className="onb-target-selected-city">{city}</p>
+                            <p className="onb-target-selected-country">{country}</p>
                           </div>
                         </div>
                         <button
                           type="button"
-                          className="onb-btn"
-                          style={{ padding: 6, borderRadius: 8 }}
+                          className="onb-target-remove-btn"
                           onClick={() => removeTargetLocation(city, country)}
                           aria-label={`Remove ${city}, ${country}`}
                         >
-                          <img src={ast.workExp.trash} alt="" width={12} height={14} />
+                          <X size={15} />
                         </button>
                       </div>
-                    ))}
-                    {targetLocations.length === 0 ? (
-                      <div style={{ padding: 16, color: "#64748b", fontSize: 14 }}>
-                        No target locations yet. Add one city/country pair to continue.
-                      </div>
-                    ) : null}
-                  </div>
+                    ))
+                  )}
                 </div>
-              </div>
-
-              <div className="onb-target-actions">
-                <button type="button" className="onb-btn onb-btn-ghost" onClick={back}>
-                  Back
-                </button>
-                <button
-                  type="button"
-                  className="onb-btn onb-btn-primary onb-btn-primary--brand"
-                  onClick={next}
-                  disabled={targetLocations.length === 0}
-                >
-                  Continue
-                </button>
-              </div>
-            </div>
-
-            <div className="onb-target-visual">
-              <OnboardingLocationMap ref={targetMapRef} accessToken={mapboxEnvToken} lngLat={targetMapLngLat} />
-              <div style={{ position: "absolute", bottom: 32, right: 32, display: "flex", flexDirection: "column", gap: 8, zIndex: 2 }}>
-                <button
-                  type="button"
-                  className="onb-btn"
-                  aria-label="Zoom in"
-                  style={{ width: 40, height: 40, borderRadius: 32, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
-                  onClick={() => targetMapRef.current?.zoomIn()}
-                >
-                  <img src={ast.location.mapPlus} alt="" width={14} height={14} />
-                </button>
-                <button
-                  type="button"
-                  className="onb-btn"
-                  aria-label="Zoom out"
-                  style={{ width: 40, height: 40, borderRadius: 32, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
-                  onClick={() => targetMapRef.current?.zoomOut()}
-                >
-                  <img src={ast.location.mapMinus} alt="" width={14} height={2} />
-                </button>
               </div>
             </div>
           </div>
@@ -2663,201 +2673,200 @@ export function OnboardingPage() {
       )}
 
       {step === 10 && (
-        <>
-          <div style={{ flex: 1, padding: "32px 24px", display: "flex", justifyContent: "center" }}>
-            <div className="onb-wpref-card">
-              <div className="onb-center" style={{ marginBottom: 40 }}>
-                <h1 className="onb-h1">How do you prefer to work?</h1>
-                <p className="onb-sub" style={{ marginTop: 16, maxWidth: 672 }}>
-                  Select the work environment that best suits your lifestyle and career goals. This helps us match you with the right opportunities.
-                </p>
+        <div className="onb-step-wrapper">
+          <div className="onb-step-card onb-step-card--wpref">
+            <div className="onb-step-card-header">
+              <div className="onb-step-badge">
+                <span className="onb-step-badge-dot" />
+                <span>Step 9 of 11 • Work Mode Preference</span>
               </div>
-              <div className="onb-wpref-grid">
-                {(
-                  [
-                    ["remote", "Remote", "Work from anywhere, 100% of the time.", ["Maximum flexibility", "Zero commute time", "Global opportunities"], ast.workPref.remote, false],
-                    ["hybrid", "Hybrid", "A mix of home and office days.", ["Best of both worlds", "Regular team connection", "Structured flexibility"], ast.workPref.hybrid, true],
-                    ["office", "In Person", "Full-time at the company office.", ["Dedicated workspace", "Spontaneous collaboration", "Clear work-life boundary"], ast.workPref.office, false],
-                  ] as const
-                ).map(([id, title, sub, bullets, icon, popular]) => {
-                  const sel = workPrefs.includes(id);
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      className={`onb-wpref-opt${sel ? " onb-wpref-opt--sel" : ""}`}
-                      onClick={() =>
-                        setWorkPrefs((current) =>
-                          current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id],
-                        )
-                      }
-                      style={{ position: "relative" }}
-                    >
-                      {popular && (
-                        <span style={{ position: "absolute", top: 0, right: 0, background: "#6063ee", color: "#fffbff", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderBottomLeftRadius: 48 }}>
-                          Popular
-                        </span>
-                      )}
-                      <div className="onb-flex-gap" style={{ justifyContent: "space-between", marginBottom: 16, paddingTop: popular ? 8 : 0 }}>
-                        <div
-                          style={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 9999,
-                            background: sel ? "#fff" : "#f1f5f9",
-                            border: sel ? "1px solid rgba(96,99,238,0.2)" : "none",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            boxShadow: sel ? "0 1px 1px rgba(0,0,0,0.05)" : undefined,
-                          }}
-                        >
-                          <img src={icon} alt="" width={20} height={18} />
-                        </div>
-                        <span
-                          style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 9999,
-                            border: sel ? "2px solid #6063ee" : "2px solid #c7c4d7",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          {sel && <span style={{ width: 12, height: 12, borderRadius: 9999, background: "#6063ee" }} />}
-                        </span>
-                      </div>
-                      <h3 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 600, color: sel ? "#6063ee" : "#0f172a" }}>{title}</h3>
-                      <p className="onb-muted-sm" style={{ margin: "0 0 8px", lineHeight: 1.4 }}>
-                        {sub}
-                      </p>
-                      {bullets.map((b) => (
-                        <div key={b} className="onb-flex-gap" style={{ marginTop: 8, alignItems: "flex-start" }}>
-                          <img src={sel ? ast.workPref.bulletSel : ast.workPref.bullet} alt="" width={15} height={15} />
-                          <span className="onb-muted-sm" style={{ fontSize: 16 }}>
-                            {b}
-                          </span>
-                        </div>
-                      ))}
-                    </button>
-                  );
-                })}
-              </div>
-
-            </div>
-          </div>
-
-        </>
-      )}
-
-      {step === 11 && (
-        <>
-          <div className="onb-emp-layout">
-            <div style={{ flex: 1, maxWidth: 896 }}>
-              <h1 className="onb-h1">Employment Models</h1>
-              <p className="onb-sub" style={{ marginTop: 8 }}>
-                Select the types of employment you are currently considering for your next career move. You can select multiple options.
+              <h1 className="onb-h1">How do you prefer to work?</h1>
+              <p className="onb-sub">
+                Select the work environment that best suits your lifestyle and career goals. This helps us match you with the right opportunities.
               </p>
-              <div className="onb-emp-grid" style={{ marginTop: 16 }}>
-                {(
-                  [
-                    ["Full Time", ast.employment.iconFullTime, "Standard 40 hours a week roles. Typically includes comprehensive benefits packages, paid time off, and long-term career growth opportunities within the company.", ["Benefits included", "W2 Status"]],
-                    ["Contract", ast.employment.iconContract, "Project-based or fixed-term engagements. Offers high flexibility and often higher hourly rates, but typically without standard employer benefits.", ["1099 or W2", "Flexible"]],
-                    ["Part Time", ast.employment.iconPartTime, "Flexible roles under 40 hours a week. Ideal for balancing work with education, family responsibilities, or other concurrent employment.", ["< 40 hours", "Work-life balance"]],
-                    ["Internship", ast.employment.iconIntern, "Short-term roles aimed at students or recent graduates. Focused on mentorship, learning, and gaining practical industry experience.", ["Learning focused", "Entry level"]],
-                  ] as const
-                ).map(([title, icon, desc, tags]) => {
-                  const sel = employment.includes(title);
-                  return (
-                    <button key={title} type="button" className={`onb-emp-card${sel ? " onb-emp-card--sel" : ""}`} onClick={() => toggleEmployment(title)}>
-                      <img src={sel ? ast.employment.cardCheckOn : ast.employment.cardCheckOff} alt="" width={18} height={18} style={{ position: "absolute", top: 12, right: 12 }} />
-                      <div style={{ marginBottom: 8 }}>
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 9999,
-                            background: sel ? "rgba(99,102,241,0.1)" : "#efecf8",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <img src={icon} alt="" width={18} height={18} />
-                        </div>
-                      </div>
-                      <h3 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 600, color: sel ? "#6366f1" : "#0f172a" }}>{title}</h3>
-                      <p className="onb-muted-sm" style={{ margin: "0 0 8px", lineHeight: 1.4 }}>
-                        {desc}
-                      </p>
-                      <div className="onb-flex-gap" style={{ flexWrap: "wrap" }}>
-                        {tags.map((t) => (
-                          <span
-                            key={t}
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 500,
-                              padding: "3px 9px",
-                              borderRadius: 9999,
-                              background: sel ? "#fff" : "#efecf8",
-                              border: sel ? "1px solid rgba(99,102,241,0.2)" : "none",
-                              color: sel ? "#6366f1" : "#64748b",
-                            }}
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
             </div>
-          </div>
-          {footer()}
-        </>
-      )}
 
-      {step === 12 && (
-        <>
-          <div className="onb-exp">
-            <div style={{ maxWidth: 896, margin: "0 auto" }}>
-              <h1 className="onb-h1">Define Your Experience Level</h1>
-              <p className="onb-sub" style={{ marginTop: 16, maxWidth: 672 }}>
-                Help us tailor your dashboard by providing more context about your professional background. Select the single level that best describes your current role.
-              </p>
+            <div className="onb-wpref-grid">
               {(
                 [
-                  ["Entry Level Professional", "0-2 years", "Just starting out or building foundational skills. You focus on executing tasks effectively under guidance and learning best practices."],
-                  ["Mid-Level Professional", "3-5 years", "Solid experience executing complex projects independently. You contribute to strategy, mentor juniors, and handle broader responsibilities."],
-                  ["Senior Level Expert", "5+ years", "Leading teams and driving strategic initiatives. You are responsible for high-level decision making, architecture, and driving overall business impact."],
+                  ["remote", "Remote", "Work from anywhere, 100% of the time.", ["Maximum flexibility", "Zero commute time", "Global opportunities"], ast.workPref.remote, false],
+                  ["hybrid", "Hybrid", "A mix of home and office days.", ["Best of both worlds", "Regular team connection", "Structured flexibility"], ast.workPref.hybrid, true],
+                  ["office", "In Person", "Full-time at the company office.", ["Dedicated workspace", "Spontaneous collaboration", "Clear work-life boundary"], ast.workPref.office, false],
                 ] as const
-              ).map(([title, years, desc]) => {
-                const sel = experienceLevel === title;
+              ).map(([id, title, sub, bullets, icon, popular]) => {
+                const sel = workPrefs.includes(id);
                 return (
-                  <button key={title} type="button" className={`onb-exp-row${sel ? " onb-exp-row--sel" : ""}`} onClick={() => selectExperienceLevel(title)}>
-                    <img src={sel ? ast.experience.radioOn : ast.experience.radioOff} alt="" width={18} height={22} />
-                    <div style={{ flex: 1, textAlign: "left" }}>
-                      <div className="onb-flex-gap" style={{ marginBottom: 4, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 20, fontWeight: 600, color: sel ? "#6366f1" : "#0f172a" }}>{title}</span>
-                        <span style={{ fontSize: 12, padding: "4px 12px", borderRadius: 9999, background: sel ? "rgba(99,102,241,0.1)" : "#efecf8", color: sel ? "#6366f1" : "#64748b" }}>{years}</span>
+                  <button
+                    key={id}
+                    type="button"
+                    className={`onb-wpref-opt${sel ? " onb-wpref-opt--sel" : ""}`}
+                    onClick={() =>
+                      setWorkPrefs((current) =>
+                        current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id],
+                      )
+                    }
+                  >
+                    <div className="onb-wpref-top-row">
+                      <div className={`onb-wpref-icon-wrap${sel ? " onb-wpref-icon-wrap--sel" : ""}`}>
+                        <img src={icon} alt="" width={18} height={17} />
                       </div>
-                      <p className="onb-sub" style={{ margin: 0, lineHeight: 1.5 }}>
-                        {desc}
-                      </p>
+                      <div className="onb-wpref-top-right">
+                        {popular && (
+                          <span className="onb-wpref-popular-pill">
+                            Popular
+                          </span>
+                        )}
+                        <span className={`onb-wpref-radio${sel ? " onb-wpref-radio--sel" : ""}`}>
+                          {sel && <span className="onb-wpref-radio-dot" />}
+                        </span>
+                      </div>
+                    </div>
+
+                    <h3 className={`onb-wpref-title${sel ? " onb-wpref-title--sel" : ""}`}>{title}</h3>
+                    <p className="onb-wpref-desc">{sub}</p>
+
+                    <div className="onb-wpref-bullets">
+                      {bullets.map((b) => (
+                        <div key={b} className="onb-wpref-bullet-row">
+                          <Check size={13} className={sel ? "text-indigo-600" : "text-slate-400"} strokeWidth={2.5} />
+                          <span className="onb-wpref-bullet-text">{b}</span>
+                        </div>
+                      ))}
                     </div>
                   </button>
                 );
               })}
-              <div className="onb-btn-row" style={{ marginTop: 48 }}>
-                {/* Back is handled by OnboardingTopBar */}
-              </div>
             </div>
           </div>
-          {/* footer moved to shared location below step-stage */}
-        </>
+        </div>
+      )}
+
+      {step === 11 && (
+        <div className="onb-step-wrapper">
+          <div className="onb-step-card onb-step-card--emp">
+            <div className="onb-step-card-header">
+              <div className="onb-step-badge">
+                <span className="onb-step-badge-dot" />
+                <span>Step 10 of 11 • Employment Models</span>
+              </div>
+              <h1 className="onb-h1">Employment Models</h1>
+              <p className="onb-sub">
+                Select the types of employment you are currently considering for your next career move. You can select multiple options.
+              </p>
+            </div>
+            <div className="onb-emp-grid">
+              {(
+                [
+                  ["Full Time", Briefcase, "Standard 40 hrs/week with full benefits & stability.", ["Benefits Included", "W2 Status"]],
+                  ["Contract", FileText, "Project-based flexibility with competitive hourly rates.", ["High Flexibility", "1099 / W2"]],
+                  ["Part Time", Clock, "Flexible schedule under 40 hrs/week for work-life balance.", ["< 40 Hours", "Work-Life Balance"]],
+                  ["Internship", GraduationCap, "Hands-on mentorship & practical industry experience.", ["Learning Focused", "Entry Level"]],
+                ] as const
+              ).map(([title, Icon, desc, tags]) => {
+                const sel = employment.includes(title);
+                return (
+                  <button
+                    key={title}
+                    type="button"
+                    className={`onb-emp-card${sel ? " onb-emp-card--sel" : ""}`}
+                    onClick={() => toggleEmployment(title)}
+                  >
+                    <div className="onb-emp-top-row">
+                      <div className={`onb-emp-icon-wrap${sel ? " onb-emp-icon-wrap--sel" : ""}`}>
+                        <Icon size={19} color={sel ? "#4f46e5" : "#64748b"} strokeWidth={2} />
+                      </div>
+                      <div className={`onb-emp-check${sel ? " onb-emp-check--sel" : ""}`}>
+                        {sel && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                      </div>
+                    </div>
+
+                    <h3 className={`onb-emp-title${sel ? " onb-emp-title--sel" : ""}`}>{title}</h3>
+                    <p className="onb-emp-desc">{desc}</p>
+
+                    <div className="onb-emp-tags">
+                      {tags.map((t) => (
+                        <span key={t} className={`onb-emp-tag${sel ? " onb-emp-tag--sel" : ""}`}>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step === 12 && (
+        <div className="onb-step-wrapper">
+          <div className="onb-step-card onb-step-card--exp">
+            <div className="onb-step-card-header">
+              <div className="onb-step-badge">
+                <span className="onb-step-badge-dot" />
+                <span>Step 11 of 11 • Experience Level</span>
+              </div>
+              <h1 className="onb-h1">Define Your Experience Level</h1>
+              <p className="onb-sub">
+                Select the level that best reflects your current professional journey.
+              </p>
+            </div>
+
+            <div className="onb-exp-grid">
+              {(
+                [
+                  [
+                    "Entry Level Professional",
+                    "Entry Level",
+                    "0–2 Years",
+                    "Building core skills, learning industry standards, and executing with guidance.",
+                    Sparkles,
+                  ],
+                  [
+                    "Mid-Level Professional",
+                    "Mid-Level",
+                    "3–5 Years",
+                    "Delivering complex features independently and contributing to team goals.",
+                    Briefcase,
+                  ],
+                  [
+                    "Senior Level Expert",
+                    "Senior Expert",
+                    "5+ Years",
+                    "Architecting scalable systems, shaping technical vision, and leading initiatives.",
+                    Award,
+                  ],
+                ] as const
+              ).map(([fullTitle, shortTitle, years, desc, Icon]) => {
+                const sel = experienceLevel === fullTitle;
+                return (
+                  <button
+                    key={fullTitle}
+                    type="button"
+                    className={`onb-exp-card${sel ? " onb-exp-card--sel" : ""}`}
+                    onClick={() => selectExperienceLevel(fullTitle)}
+                  >
+                    <div className="onb-exp-card-top">
+                      <div className={`onb-exp-icon-wrap${sel ? " onb-exp-icon-wrap--sel" : ""}`}>
+                        <Icon size={19} color={sel ? "#4f46e5" : "#64748b"} strokeWidth={2} />
+                      </div>
+                      <div className={`onb-exp-radio${sel ? " onb-exp-radio--sel" : ""}`}>
+                        {sel && <div className="onb-exp-radio-dot" />}
+                      </div>
+                    </div>
+
+                    <div className="onb-exp-title-row">
+                      <h3 className={`onb-exp-title${sel ? " onb-exp-title--sel" : ""}`}>{shortTitle}</h3>
+                      <span className={`onb-exp-years-badge${sel ? " onb-exp-years-badge--sel" : ""}`}>{years}</span>
+                    </div>
+
+                    <p className="onb-exp-desc">{desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
       </div>
 
