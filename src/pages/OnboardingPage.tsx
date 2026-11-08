@@ -11,7 +11,7 @@ import { asUserPreferences, asUserProfile } from "../auth/normalizeSession";
 import { useAuth } from "../context/AuthContext";
 import type { ProfileEducation, ProfileProject, ProfileCertification } from "../api/types";
 import { readDraft, writeDraft, clearDraft } from "../auth/onboardingDraft";
-import { User, Mail, Briefcase, GraduationCap, FolderGit2, Sparkles, Award, Heart, Plus, Edit2, Trash2, Check, ExternalLink, ArrowRight } from "lucide-react";
+import { User, Mail, Briefcase, GraduationCap, FolderGit2, Sparkles, Award, Heart, Plus, Edit2, Trash2, Check, ExternalLink, ArrowRight, X } from "lucide-react";
 import { OnboardingTopBar } from "../components/onboarding/OnboardingTopBar";
 import "./OnboardingPage.css";
 
@@ -1585,7 +1585,7 @@ export function OnboardingPage() {
                           <div className="onb-rb-edit-card">
                             <div className="onb-rb-edit-card-head">
                               <span className="onb-rb-edit-card-label">Edit Role</span>
-                              <button type="button" className="onb-rb-remove" onClick={() => removeWorkExp(entry.id)} aria-label="Remove entry">×</button>
+                              <button type="button" className="onb-rb-close-btn" onClick={() => removeWorkExp(entry.id)} title="Discard role" aria-label="Discard role"><X size={15} /></button>
                             </div>
                             <div className="onb-we-card-grid">
                               <div className="onb-we-field">
@@ -1700,7 +1700,7 @@ export function OnboardingPage() {
                           <div className="onb-rb-edit-card">
                             <div className="onb-rb-edit-card-head">
                               <span className="onb-rb-edit-card-label">Edit Education</span>
-                              <button type="button" className="onb-rb-remove" onClick={() => removeEducation(i)} aria-label="Remove entry">×</button>
+                              <button type="button" className="onb-rb-close-btn" onClick={() => removeEducation(i)} title="Discard education" aria-label="Discard education"><X size={15} /></button>
                             </div>
                             <div className="onb-we-card-grid">
                               <div className="onb-we-field">
@@ -1806,7 +1806,7 @@ export function OnboardingPage() {
                           <div className="onb-rb-edit-card">
                             <div className="onb-rb-edit-card-head">
                               <span className="onb-rb-edit-card-label">Edit Project</span>
-                              <button type="button" className="onb-rb-remove" onClick={() => removeProject(i)} aria-label="Remove entry">×</button>
+                              <button type="button" className="onb-rb-close-btn" onClick={() => removeProject(i)} title="Discard project" aria-label="Discard project"><X size={15} /></button>
                             </div>
                             <div className="onb-we-card-grid">
                               <div className="onb-we-field">
@@ -1899,8 +1899,9 @@ export function OnboardingPage() {
                               className="onb-rb-tag-remove"
                               onClick={() => setSkills((c) => c.filter((_, j) => j !== i))}
                               aria-label={`Remove ${skill}`}
+                              title={`Remove ${skill}`}
                             >
-                              ×
+                              <X size={13} />
                             </button>
                           </span>
                         ))}
@@ -2006,7 +2007,7 @@ export function OnboardingPage() {
                           <div className="onb-rb-edit-card">
                             <div className="onb-rb-edit-card-head">
                               <span className="onb-rb-edit-card-label">Edit Certification</span>
-                              <button type="button" className="onb-rb-remove" onClick={() => removeCertification(i)} aria-label="Remove entry">×</button>
+                              <button type="button" className="onb-rb-close-btn" onClick={() => removeCertification(i)} title="Discard certification" aria-label="Discard certification"><X size={15} /></button>
                             </div>
                             <div className="onb-we-card-grid">
                               <div className="onb-we-field">
@@ -2091,8 +2092,9 @@ export function OnboardingPage() {
                               className="onb-rb-tag-remove"
                               onClick={() => setInterests((c) => c.filter((_, j) => j !== i))}
                               aria-label={`Remove ${item}`}
+                              title={`Remove ${item}`}
                             >
-                              ×
+                              <X size={13} />
                             </button>
                           </span>
                         ))}

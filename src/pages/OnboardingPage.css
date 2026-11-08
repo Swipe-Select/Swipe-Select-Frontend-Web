@@ -2996,3 +2996,40 @@
   transform: translateY(-2px) !important;
   box-shadow: 0 12px 28px rgba(79, 70, 229, 0.32) !important;
 }
+
+
+/* ── Rich Close/Discard Icon Button for Edit Cards ── */
+.onb-rb-close-btn,
+.onb-rb-remove {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  border-radius: 50% !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #64748b !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+  flex-shrink: 0 !important;
+}
+
+.onb-rb-close-btn:hover,
+.onb-rb-remove:hover {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+  transform: scale(1.08) !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15) !important;
+}
+
+.onb-rb-close-btn:active,
+.onb-rb-remove:active {
+  transform: scale(0.95) !important;
+}
