@@ -8,19 +8,14 @@ import {
   Heart,
   Sparkles,
   ExternalLink,
-  Search,
   MapPin,
-  CheckCircle2
+  CheckCircle2,
+  DollarSign,
+  Briefcase
 } from "lucide-react";
 import "./MatchesPage.css";
 
 type TabFilter = "all" | "liked" | "applied";
-
-function statusLabel(status: string): string {
-  if (status === "liked") return "Saved";
-  if (status === "applied") return "Applied";
-  return status;
-}
 
 function MatchCard({ 
   job, 
@@ -34,56 +29,110 @@ function MatchCard({
     if (job.sourceUrl) window.open(job.sourceUrl, "_blank", "noopener,noreferrer");
   };
 
+  const initials = (job.company || "SS")
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
-    <div className="match-card">
-      <div className="match-card-top">
-        <div className="match-card-avatar" aria-hidden>
-          {job.company.slice(0, 2).toUpperCase()}
+    <div className={`match-card ${isApplied ? "match-card--applied" : ""}`}>
+      {/* Top Header: Company Avatar & Status Badge */}
+      <div className="match-card-header">
+        <div className="match-card-company-group">
+          <div className="match-card-avatar" aria-hidden>
+            {initials}
+          </div>
+          <div className="match-card-company-meta">
+            <span className="match-card-company-name">{job.company}</span>
+            {job.source && (
+              <span className="match-card-source-tag">via {job.source}</span>
+            )}
+          </div>
         </div>
-        <span className={`match-card-badge${isApplied ? " match-card-badge--applied" : ""}`}>
-          {isApplied ? <CheckCircle2 size={12} /> : <Heart size={12} />}
-          <span>{statusLabel(job.status)}</span>
+
+        <span className={`match-card-badge ${isApplied ? "match-card-badge--applied" : "match-card-badge--saved"}`}>
+          {isApplied ? (
+            <>
+              <CheckCircle2 size={12} />
+              <span>Applied</span>
+            </>
+          ) : (
+            <>
+              <Heart size={12} />
+              <span>Saved</span>
+            </>
+          )}
         </span>
       </div>
 
-      <h3 className="match-card-title">{job.title}</h3>
-      <p className="match-card-company">{job.company}</p>
+      {/* Title */}
+      <h3 className="match-card-title" title={job.title}>
+        {job.title}
+      </h3>
 
-      {job.location ? (
-        <p className="match-card-location">
-          <MapPin size={13} />
-          <span>{job.location}</span>
-        </p>
-      ) : null}
+      {/* Metadata Chips: Salary, Location, Job Type */}
+      <div className="match-card-meta-chips">
+        {job.salaryRange && (
+          <span className="match-chip match-chip--salary">
+            <DollarSign size={11} />
+            <span>{job.salaryRange}</span>
+          </span>
+        )}
+        {job.location && (
+          <span className="match-chip match-chip--location">
+            <MapPin size={11} />
+            <span>{job.location}</span>
+          </span>
+        )}
+        {job.jobType && (
+          <span className="match-chip match-chip--type">
+            <Briefcase size={11} />
+            <span>{job.jobType}</span>
+          </span>
+        )}
+      </div>
 
-      {job.skills?.length ? (
+      {/* Skills Tags */}
+      {job.skills && job.skills.length > 0 && (
         <div className="match-card-skills">
-          {job.skills.slice(0, 3).map((s, idx) => (
-            <span key={idx} className="match-card-skill-tag">{s}</span>
+          {job.skills.slice(0, 3).map((skill, idx) => (
+            <span key={idx} className="match-card-skill-tag">
+              {skill}
+            </span>
           ))}
           {job.skills.length > 3 && (
-            <span className="match-card-skill-tag">+{job.skills.length - 3}</span>
+            <span className="match-card-skill-tag match-card-skill-tag--more">
+              +{job.skills.length - 3}
+            </span>
           )}
         </div>
-      ) : null}
-      
+      )}
+
+      {/* Action Footer */}
       <div className="match-card-footer">
         <button
           type="button"
           className="match-card-tailor-btn"
           onClick={() => onTailor(job)}
-          title="Tailor resume with Qwen2.5-3B AI"
+          title="Tailor ATS resume with AI"
         >
-          <Sparkles size={13} />
+          <Sparkles size={14} />
           <span>Tailor Resume</span>
         </button>
 
-        {job.sourceUrl ? (
-          <button type="button" className="match-card-link" onClick={openListing} title="Open listing">
-            <ExternalLink size={14} />
-            <span>View Listing</span>
+        {job.sourceUrl && (
+          <button
+            type="button"
+            className="match-card-view-btn"
+            onClick={openListing}
+            title="Open original job posting"
+          >
+            <span>View</span>
+            <ExternalLink size={13} />
           </button>
-        ) : null}
+        )}
       </div>
     </div>
   );
@@ -97,9 +146,8 @@ export function MatchesPage() {
   const [error, setError] = useState<string | null>(null);
   const [tailorJob, setTailorJob] = useState<JobCard | null>(null);
 
-  // Filter & Search states
+  // Tab Filter state
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
-  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -130,48 +178,25 @@ export function MatchesPage() {
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
-      if (activeTab === "liked" && job.status !== "liked") return false;
-      if (activeTab === "applied" && job.status !== "applied") return false;
-      if (!searchQuery.trim()) return true;
-
-      const q = searchQuery.toLowerCase();
-      return (
-        job.title.toLowerCase().includes(q) ||
-        job.company.toLowerCase().includes(q) ||
-        (job.location && job.location.toLowerCase().includes(q))
-      );
+      if (activeTab === "liked") return job.status === "liked";
+      if (activeTab === "applied") return job.status === "applied";
+      return true;
     });
-  }, [jobs, activeTab, searchQuery]);
-
-
+  }, [jobs, activeTab]);
 
   return (
     <div className="matches-page page-fill">
       <div className="matches-inner">
-        {/* Header & Controls */}
+        {/* Header & Controls (Clean & Search-Bar Free) */}
         <div className="matches-header-wrap">
           <div className="matches-header-left">
             <h1 className="matches-title">Your Matches & Applications</h1>
             <p className="matches-sub">
-              Roles you have swiped right on or applied to. Generate custom resumes or contact recruiters.
+              Roles you have swiped right on or applied to. Generate custom resumes or review employers.
             </p>
           </div>
 
-          {/* Search bar */}
-          <div className="matches-search-wrap">
-            <Search size={16} className="matches-search-icon" />
-            <input
-              type="text"
-              className="matches-search-input"
-              placeholder="Filter by title, company, or location…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Tab Filters */}
-        <div className="matches-tabs-bar">
+          {/* Segmented Filter Tabs */}
           <div className="matches-tabs">
             <button
               type="button"
@@ -212,7 +237,7 @@ export function MatchesPage() {
         ) : error ? (
           <div className="matches-empty">
             <div className="matches-empty-icon"><Heart size={36} className="text-rose-400" /></div>
-            <h2 className="matches-empty-title">Couldn&apos;t load saved jobs</h2>
+            <h2 className="matches-empty-title">Couldn't load saved jobs</h2>
             <p className="matches-empty-copy">{error}</p>
             <Link className="matches-empty-cta" to="/dashboard/discover">Back to Discover</Link>
           </div>
@@ -220,11 +245,11 @@ export function MatchesPage() {
           <div className="matches-empty">
             <div className="matches-empty-icon"><Heart size={36} className="text-indigo-400" /></div>
             <h2 className="matches-empty-title">
-              {searchQuery ? "No matching roles found" : "No saved jobs in this category yet"}
+              {activeTab === "applied" ? "No applications yet" : activeTab === "liked" ? "No saved jobs yet" : "No matches found"}
             </h2>
             <p className="matches-empty-copy">
-              {searchQuery 
-                ? `No jobs match "${searchQuery}". Try a different keyword or reset the filter.`
+              {activeTab === "applied"
+                ? "Jobs you submit tailored applications for will show up here."
                 : "Swipe right on job cards in Discover to save them to your matched queue."}
             </p>
             <Link className="matches-empty-cta" to="/dashboard/discover">
