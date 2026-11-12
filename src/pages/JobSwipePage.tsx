@@ -117,7 +117,10 @@ export function JobSwipePage() {
     const t = session?.token?.trim() || readSession()?.token?.trim();
     if (!t || jobList.length === 0) return;
 
-    const unchecked = jobList.filter((j) => !fakeJobResults[j.id]);
+    const unchecked = jobList.filter((j) => !checkedJobIdsRef.current.has(j.id));
+    if (unchecked.length === 0) return;
+
+    unchecked.forEach((j) => checkedJobIdsRef.current.add(j.id));
     if (unchecked.length === 0) return;
 
     setFakeCheckBusy(true);
@@ -137,7 +140,7 @@ export function JobSwipePage() {
       // Gracefully continue
     }
     setFakeCheckBusy(false);
-  }, [session?.token, fakeJobResults]);
+  }, [session?.token]);
 
   useEffect(() => {
     let cancelled = false;
@@ -170,7 +173,9 @@ export function JobSwipePage() {
     return () => {
       cancelled = true;
     };
-  }, [refreshSession, navigate, logout, checkFakeJobs]);
+    // Run once on mount to initialize the feed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRefresh = async () => {
     const t = token;
