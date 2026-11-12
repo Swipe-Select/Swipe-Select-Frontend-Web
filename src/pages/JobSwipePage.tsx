@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type PointerEvent, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent, type CSSProperties } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   fetchRecommendedJobs, 
@@ -75,6 +75,7 @@ export function JobSwipePage() {
   const [refreshOffset, setRefreshOffset] = useState(0);
   const [fakeJobResults, setFakeJobResults] = useState<Record<string, FakeJobPrediction>>({});
   const [fakeCheckBusy, setFakeCheckBusy] = useState(false);
+  const checkedJobIdsRef = useRef<Set<string>>(new Set());
   const [tailorModalOpen, setTailorModalOpen] = useState(false);
   const [expandedDesc, setExpandedDesc] = useState(false);
 

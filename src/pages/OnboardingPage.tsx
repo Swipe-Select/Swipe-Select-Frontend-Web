@@ -77,6 +77,103 @@ function toMonthStr(raw: string | undefined | null): string {
   return "";
 }
 
+const DIAL_CODE_OPTIONS: { code: string; label: string }[] = [
+  { code: "+1", label: "US +1" },
+  { code: "+44", label: "UK +44" },
+  { code: "+61", label: "AU +61" },
+  { code: "+91", label: "IN +91" },
+  { code: "+92", label: "PK +92" },
+  { code: "+880", label: "BD +880" },
+  { code: "+971", label: "AE +971" },
+  { code: "+966", label: "SA +966" },
+  { code: "+49", label: "DE +49" },
+  { code: "+33", label: "FR +33" },
+  { code: "+34", label: "ES +34" },
+  { code: "+39", label: "IT +39" },
+  { code: "+31", label: "NL +31" },
+  { code: "+41", label: "CH +41" },
+  { code: "+43", label: "AT +43" },
+  { code: "+46", label: "SE +46" },
+  { code: "+47", label: "NO +47" },
+  { code: "+48", label: "PL +48" },
+  { code: "+353", label: "IE +353" },
+  { code: "+86", label: "CN +86" },
+  { code: "+81", label: "JP +81" },
+  { code: "+82", label: "KR +82" },
+  { code: "+65", label: "SG +65" },
+  { code: "+60", label: "MY +60" },
+  { code: "+62", label: "ID +62" },
+  { code: "+63", label: "PH +63" },
+  { code: "+52", label: "MX +52" },
+  { code: "+55", label: "BR +55" },
+  { code: "+27", label: "ZA +27" },
+  { code: "+234", label: "NG +234" },
+  { code: "+254", label: "KE +254" },
+  { code: "+20", label: "EG +20" },
+  { code: "+90", label: "TR +90" },
+];
+
+/** Parse an incoming full or partial phone string into a known dial code and local number */
+function parsePhoneAndDialCode(
+  rawPhone: string | undefined | null,
+  fallbackDial: string = "+1"
+): { dialCode: string; localNumber: string } {
+  if (!rawPhone || !rawPhone.trim()) {
+    return { dialCode: fallbackDial, localNumber: "" };
+  }
+
+  let cleaned = rawPhone.trim();
+
+  // If there are duplicate '+' from previous concatenated saves like "+1+923144210756"
+  if (cleaned.includes("+")) {
+    const parts = cleaned.split("+").filter(Boolean);
+    if (parts.length > 1) {
+      cleaned = "+" + parts[parts.length - 1];
+    }
+  }
+
+  // If starts with 00 (e.g. 00923144210756), normalize to +923144210756
+  if (cleaned.startsWith("00")) {
+    cleaned = "+" + cleaned.slice(2);
+  }
+
+  const sortedCodes = [...DIAL_CODE_OPTIONS].sort((a, b) => b.code.length - a.code.length);
+
+  // Case 1: Has leading '+'
+  if (cleaned.startsWith("+")) {
+    const compact = "+" + cleaned.slice(1).replace(/[\s\-\(\)\.]/g, "");
+    for (const opt of sortedCodes) {
+      if (compact.startsWith(opt.code)) {
+        let local = compact.slice(opt.code.length).replace(/^0+/, "");
+        return { dialCode: opt.code, localNumber: local };
+      }
+    }
+    const generic = compact.match(/^(\+\d{1,4})(\d{6,14})$/);
+    if (generic) {
+      return { dialCode: generic[1], localNumber: generic[2].replace(/^0+/, "") };
+    }
+    return { dialCode: fallbackDial, localNumber: compact.replace(/^\+/, "").replace(/^0+/, "") };
+  }
+
+  // Case 2: Pure digits without '+' (e.g. 923144210756)
+  const digitsOnly = cleaned.replace(/\D/g, "");
+  for (const opt of sortedCodes) {
+    const rawCode = opt.code.replace("+", "");
+    if (digitsOnly.startsWith(rawCode) && digitsOnly.length - rawCode.length >= 7) {
+      let local = digitsOnly.slice(rawCode.length).replace(/^0+/, "");
+      return { dialCode: opt.code, localNumber: local };
+    }
+  }
+
+  // Case 3: Local format starting with 0 (e.g. 03144210756)
+  let local = cleaned;
+  if (fallbackDial === "+92" && local.startsWith("03") && local.length === 11) {
+    local = local.slice(1);
+  }
+
+  return { dialCode: fallbackDial, localNumber: local };
+}
+
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { session, setSession } = useAuth();
@@ -124,10 +221,19 @@ export function OnboardingPage() {
   const [workPrefs, setWorkPrefs] = useState<WorkPrefId[]>(() => (_draft.workPrefs as WorkPrefId[] | undefined) ?? ["hybrid"]);
   const [employment, setEmployment] = useState<string[]>(() => _draft.employment ?? ["Full Time"]);
   const [experienceLevel, setExperienceLevel] = useState<string>(() => _draft.experienceLevel ?? "");
+  const initialPhoneInfo = useMemo(() => {
+    const raw = _draft.personalPhone ?? "";
+    const dial = _draft.personalDialCode ?? "+1";
+    if (raw && (raw.includes("+") || raw.startsWith("00") || raw.length >= 11)) {
+      return parsePhoneAndDialCode(raw, dial);
+    }
+    return { dialCode: dial, localNumber: raw };
+  }, []);
+
   const [personalFullName, setPersonalFullName] = useState<string>(() => _draft.personalFullName ?? "");
   const [personalEmail, setPersonalEmail] = useState<string>(() => _draft.personalEmail ?? "");
-  const [personalDialCode, setPersonalDialCode] = useState<string>(() => _draft.personalDialCode ?? "+1");
-  const [personalPhone, setPersonalPhone] = useState<string>(() => _draft.personalPhone ?? "");
+  const [personalDialCode, setPersonalDialCode] = useState<string>(() => initialPhoneInfo.dialCode);
+  const [personalPhone, setPersonalPhone] = useState<string>(() => initialPhoneInfo.localNumber);
   const personalInitials = useMemo(() => {
     const parts = personalFullName.trim().split(/\s+/).filter(Boolean);
     if (parts.length === 0) return "";
@@ -261,6 +367,14 @@ export function OnboardingPage() {
     
     if (profile.interests?.length) setInterests(profile.interests);
 
+    if (profile.phone?.trim() && !personalPhoneRef.current) {
+      const { dialCode, localNumber } = parsePhoneAndDialCode(profile.phone.trim(), personalDialCodeRef.current || "+1");
+      setPersonalDialCode(dialCode);
+      setPersonalPhone(localNumber);
+      personalDialCodeRef.current = dialCode;
+      personalPhoneRef.current = localNumber;
+    }
+
     setCommittedKeys((prev) => {
       const added = deriveCommittedKeys(newWe, newEdu, newProj, newCert);
       return new Set([...prev, ...added]);
@@ -335,11 +449,18 @@ export function OnboardingPage() {
     );
     const normalizedBaseLocation = selectedBaseLocationRef.current.trim();
 
+    const cleanPhone = phone.trim();
+    const formattedPhone = cleanPhone
+      ? cleanPhone.startsWith('+')
+        ? cleanPhone
+        : `${dialCode}${cleanPhone.replace(/^0+/, '')}`
+      : '';
+
     const profilePayload = {
       gender: g,
       firstName: fullName.split(' ')[0] || '',
       lastName: fullName.split(' ').slice(1).join(' ') || '',
-      phone: phone ? `${dialCode}${phone}` : '',
+      phone: formattedPhone,
       workExperience: we.map(w => ({
         title: w.title,
         company: w.employer,
@@ -747,7 +868,13 @@ export function OnboardingPage() {
             const fName = profile.firstName?.trim() || "";
             const lName = profile.lastName?.trim() || "";
             if (fName || lName) setPersonalFullName(`${fName} ${lName}`.trim());
-            if (profile.phone?.trim()) setPersonalPhone(profile.phone.trim());
+            if (profile.phone?.trim()) {
+              const { dialCode, localNumber } = parsePhoneAndDialCode(profile.phone.trim(), personalDialCodeRef.current || "+1");
+              setPersonalDialCode(dialCode);
+              setPersonalPhone(localNumber);
+              personalDialCodeRef.current = dialCode;
+              personalPhoneRef.current = localNumber;
+            }
             // Session email is fallback if profile doesn't have it parsed
             setPersonalEmail(session.email || "");
 
@@ -811,11 +938,18 @@ export function OnboardingPage() {
 
     setPrefsBusy(true);
 
+    const cleanPhoneFinal = personalPhoneRef.current.trim();
+    const formattedPhoneFinal = cleanPhoneFinal
+      ? cleanPhoneFinal.startsWith('+')
+        ? cleanPhoneFinal
+        : `${personalDialCodeRef.current}${cleanPhoneFinal.replace(/^0+/, '')}`
+      : '';
+
     const profilePayload = {
       gender: genderRef.current,
       firstName: personalFullNameRef.current.split(' ')[0] || '',
       lastName: personalFullNameRef.current.split(' ').slice(1).join(' ') || '',
-      phone: personalPhoneRef.current ? `${personalDialCodeRef.current}${personalPhoneRef.current}` : '',
+      phone: formattedPhoneFinal,
       workExperience: workExperiencesRef.current.map(w => ({
         title: w.title,
         company: w.employer,
@@ -1370,29 +1504,14 @@ export function OnboardingPage() {
                           onChange={(e) => setPersonalDialCode(e.target.value)}
                           aria-label="Country dial code"
                         >
-                          <option value="+1">US +1</option>
-                          <option value="+44">UK +44</option>
-                          <option value="+61">AU +61</option>
-                          <option value="+91">IN +91</option>
-                          <option value="+49">DE +49</option>
-                          <option value="+33">FR +33</option>
-                          <option value="+86">CN +86</option>
-                          <option value="+81">JP +81</option>
-                          <option value="+52">MX +52</option>
-                          <option value="+55">BR +55</option>
-                          <option value="+34">ES +34</option>
-                          <option value="+39">IT +39</option>
-                          <option value="+31">NL +31</option>
-                          <option value="+46">SE +46</option>
-                          <option value="+47">NO +47</option>
-                          <option value="+65">SG +65</option>
-                          <option value="+971">AE +971</option>
-                          <option value="+966">SA +966</option>
-                          <option value="+27">ZA +27</option>
-                          <option value="+234">NG +234</option>
-                          <option value="+254">KE +254</option>
-                          <option value="+92">PK +92</option>
-                          <option value="+880">BD +880</option>
+                          {!DIAL_CODE_OPTIONS.some((o) => o.code === personalDialCode) && (
+                            <option value={personalDialCode}>{personalDialCode}</option>
+                          )}
+                          {DIAL_CODE_OPTIONS.map((opt) => (
+                            <option key={opt.code} value={opt.code}>
+                              {opt.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="onb-phone-input-wrap">
@@ -1406,7 +1525,26 @@ export function OnboardingPage() {
                           inputMode="tel"
                           placeholder="(555) 000-0000"
                           value={personalPhone}
-                          onChange={(e) => setPersonalPhone(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val.includes("+") || val.startsWith("00")) {
+                              const parsed = parsePhoneAndDialCode(val, personalDialCode);
+                              setPersonalDialCode(parsed.dialCode);
+                              setPersonalPhone(parsed.localNumber);
+                            } else {
+                              setPersonalPhone(val);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value.trim();
+                            if (val) {
+                              const parsed = parsePhoneAndDialCode(val, personalDialCode);
+                              if (parsed.dialCode !== personalDialCode) {
+                                setPersonalDialCode(parsed.dialCode);
+                              }
+                              setPersonalPhone(parsed.localNumber);
+                            }
+                          }}
                         />
                       </div>
                     </div>
