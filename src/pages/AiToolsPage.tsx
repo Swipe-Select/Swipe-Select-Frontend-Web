@@ -263,13 +263,26 @@ export function AiToolsPage() {
 
   return (
     <div className="ai-tools-page page-fill">
-      {/* Header */}
-      <div className="ai-tools-header">
-        <div>
-          <h1 className="ai-tools-title">AI Career Intelligence Studio</h1>
-          <p className="ai-tools-subtitle">
-            Powered by fine-tuned <strong>ModernBERT</strong> (Fraud Detection) & <strong>Qwen2.5-3B</strong> (ATS Resume Generator) on port 8000.
-          </p>
+            {/* Unified AI Studio Toolbar */}
+      <div className="ai-studio-toolbar">
+        <div className="ai-tools-tabs">
+          <button
+            type="button"
+            className={`ai-tools-tab ${activeTab === "resume" ? "ai-tools-tab--active" : ""}`}
+            onClick={() => setActiveTab("resume")}
+          >
+            <Sparkles size={15} />
+            <span>AI Resume Studio (Qwen2.5)</span>
+          </button>
+
+          <button
+            type="button"
+            className={`ai-tools-tab ${activeTab === "detector" ? "ai-tools-tab--active" : ""}`}
+            onClick={() => setActiveTab("detector")}
+          >
+            <ShieldCheck size={15} />
+            <span>Fake Job Authenticity Verifier (ModernBERT)</span>
+          </button>
         </div>
 
         {/* Model Status Bar */}
@@ -282,7 +295,6 @@ export function AiToolsPage() {
               title="ModernBERT Sequence Classifier for Fake Job Detection"
             >
               <span className="ai-status-dot" />
-              <ShieldCheck size={14} />
               <span>ModernBERT: {healthStatus.fakeJobLoaded ? "Ready" : "Standby"}</span>
             </span>
 
@@ -293,7 +305,6 @@ export function AiToolsPage() {
               title="Qwen2.5-3B Instruct GGUF Model for Resume Generation"
             >
               <span className="ai-status-dot" />
-              <Bot size={14} />
               <span>Qwen2.5-3B: {healthStatus.resumeLoaded ? "Ready" : "Standby"}</span>
             </span>
           </div>
@@ -305,31 +316,10 @@ export function AiToolsPage() {
             disabled={checkingHealth}
             title="Ping ML Microservice"
           >
-            <RotateCcw size={13} className={checkingHealth ? "animate-spin" : ""} />
+            <RotateCcw size={12} className={checkingHealth ? "animate-spin" : ""} />
             <span>{checkingHealth ? "Pinging…" : "Check Health"}</span>
           </button>
         </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="ai-tools-tabs">
-        <button
-          type="button"
-          className={`ai-tools-tab ${activeTab === "resume" ? "ai-tools-tab--active" : ""}`}
-          onClick={() => setActiveTab("resume")}
-        >
-          <Sparkles size={16} />
-          <span>AI Resume Studio (Qwen2.5)</span>
-        </button>
-
-        <button
-          type="button"
-          className={`ai-tools-tab ${activeTab === "detector" ? "ai-tools-tab--active" : ""}`}
-          onClick={() => setActiveTab("detector")}
-        >
-          <ShieldCheck size={16} />
-          <span>Fake Job Authenticity Verifier (ModernBERT)</span>
-        </button>
       </div>
 
       {/* Tab 1: AI Resume Studio */}
@@ -427,29 +417,8 @@ export function AiToolsPage() {
                 </button>
               </div>
 
+              {/* Select Output Section (2 options only) */}
               <div className="ai-form-group">
-                {useBaseResume && baseResume && (
-                  <div style={{ marginBottom: "14px" }}>
-                    <label className="ai-label">Tailoring Engine</label>
-                    <div className="ai-pill-selector">
-                      <button
-                        type="button"
-                        className={`ai-selector-pill ${engine === "local" ? "ai-selector-pill--active" : ""}`}
-                        onClick={() => setEngine("local")}
-                      >
-                        <Bot size={14} /> Local Qwen2.5-3B (GGUF)
-                      </button>
-                      <button
-                        type="button"
-                        className={`ai-selector-pill ${engine === "ai" ? "ai-selector-pill--active" : ""}`}
-                        onClick={() => setEngine("ai")}
-                      >
-                        <Sparkles size={14} /> Cloud Gemini AI
-                      </button>
-                    </div>
-                  </div>
-                )}
-
                 <label className="ai-label">Select Output Section</label>
                 <div className="ai-pill-selector">
                   <button
@@ -470,26 +439,31 @@ export function AiToolsPage() {
                   >
                     <FileText size={14} /> Professional Summary
                   </button>
-                  <button
-                    type="button"
-                    className={`ai-selector-pill ${
-                      sectionType === "experience" ? "ai-selector-pill--active" : ""
-                    }`}
-                    onClick={() => setSectionType("experience")}
-                  >
-                    <CheckCircle2 size={14} /> Work Experience
-                  </button>
-                  <button
-                    type="button"
-                    className={`ai-selector-pill ${
-                      sectionType === "cover_letter" ? "ai-selector-pill--active" : ""
-                    }`}
-                    onClick={() => setSectionType("cover_letter")}
-                  >
-                    <FileText size={14} /> Cover Letter
-                  </button>
                 </div>
               </div>
+
+              {/* Tailoring Engine (shuffled below output section) */}
+              {useBaseResume && baseResume && (
+                <div className="ai-form-group">
+                  <label className="ai-label">Tailoring Engine</label>
+                  <div className="ai-pill-selector">
+                    <button
+                      type="button"
+                      className={`ai-selector-pill ${engine === "local" ? "ai-selector-pill--active" : ""}`}
+                      onClick={() => setEngine("local")}
+                    >
+                      <Bot size={14} /> Local Qwen2.5-3B (GGUF)
+                    </button>
+                    <button
+                      type="button"
+                      className={`ai-selector-pill ${engine === "ai" ? "ai-selector-pill--active" : ""}`}
+                      onClick={() => setEngine("ai")}
+                    >
+                      <Sparkles size={14} /> Cloud Gemini AI
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="ai-form-group">
                 <label htmlFor="target-job-title" className="ai-label">
@@ -512,7 +486,7 @@ export function AiToolsPage() {
                 <textarea
                   id="target-job-desc"
                   className="ai-textarea"
-                  rows={4}
+                  rows={3}
                   placeholder="Paste key responsibilities or requirements to extract keywords…"
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
@@ -536,7 +510,7 @@ export function AiToolsPage() {
                     <span>
                       {sectionType === "tailored_resume"
                         ? "Generate Complete Tailored Resume"
-                        : "Generate Tailored Section"}
+                        : "Generate Professional Summary"}
                     </span>
                   </>
                 )}
@@ -800,7 +774,7 @@ export function AiToolsPage() {
                 <textarea
                   id="det-desc"
                   className="ai-textarea"
-                  rows={6}
+                  rows={4}
                   placeholder="Paste the full job posting description, requirements, or responsibilities…"
                   value={detectorDescription}
                   onChange={(e) => setDetectorDescription(e.target.value)}
