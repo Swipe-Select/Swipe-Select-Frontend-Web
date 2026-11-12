@@ -71,7 +71,10 @@ export function ResumePaperTemplate({
       }
 
       // 2. Parse sections by headers (### or ##)
-      const sections = rawMarkdown.split(/\n#{2,3}\s+/);
+      // 2. Parse sections by top-level headers (##), falling back to ### only if no ## headers exist
+      const normalizedMd = rawMarkdown.replace(/\r\n/g, "\n");
+      const hasH2 = /(?:^|\n)##\s+/.test(normalizedMd);
+      const sections = normalizedMd.split(hasH2 ? /\n##\s+|^##\s+/ : /\n#{2,3}\s+|^#{2,3}\s+/);
       let parsedSummary = "";
       const parsedSkills: Array<{ category: string; content: string }> = [];
       const parsedExperience: Array<{
@@ -130,7 +133,11 @@ export function ResumePaperTemplate({
             if (!line || line.startsWith("---")) continue;
 
             // Check if line represents a job title & company
-            const jobHeader = line.match(/^\*\*([^*|]+)(?:\||\bat\b)\s*([^*]+)\*\*/i);
+            const h3Job = line.match(/^###\s+(.+)$/);
+            const cleanH3Job = h3Job ? h3Job[1].replace(/\*\*/g, "").trim() : null;
+            const jobHeader = cleanH3Job
+              ? cleanH3Job.match(/^([^|–—-]+?)(?:\s*\|\s*|\s+at\s+|\s+[–—-]\s+)(.+)$/i) || [cleanH3Job, cleanH3Job, ""]
+              : line.match(/^\*\*([^*|]+)(?:\||\bat\b)\s*([^*]+)\*\*/i);
             if (jobHeader) {
               if (currentExp) parsedExperience.push(currentExp);
               currentExp = {
@@ -164,7 +171,11 @@ export function ResumePaperTemplate({
             const line = lines[i];
             if (!line || line.startsWith("---")) continue;
 
-            const projHeader = line.match(/^\*\*([^*|]+)(?:\||\b[-–]\b)?\s*([^*]*)\*\*/);
+            const h3Proj = line.match(/^###\s+(.+)$/);
+            const cleanH3Proj = h3Proj ? h3Proj[1].replace(/\*\*/g, "").trim() : null;
+            const projHeader = cleanH3Proj
+              ? cleanH3Proj.match(/^([^|–—-]+?)(?:\s*\|\s*|\s+[–—-]\s+)(.*)$/) || [cleanH3Proj, cleanH3Proj, ""]
+              : line.match(/^\*\*([^*|]+)(?:\||\b[-–]\b)?\s*([^*]*)\*\*/);
             if (projHeader) {
               if (currentProj) parsedProjects.push(currentProj);
               currentProj = {
@@ -187,7 +198,10 @@ export function ResumePaperTemplate({
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i];
             if (!line || line.startsWith("---")) continue;
-            const degMatch = line.match(/^\*\*([^*]+)\*\*/);
+            const h3Deg = line.match(/^###\s+(.+)$/);
+            const degMatch = h3Deg
+              ? [line, h3Deg[1].replace(/\*\*/g, "")]
+              : line.match(/^\*\*([^*]+)\*\*/);
             if (degMatch) {
               const nextLine = lines[i + 1] || "";
               parsedEducation.push({
