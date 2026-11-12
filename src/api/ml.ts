@@ -11,10 +11,21 @@ export type FakeJobPrediction = {
   label: string; // "Real" | "Fake"
 };
 
+export type PdfBlockChange = {
+  id: string;
+  section: string;
+  before: string;
+  after: string;
+};
+
 export type ResumeGenResult = {
   generatedText: string;
   section: string;
   engine?: string;
+  tailoredPdfBase64?: string | null;
+  pdfEdited?: boolean;
+  blocksModified?: number;
+  pdfChanges?: PdfBlockChange[];
   extractedText?: string | null;
   extractedTextPreview?: string | null;
   extractedTextLength?: number;
@@ -87,7 +98,7 @@ export async function generateResume(
   opts: {
     jobTitle?: string;
     jobDescription?: string;
-    section?: 'summary' | 'experience' | 'cover_letter';
+    section?: 'tailored_resume' | 'summary' | 'experience' | 'cover_letter';
   },
   token: string,
 ): Promise<{ ok: boolean; data: ResumeGenResult | null; message: string | null }> {

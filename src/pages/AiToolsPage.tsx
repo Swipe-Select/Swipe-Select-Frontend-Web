@@ -6,6 +6,7 @@ import {
   tailorResumeWithUpload,
   predictFakeJob,
   type FakeJobPrediction,
+  type PdfBlockChange,
 } from "../api/ml";
 import { readSession } from "../auth/storage";
 import { useAuth } from "../context/AuthContext";
@@ -30,8 +31,8 @@ import {
   FileCheck,
   Split,
 } from "lucide-react";
-import { ResumePaperTemplate } from "../components/ResumePaperTemplate";
-import { ResumeErrorBoundary } from "../components/ResumeErrorBoundary";
+import { TailoredResultPane } from "../components/TailoredPdfPreview";
+
 import "./AiToolsPage.css";
 import "../components/TailorResumeModal.css";
 
@@ -86,6 +87,11 @@ export function AiToolsPage() {
   const [copiedResume, setCopiedResume] = useState(false);
   const [outputView, setOutputView] = useState<"pdf" | "split" | "markdown">("pdf");
   const [extractedResumeText, setExtractedResumeText] = useState<string>("");
+  const [engine, setEngine] = useState<"local" | "ai">("local");
+  const [tailoredPdfBase64, setTailoredPdfBase64] = useState<string | null>(null);
+  const [blocksModified, setBlocksModified] = useState<number>(0);
+  const [pdfChanges, setPdfChanges] = useState<PdfBlockChange[]>([]);
+  const [afterViewMode, setAfterViewMode] = useState<"pdf" | "paper">("pdf");
 
   // Stored Base Resume State (from Settings)
   const [baseResume, setBaseResume] = useState<{ dataUrl: string; meta: ResumeMeta } | null>(null);
@@ -127,6 +133,9 @@ export function AiToolsPage() {
     setGeneratingResume(true);
     setResumeError(null);
     setCopiedResume(false);
+    setTailoredPdfBase64(null);
+    setBlocksModified(0);
+    setPdfChanges([]);
 
     try {
       // If user enabled base resume tailoring and base resume is available
@@ -138,6 +147,7 @@ export function AiToolsPage() {
               jobTitle: jobTitle.trim(),
               jobDescription: jobDescription.trim(),
               section: sectionType,
+              engine,
               file: resumeFile,
             },
             token,
@@ -146,6 +156,11 @@ export function AiToolsPage() {
           if (res.ok && res.data) {
             setGeneratedResume(res.data.generatedText);
             setExtractedResumeText(res.data.extractedText || res.data.extractedTextPreview || "");
+            const hasEditedPdf = Boolean(res.data.pdfEdited && res.data.tailoredPdfBase64);
+            setTailoredPdfBase64(hasEditedPdf ? res.data.tailoredPdfBase64 || null : null);
+            setBlocksModified(res.data.blocksModified || 0);
+            setPdfChanges(res.data.pdfChanges || []);
+            setAfterViewMode(hasEditedPdf ? "pdf" : "paper");
             setOutputView("split");
             setGeneratingResume(false);
             return;
@@ -389,6 +404,8 @@ export function AiToolsPage() {
                 </div>
               )}
 
+
+
               {/* Demo Presets Row */}
               <div className="ai-preset-row">
                 <span className="ai-preset-label">
@@ -411,6 +428,28 @@ export function AiToolsPage() {
               </div>
 
               <div className="ai-form-group">
+                {useBaseResume && baseResume && (
+                  <div style={{ marginBottom: "14px" }}>
+                    <label className="ai-label">Tailoring Engine</label>
+                    <div className="ai-pill-selector">
+                      <button
+                        type="button"
+                        className={`ai-selector-pill ${engine === "local" ? "ai-selector-pill--active" : ""}`}
+                        onClick={() => setEngine("local")}
+                      >
+                        <Bot size={14} /> Local Qwen2.5-3B (GGUF)
+                      </button>
+                      <button
+                        type="button"
+                        className={`ai-selector-pill ${engine === "ai" ? "ai-selector-pill--active" : ""}`}
+                        onClick={() => setEngine("ai")}
+                      >
+                        <Sparkles size={14} /> Cloud Gemini AI
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <label className="ai-label">Select Output Section</label>
                 <div className="ai-pill-selector">
                   <button
@@ -602,8 +641,8 @@ export function AiToolsPage() {
                         <span className="tailor-split-match-badge">🎯 ATS Optimized</span>
                       </div>
                       <div className="tailor-split-body tailor-split-body--paper">
-                        <ResumeErrorBoundary>
-                          <ResumePaperTemplate
+                        <TailoredResultPane
+                          pdfBase64={tailoredPdfBase64} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={baseResume?.meta?.fileName ? `tailored-${baseResume.meta.fileName}` : "tailored-resume.pdf"}
                             rawMarkdown={generatedResume}
                             targetJobTitle={jobTitle || "Tailored Role"}
                             targetCompany=""
@@ -620,14 +659,14 @@ export function AiToolsPage() {
                               if (updated) setBaseResume(updated);
                             }}
                           />
-                        </ResumeErrorBoundary>
+
                       </div>
                     </div>
                   </div>
                 ) : outputView === "pdf" ? (
                   <div className="ai-resume-template-container">
-                    <ResumeErrorBoundary>
-                      <ResumePaperTemplate
+                    <TailoredResultPane
+                      pdfBase64={tailoredPdfBase64} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={baseResume?.meta?.fileName ? `tailored-${baseResume.meta.fileName}` : "tailored-resume.pdf"}
                         rawMarkdown={generatedResume}
                         targetJobTitle={jobTitle || "Tailored Role"}
                         targetCompany=""
@@ -644,7 +683,7 @@ export function AiToolsPage() {
                           if (updated) setBaseResume(updated);
                         }}
                       />
-                    </ResumeErrorBoundary>
+
                   </div>
                 ) : (
                   <div className="ai-output-container">
@@ -691,6 +730,8 @@ export function AiToolsPage() {
                   </p>
                 </div>
               </div>
+
+
 
               {/* Demo Presets Row */}
               <div className="ai-preset-row">

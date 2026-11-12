@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { tailorResumeWithUpload } from "../api/ml";
+import { tailorResumeWithUpload, type PdfBlockChange } from "../api/ml";
 import { useAuth } from "../context/AuthContext";
 import { readSession } from "../auth/storage";
 import {
@@ -9,8 +9,9 @@ import {
   type ResumeMeta,
 } from "../auth/resumeStorage";
 import type { JobCard } from "../api/jobs";
-import { ResumePaperTemplate } from "./ResumePaperTemplate";
-import { ResumeErrorBoundary } from "./ResumeErrorBoundary";
+
+
+import { TailoredResultPane } from "./TailoredPdfPreview";
 import {
   Sparkles,
   FileText,
@@ -50,7 +51,7 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pastedResume, setPastedResume] = useState("");
   const [tailorMode, setTailorMode] = useState<TailorMode>("tailored_resume");
-  const [engine, setEngine] = useState<EngineChoice>("ai");
+  const [engine, setEngine] = useState<EngineChoice>("local");
 
   // Output & Comparison states
   const [isGenerating, setIsGenerating] = useState(false);
@@ -66,6 +67,10 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
     extractedTextPreview?: string | null;
     extractedTextLength?: number;
   } | null>(null);
+  const [tailoredPdfBase64, setTailoredPdfBase64] = useState<string | null>(null);
+  const [blocksModified, setBlocksModified] = useState<number>(0);
+  const [pdfChanges, setPdfChanges] = useState<PdfBlockChange[]>([]);
+  const [afterViewMode, setAfterViewMode] = useState<"pdf" | "paper">("pdf");
   const [activeView, setActiveView] = useState<ActiveView>("split");
 
   // Auto-detect base resume whenever modal opens
@@ -170,6 +175,9 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
     setIsGenerating(true);
     setErrorMessage(null);
     setCopied(false);
+    setTailoredPdfBase64(null);
+    setBlocksModified(0);
+    setPdfChanges([]);
 
     try {
       const res = await tailorResumeWithUpload(
@@ -199,6 +207,12 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
           extractedTextPreview: res.data.extractedTextPreview,
           extractedTextLength: res.data.extractedTextLength,
         });
+
+        const hasEditedPdf = Boolean(res.data.pdfEdited && res.data.tailoredPdfBase64);
+        setTailoredPdfBase64(hasEditedPdf ? res.data.tailoredPdfBase64 || null : null);
+        setBlocksModified(res.data.blocksModified || 0);
+        setPdfChanges(res.data.pdfChanges || []);
+        setAfterViewMode(hasEditedPdf ? "pdf" : "paper");
 
         // Set default view to side-by-side Before & After view
         setActiveView("split");
@@ -475,11 +489,11 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                 onClick={() => setEngine("ai")}
               >
                 <div className="tailor-engine-card-top">
-                  <span className="tailor-engine-title">🚀 Fine-Tuned Qwen2.5-3B Model</span>
-                  <span className="tailor-engine-badge">Recommended</span>
+                  <span className="tailor-engine-title">✨ Cloud Gemini AI</span>
+                  <span className="tailor-engine-badge">Optional</span>
                 </div>
                 <p className="tailor-engine-desc">
-                  Fine-tuned Qwen2.5 model specialized for full, ATS-optimized executive resumes with strong quantifiable metrics and deep alignment with this specific role.
+                  Uses Google Gemini API in the cloud to tailor sections and rewrite PDF text blocks while preserving your original PDF layout.
                 </p>
               </button>
 
@@ -489,11 +503,11 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                 onClick={() => setEngine("local")}
               >
                 <div className="tailor-engine-card-top">
-                  <span className="tailor-engine-title">⚡ Local Edge Model (GGUF)</span>
-                  <span className="tailor-engine-badge tailor-engine-badge--local">Offline / Metal</span>
+                  <span className="tailor-engine-title">⚡ Local Qwen2.5-3B Model (GGUF)</span>
+                  <span className="tailor-engine-badge tailor-engine-badge--local">Recommended · Offline</span>
                 </div>
                 <p className="tailor-engine-desc">
-                  Runs offline directly on your Apple Silicon Metal GPU on port 8000 using quantized GGUF weights.
+                  Runs locally offline on your machine (port 8000) using your quantized Qwen2.5-3B GGUF weights — edits PDFs in-place or writes structured Markdown.
                 </p>
               </button>
             </div>
@@ -551,8 +565,9 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
               <>
                 <span className="tailor-spinner" />
                 {engine === "ai"
-                  ? `Tailoring for ${job.company} with Fine-Tuned Qwen2.5-3B…`
-                  : `Generating with Local Edge Model on Metal GPU…`}
+                  ? `Tailoring for ${job.company} with Cloud Gemini AI…`
+                  : `Tailoring for ${job.company} with Local Qwen2.5-3B…`}
+
               </>
             ) : (
               `✨ Generate Tailored ${
@@ -583,8 +598,9 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                 {generationMeta?.engine && (
                   <div className="tailor-engine-tag">
                     {generationMeta.engine === "ai_pro" || generationMeta.engine === "ai"
-                      ? "✨ Fine-Tuned Qwen2.5-3B (High ATS Match)"
-                      : "⚡ Local Edge Model (GGUF)"}
+                      ? "✨ Cloud Gemini AI (Template Preserved)"
+                      : "⚡ Local Qwen2.5-3B (GGUF)"}
+
                   </div>
                 )}
               </div>
@@ -714,14 +730,14 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                     </div>
 
                     <div className="tailor-split-body tailor-split-body--paper">
-                      <ResumeErrorBoundary>
-                        <ResumePaperTemplate
+                      <TailoredResultPane
+                        pdfBase64={tailoredPdfBase64} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={`tailored-${job.company || "resume"}.pdf`}
                           rawMarkdown={generatedText}
                           targetJobTitle={job.title}
                           targetCompany={job.company}
                           onTextChange={setGeneratedText}
                         />
-                      </ResumeErrorBoundary>
+
                     </div>
                   </div>
                 </div>
@@ -729,14 +745,14 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
 
               {/* VIEW 2: TAILORED (AFTER) ONLY */}
               {activeView === "after" && (
-                <ResumeErrorBoundary>
-                  <ResumePaperTemplate
+                <TailoredResultPane
+                  pdfBase64={tailoredPdfBase64} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={`tailored-${job.company || "resume"}.pdf`}
                     rawMarkdown={generatedText}
                     targetJobTitle={job.title}
                     targetCompany={job.company}
                     onTextChange={setGeneratedText}
                   />
-                </ResumeErrorBoundary>
+
               )}
 
               {/* VIEW 3: ORIGINAL (BEFORE) ONLY */}
