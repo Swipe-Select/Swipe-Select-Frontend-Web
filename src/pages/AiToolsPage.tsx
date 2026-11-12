@@ -337,21 +337,20 @@ export function AiToolsPage() {
                 </div>
               </div>
 
-              {/* Base Resume Indicator / Tailoring Control */}
+              {/* Base Resume Indicator / Tailoring Control (Minimal & Clean) */}
               {baseResume ? (
                 <div className="ai-base-resume-banner">
                   <div className="ai-base-resume-left">
                     <div className="ai-base-resume-icon-wrapper">
-                      <FileCheck size={20} className="text-indigo-600" />
+                      <FileCheck size={15} />
                     </div>
-                    <div>
-                      <div className="ai-base-resume-title-line">
-                        <strong className="ai-base-resume-name">{baseResume.meta.fileName}</strong>
-                        <span className="ai-badge-source">Active Base PDF</span>
-                      </div>
-                      <p className="ai-base-resume-meta">
-                        {(baseResume.meta.fileSize / 1024).toFixed(1)} KB • Saved in Profile Settings
-                      </p>
+                    <div className="ai-base-resume-info">
+                      <span className="ai-base-resume-name" title={baseResume.meta.fileName}>
+                        {baseResume.meta.fileName}
+                      </span>
+                      <span className="ai-base-resume-size">
+                        {(baseResume.meta.fileSize / 1024).toFixed(1)} KB
+                      </span>
                     </div>
                   </div>
                   <div className="ai-base-resume-right">
@@ -360,7 +359,7 @@ export function AiToolsPage() {
                       className="ai-btn-ghost-sm"
                       onClick={() => setShowResumePreview(true)}
                     >
-                      <Eye size={13} /> View PDF
+                      <Eye size={12} /> View PDF
                     </button>
                     <label className="ai-switch-label" title="Use stored base resume as tailoring context">
                       <input
@@ -377,19 +376,15 @@ export function AiToolsPage() {
                 <div className="ai-base-resume-banner ai-base-resume-banner--empty">
                   <div className="ai-base-resume-left">
                     <div className="ai-base-resume-icon-wrapper">
-                      <FileText size={20} className="text-slate-400" />
+                      <FileText size={15} />
                     </div>
-                    <div>
-                      <div className="ai-base-resume-title-line">
-                        <strong>No Base Resume PDF Stored</strong>
-                      </div>
-                      <p className="ai-base-resume-meta">
-                        Upload your resume PDF in Settings so AI can automatically tailor it for any role.
-                      </p>
+                    <div className="ai-base-resume-info">
+                      <span className="ai-base-resume-name">No Base Resume</span>
+                      <span className="ai-base-resume-size">Optional</span>
                     </div>
                   </div>
                   <Link to="/dashboard/profile" className="ai-btn-ghost-sm">
-                    <ExternalLink size={13} /> Upload in Settings
+                    <ExternalLink size={12} /> Upload
                   </Link>
                 </div>
               )}
@@ -695,7 +690,7 @@ export function AiToolsPage() {
         <div className="ai-tab-content">
           <div className="ai-resume-grid">
             {/* Form */}
-            <form className="ai-card ai-resume-form" onSubmit={handleDetectFakeJob}>
+            <form className="ai-card ai-resume-form ai-detector-form" onSubmit={handleDetectFakeJob}>
               <div className="ai-card-header-row">
                 <div>
                   <h2 className="ai-card-title">Screen Job Posting Authenticity</h2>
@@ -707,23 +702,25 @@ export function AiToolsPage() {
 
 
 
-              {/* Demo Presets Row */}
-              <div className="ai-preset-row">
+              {/* Demo Presets Card */}
+              <div className="ai-preset-card">
                 <span className="ai-preset-label"><ShieldCheck size={13} /> 1-Click Tests:</span>
-                <button
-                  type="button"
-                  className="ai-preset-btn ai-preset-btn--real"
-                  onClick={() => loadFakeJobPreset(PRESET_REAL_JOB)}
-                >
-                  ✓ Test Authentic Role (Stripe)
-                </button>
-                <button
-                  type="button"
-                  className="ai-preset-btn ai-preset-btn--fake"
-                  onClick={() => loadFakeJobPreset(PRESET_FAKE_JOB)}
-                >
-                  ⚠ Test Fake Scam Role ($85/hr)
-                </button>
+                <div className="ai-preset-grid">
+                  <button
+                    type="button"
+                    className="ai-preset-btn ai-preset-btn--real"
+                    onClick={() => loadFakeJobPreset(PRESET_REAL_JOB)}
+                  >
+                    ✓ Test Authentic (Stripe)
+                  </button>
+                  <button
+                    type="button"
+                    className="ai-preset-btn ai-preset-btn--fake"
+                    onClick={() => loadFakeJobPreset(PRESET_FAKE_JOB)}
+                  >
+                    ⚠ Test Fake Scam ($85/hr)
+                  </button>
+                </div>
               </div>
 
               <div className="ai-form-group">

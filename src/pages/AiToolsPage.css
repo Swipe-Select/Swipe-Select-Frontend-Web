@@ -186,11 +186,11 @@
   background: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.85);
   border-radius: 18px;
-  padding: 18px 22px;
+  padding: 20px 24px;
   box-shadow: 0 4px 24px -4px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.02);
   display: flex;
   flex-direction: column;
-  gap: clamp(9px, 1.3vh, 12px);
+  gap: clamp(11px, 1.6vh, 15px);
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
@@ -228,101 +228,96 @@
   line-height: 1.4;
 }
 
-/* ─── Base Resume Card (Settings Integration) ─── */
+/* ─── Base Resume Card (Minimal, Modern & Decent) ─── */
 .ai-base-resume-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 8px 14px;
-  background: linear-gradient(135deg, rgba(238, 242, 255, 0.85) 0%, rgba(245, 243, 255, 0.85) 100%);
-  border: 1px solid rgba(199, 210, 254, 0.9);
-  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
   flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.ai-base-resume-banner:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .ai-base-resume-banner--empty {
-  background: #f8fafc;
+  background: #fbfcfe;
   border: 1px dashed #cbd5e1;
 }
 
 .ai-base-resume-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
   min-width: 0;
+  flex: 1;
 }
 
 .ai-base-resume-icon-wrapper {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: #ffffff;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #eef2ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.12);
-  border: 1px solid rgba(199, 210, 254, 0.6);
+  border: 1px solid #e0e7ff;
+  color: #4f46e5;
   flex-shrink: 0;
 }
 
-.ai-base-resume-title-line {
+.ai-base-resume-info {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
 }
 
 .ai-base-resume-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: #1e1b4b;
-  max-width: 180px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0f172a;
+  max-width: 215px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ai-badge-source {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  background: #ede9fe;
-  color: #6d28d9;
-  padding: 2px 7px;
-  border-radius: 5px;
-  border: 1px solid #ddd6fe;
-}
-
-.ai-base-resume-meta {
-  font-size: 11.5px;
-  color: #64748b;
-  margin: 1px 0 0;
-  line-height: 1.35;
+.ai-base-resume-size {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .ai-base-resume-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .ai-btn-ghost-sm {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #4f46e5;
   background: #ffffff;
-  border: 1px solid #c7d2fe;
-  padding: 5px 11px;
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  padding: 4px 9px;
+  border-radius: 7px;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   transition: all 0.16s ease;
 }
 
@@ -456,7 +451,7 @@
 .ai-form-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -499,12 +494,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 13px;
+  padding: 7px 14px;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
   background: #f8fafc;
   color: #475569;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.16s ease;
@@ -526,11 +521,11 @@
 
 /* ─── Form Inputs ─── */
 .ai-input {
-  height: 37px;
+  height: 39px;
   padding: 0 14px;
   border: 1.5px solid #cbd5e1;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 13.5px;
   color: #0f172a;
   background: #fbfcfe;
   outline: none;
@@ -538,19 +533,19 @@
 }
 
 .ai-textarea {
-  padding: 7px 12px;
+  padding: 8px 14px;
   border: 1.5px solid #cbd5e1;
   border-radius: 10px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-family: inherit;
   color: #0f172a;
   background: #fbfcfe;
   line-height: 1.45;
   outline: none;
   resize: none;
-  height: clamp(54px, 7.5vh, 66px);
-  min-height: 50px;
-  max-height: 68px;
+  height: clamp(62px, 8vh, 74px);
+  min-height: 58px;
+  max-height: 78px;
   transition: all 0.2s ease;
 }
 
@@ -563,7 +558,7 @@
 
 /* ─── Action Buttons ─── */
 .ai-btn {
-  height: 41px;
+  height: 43px;
   border-radius: 10px;
   border: none;
   font-size: 13.5px;
@@ -910,4 +905,61 @@
   font-size: 12px;
   line-height: 1.5;
   color: #475569;
+}
+
+
+/* ─── Fake Job Authenticity Verifier Form (Spacious & Breathable) ─── */
+.ai-detector-form {
+  gap: clamp(11px, 1.8vh, 16px);
+}
+
+.ai-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  flex-shrink: 0;
+}
+
+.ai-preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ai-preset-grid .ai-preset-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  border-radius: 8px;
+}
+
+.ai-detector-form .ai-input {
+  height: 38px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+.ai-detector-form .ai-textarea {
+  height: clamp(80px, 11vh, 110px);
+  min-height: 75px;
+  max-height: 120px;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.ai-detector-form .ai-btn {
+  height: 42px;
+  font-size: 13.5px;
+  border-radius: 10px;
+  margin-top: 2px;
 }
