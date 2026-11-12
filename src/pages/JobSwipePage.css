@@ -185,7 +185,8 @@
   --dragX: 0px;
   --dragRotate: 0deg;
   width: 100%;
-  max-width: 580px;
+  max-width: 600px;
+  min-height: 480px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 24px;
@@ -316,9 +317,9 @@
 }
 
 .job-swipe-badge--real {
-  background: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  background: #eef2ff;
+  color: #4f46e5;
+  border: 1px solid #c7d2fe;
 }
 
 .job-swipe-badge--fake {
@@ -371,9 +372,9 @@
 }
 
 .job-swipe-chip--salary {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #065f46;
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4f46e5;
   font-weight: 700;
 }
 
@@ -403,7 +404,8 @@
 .job-swipe-brief-wrap {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  flex: 1;
 }
 
 .job-swipe-brief {
@@ -412,16 +414,35 @@
   color: #475569;
   margin: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 6;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
 }
 
 .job-swipe-brief--expanded {
   display: block;
   -webkit-line-clamp: unset;
-  overflow: visible;
+  overflow-y: auto;
+  max-height: 280px;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.job-swipe-brief--expanded::-webkit-scrollbar {
+  width: 5px;
+}
+
+.job-swipe-brief--expanded::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.job-swipe-desc-bold {
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .job-swipe-expand-btn {
@@ -617,8 +638,8 @@
 }
 
 .job-swipe-aside-box--ml {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
 }
 
 .job-swipe-ml-header {
@@ -631,14 +652,14 @@
   margin: 0;
   font-size: 13.5px;
   font-weight: 700;
-  color: #166534;
+  color: #4f46e5;
 }
 
 .job-swipe-ml-desc {
   margin: 0;
   font-size: 12.5px;
   line-height: 1.5;
-  color: #15803d;
+  color: #4338ca;
 }
 
 .job-swipe-company-row {

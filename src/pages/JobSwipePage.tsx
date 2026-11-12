@@ -63,6 +63,41 @@ function statusBadgeLabel(status: string): string | null {
   return null;
 }
 
+
+/**
+ * Formats job description: renders **bold** as <strong> tags and strips all asterisks.
+ */
+function formatCleanDescription(rawText: string) {
+  if (!rawText) return null;
+
+  const lines = rawText.split(/\r?\n/);
+
+  return lines.map((line, lineIdx) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      return <br key={lineIdx} />;
+    }
+
+    const parts = trimmed.split(/\*\*(.*?)\*\*/g);
+
+    return (
+      <span key={lineIdx} className="job-swipe-desc-line">
+        {parts.map((part, pIdx) => {
+          if (pIdx % 2 === 1) {
+            return (
+              <strong key={pIdx} className="job-swipe-desc-bold">
+                {part.replace(/\*/g, "")}
+              </strong>
+            );
+          }
+          return part.replace(/\*/g, "");
+        })}
+        {lineIdx < lines.length - 1 && " "}
+      </span>
+    );
+  });
+}
+
 export function JobSwipePage() {
   const navigate = useNavigate();
   const { session, logout, refreshSession } = useAuth();
@@ -272,6 +307,10 @@ export function JobSwipePage() {
   // Touch / Pointer Drag handlers
   const handlePointerDown = (e: PointerEvent<HTMLElement>) => {
     if (isAnimating || !current) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("a") || target.closest("input")) {
+      return;
+    }
     e.currentTarget.setPointerCapture(e.pointerId);
     setActivePointerId(e.pointerId);
     setDragStartX(e.clientX);
@@ -494,13 +533,14 @@ export function JobSwipePage() {
               <hr className="job-swipe-sep" />
 
               <div className="job-swipe-brief-wrap">
-                <p className={`job-swipe-brief ${expandedDesc ? "job-swipe-brief--expanded" : ""}`}>
-                  {current.description}
-                </p>
-                {current.description && current.description.length > 280 && (
+                <div className={`job-swipe-brief ${expandedDesc ? "job-swipe-brief--expanded" : ""}`}>
+                  {formatCleanDescription(current.description)}
+                </div>
+                {current.description && (
                   <button 
                     type="button" 
                     className="job-swipe-expand-btn"
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
                       setExpandedDesc((v) => !v);
@@ -609,19 +649,19 @@ export function JobSwipePage() {
                 ) : null}
               </section>
 
-              {/* ModernBERT Authenticity Explainer Box */}
+              {/* Security Analysis Box (Clean & Purple) */}
               <section className="job-swipe-aside-box job-swipe-aside-box--ml">
                 <div className="job-swipe-ml-header">
-                  <ShieldCheck size={16} className="text-emerald-600" />
-                  <h4>ModernBERT Security Analysis</h4>
+                  <ShieldCheck size={16} className="text-indigo-600" />
+                  <h4>Security Analysis</h4>
                 </div>
                 <p className="job-swipe-ml-desc">
                   {currentFake?.label === "Real" ? (
-                    `Confidence: ${Math.round(currentFake.confidence * 100)}%. The salary, description structure, and employer context match verified job patterns.`
+                    `Confidence: ${Math.round(currentFake.confidence * 100)}%. Verified posting matching legitimate employer structures.`
                   ) : currentFake?.label === "Fake" ? (
-                    `Flagged: ${Math.round(currentFake.confidence * 100)}% risk index. Contains typical scam hallmarks (atypical compensation, high-pressure urgency).`
+                    `Flagged: ${Math.round(currentFake.confidence * 100)}% risk index. Contains typical scam hallmarks.`
                   ) : (
-                    "Analyzing posting against 50k+ known fake job patterns using ModernBERT transformer weights on port 8000."
+                    "Analyzing job posting against fraudulent patterns and phantom postings in real time."
                   )}
                 </p>
               </section>
