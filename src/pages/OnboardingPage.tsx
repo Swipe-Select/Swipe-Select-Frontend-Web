@@ -968,8 +968,8 @@ export function OnboardingPage() {
       style={
         step === 8
           ? {
-              height: "calc(100dvh - 68px)",
-              maxHeight: "calc(100dvh - 68px)",
+              height: "calc(100dvh - var(--onb-topbar-height, 68px))",
+              maxHeight: "calc(100dvh - var(--onb-topbar-height, 68px))",
               overflow: "hidden",
             }
           : undefined
@@ -1128,6 +1128,8 @@ export function OnboardingPage() {
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
+                      marginTop: "auto",
+                      flexShrink: 0,
                     }}
                   >
                     <div className="onb-flex-gap">

@@ -68,3 +68,31 @@
 .google-signin-error {
   color: #b91c1c;
 }
+
+
+/* ── Height-Adaptive Queries for Laptops / Scaled Displays ── */
+@media (max-height: 860px) {
+  .google-signin-button {
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+    gap: 8px !important;
+  }
+
+  .google-signin-icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+
+@media (max-height: 700px) {
+  .google-signin-button {
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+    gap: 6px !important;
+  }
+
+  .google-signin-icon {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}

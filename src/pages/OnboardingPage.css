@@ -4473,3 +4473,695 @@ input.onb-input--with-icon {
   color: #64748b !important;
   line-height: 1.55 !important;
 }
+
+
+/* ==========================================================================
+   Comprehensive Viewport-Fit & Laptop Adaptive Refinements
+   Prevents unnecessary page scrolling and adapts proportionally across all screen heights
+   ========================================================================== */
+
+:root {
+  --onb-topbar-height: 68px;
+  --onb-bottombar-height: 68px;
+}
+
+@media (max-height: 860px) {
+  :root,
+  .onb {
+    --onb-topbar-height: 54px;
+    --onb-bottombar-height: 54px;
+  }
+
+  /* ── Shell & Outer Containers ── */
+  .onb.page-fill {
+    overflow: hidden !important;
+  }
+
+  .onb-step-stage {
+    padding: clamp(14px, 2vh, 24px) clamp(14px, 2.5vw, 32px) !important;
+    justify-content: flex-start !important;
+    min-height: 0 !important;
+  }
+
+  .onb-step-wrapper {
+    padding: 0 !important;
+    margin: auto !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  /* ── Sticky Bottom Bar Adaptations ── */
+  .onb-unified-bottom-bar {
+    height: var(--onb-bottombar-height, 54px) !important;
+  }
+
+  .onb-unified-bottom-inner {
+    padding: 0 16px !important;
+  }
+
+  .onb-bottom-meta {
+    font-size: 11.5px !important;
+    gap: 8px !important;
+  }
+
+  .onb-footer-continue-btn {
+    min-height: 38px !important;
+    padding: 8px 26px !important;
+    font-size: 13.5px !important;
+  }
+
+  /* ── Shared Card & Header Scalers ── */
+  .onb-step-card {
+    border-radius: 20px !important;
+  }
+
+  .onb-step-card-header {
+    margin-bottom: clamp(10px, 1.6vh, 18px) !important;
+  }
+
+  .onb-step-badge {
+    margin: 0 auto clamp(6px, 0.9vh, 10px) !important;
+    padding: 3px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .onb-h1 {
+    font-size: clamp(20px, 2.4vh, 25px) !important;
+    line-height: 1.2 !important;
+    margin-bottom: 5px !important;
+  }
+
+  .onb-sub {
+    font-size: clamp(12px, 1.35vh, 13.5px) !important;
+    line-height: 1.4 !important;
+  }
+
+  /* ── Step 0: Identity ── */
+  .onb-step-card--identity {
+    max-width: 580px !important;
+    padding: clamp(18px, 2.2vh, 26px) clamp(22px, 3.2vw, 36px) !important;
+  }
+
+  .onb-step-card--identity .onb-step-card-header {
+    margin-bottom: clamp(12px, 1.8vh, 20px) !important;
+  }
+
+  .onb-identity-grid {
+    gap: clamp(10px, 1.4vh, 16px) !important;
+  }
+
+  .onb-id-card {
+    padding: clamp(12px, 1.6vh, 16px) clamp(12px, 1.8vw, 18px) !important;
+    border-radius: 16px !important;
+    gap: 12px !important;
+  }
+
+  .onb-id-avatar-circle {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .onb-id-avatar-emoji {
+    font-size: 18px !important;
+  }
+
+  .onb-id-title {
+    font-size: 14px !important;
+  }
+
+  /* ── Step 1: Resume Upload ── */
+  .onb-resume-wrap {
+    max-width: 980px !important;
+    padding: 0 !important;
+    margin: auto !important;
+  }
+
+  .onb-resume-grid {
+    gap: clamp(14px, 2vw, 22px) !important;
+  }
+
+  .onb-card {
+    border-radius: 20px !important;
+    padding: clamp(16px, 2.2vh, 24px) clamp(18px, 2.5vw, 26px) !important;
+  }
+
+  .onb-resume-upload-card {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  .onb-resume-upload-card .onb-h1 {
+    font-size: clamp(20px, 2.4vh, 24px) !important;
+    margin-bottom: 4px !important;
+  }
+
+  .onb-resume-upload-card .onb-sub {
+    font-size: 12.5px !important;
+    margin-top: 2px !important;
+  }
+
+  .onb-dropzone {
+    padding: clamp(12px, 1.8vh, 18px) 16px !important;
+    border-radius: 16px !important;
+    margin: 10px 0 !important;
+  }
+
+  .onb-dropzone p {
+    font-size: clamp(15px, 1.8vh, 17px) !important;
+    margin: 0 0 4px !important;
+  }
+
+  .onb-drop-icon-wrap {
+    width: 40px !important;
+    height: 40px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .onb-dropzone .onb-muted-sm {
+    margin-bottom: 10px !important;
+    font-size: 11.5px !important;
+  }
+
+  .onb-or-row {
+    margin: 8px 0 !important;
+  }
+
+  .onb-resume-benefit-card {
+    padding: clamp(16px, 2.2vh, 24px) clamp(18px, 2.5vw, 24px) !important;
+  }
+
+  .onb-resume-benefit-card h3 {
+    font-size: 16px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .onb-resume-benefit-card > div:nth-child(2) {
+    gap: clamp(10px, 1.4vh, 16px) !important;
+  }
+
+  /* ── Step 2/3: Contact Information ── */
+  .onb-step-card--personal {
+    max-width: 580px !important;
+    padding: clamp(20px, 2.8vh, 28px) clamp(24px, 3.5vw, 36px) !important;
+  }
+
+  .onb-step-card--personal .onb-step-card-header {
+    margin-bottom: clamp(14px, 2vh, 18px) !important;
+  }
+
+  .onb-step-card--personal .onb-h1 {
+    font-size: clamp(22px, 2.6vh, 26px) !important;
+    margin-bottom: 6px !important;
+  }
+
+  .onb-step-card--personal .onb-sub {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+  }
+
+  .onb-personal-form-body {
+    gap: clamp(12px, 1.8vh, 16px) !important;
+  }
+
+  .onb-rich-card {
+    padding: clamp(13px, 1.8vh, 17px) clamp(16px, 2vw, 20px) !important;
+    margin-bottom: 0 !important;
+    border-radius: 16px !important;
+  }
+
+  .onb-rich-card-header {
+    margin-bottom: 12px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .onb-rich-card-title {
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+  }
+
+  .onb-rich-card-subtitle {
+    font-size: 12px !important;
+  }
+
+  .onb-field-group {
+    gap: 6px !important;
+  }
+
+  .onb-label {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+  }
+
+  .onb-label-hint {
+    font-size: 11.5px !important;
+  }
+
+  .onb-input {
+    height: 44px !important;
+    font-size: 13.5px !important;
+    border-radius: 12px !important;
+  }
+
+  .onb-phone-input-group {
+    height: 44px !important;
+    border-radius: 12px !important;
+  }
+
+  .onb-phone-dial-select {
+    height: 44px !important;
+    font-size: 13.5px !important;
+  }
+
+  .onb-phone-local-input {
+    height: 44px !important;
+    font-size: 13.5px !important;
+  }
+
+  .onb-privacy-banner {
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  /* ── Step 4: Resume Builder ── */
+  .onb-step-wrapper--builder {
+    padding-top: 10px !important;
+  }
+
+  .onb-step-wrapper--builder .onb-rb-header {
+    margin-bottom: clamp(8px, 1.3vh, 14px) !important;
+  }
+
+  .onb-step-wrapper--builder .onb-h1 {
+    font-size: clamp(20px, 2.4vh, 24px) !important;
+    margin-bottom: 4px !important;
+  }
+
+  .onb-step-wrapper--builder .onb-sub {
+    font-size: 12px !important;
+  }
+
+  .onb-rb-layout {
+    grid-template-columns: 280px 1fr !important;
+    gap: 16px !important;
+    max-width: 1100px !important;
+  }
+
+  .onb-rb-master {
+    padding: 12px !important;
+    border-radius: 18px !important;
+  }
+
+  .onb-rb-master-header {
+    margin-bottom: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .onb-rb-nav-item {
+    padding: 8px 10px !important;
+    gap: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .onb-rb-nav-icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+  }
+
+  .onb-rb-nav-label {
+    font-size: 13px !important;
+  }
+
+  .onb-rb-nav-sub {
+    font-size: 10.5px !important;
+  }
+
+  .onb-rb-detail {
+    padding: 16px 20px !important;
+    border-radius: 18px !important;
+    max-height: calc(100vh - var(--onb-topbar-height, 54px) - var(--onb-bottombar-height, 54px) - 130px) !important;
+    overflow-y: auto !important;
+  }
+
+  /* ── Step 5: Ready to Swipe ── */
+  .onb-ready {
+    padding: clamp(12px, 1.8vh, 20px) 20px !important;
+    max-width: 640px !important;
+  }
+
+  .onb-ready-celebrate-wrap {
+    margin-bottom: 10px !important;
+  }
+
+  .onb-ready-check {
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  .onb-ready-title {
+    font-size: clamp(20px, 2.4vh, 24px) !important;
+    margin-bottom: 4px !important;
+  }
+
+  .onb-ready-subtitle {
+    font-size: 12.5px !important;
+  }
+
+  .onb-ready-features-grid {
+    gap: 10px !important;
+    margin: 12px 0 14px !important;
+  }
+
+  .onb-feature-card {
+    padding: 10px 14px !important;
+    border-radius: 14px !important;
+    gap: 10px !important;
+  }
+
+  .onb-feature-title {
+    font-size: 13px !important;
+  }
+
+  .onb-feature-desc {
+    font-size: 11.5px !important;
+  }
+
+  .onb-ready-cta {
+    padding: 9px 32px !important;
+    font-size: 13.5px !important;
+  }
+
+  /* ── Step 6: Target Roles ── */
+  .onb-step-card--roles {
+    max-width: 940px !important;
+    padding: clamp(14px, 2vh, 22px) clamp(18px, 2.5vw, 28px) !important;
+  }
+
+  .onb-step-card--roles .onb-step-card-header {
+    margin-bottom: clamp(10px, 1.5vh, 16px) !important;
+  }
+
+  .onb-step-card--roles .onb-role-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 9px !important;
+    margin-top: 4px !important;
+  }
+
+  .onb-step-card--roles .onb-role-card {
+    padding: 9px 12px 8px !important;
+    border-radius: 13px !important;
+    min-height: 0 !important;
+  }
+
+  .onb-role-title {
+    font-size: 13px !important;
+  }
+
+  .onb-role-desc {
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    margin-bottom: 4px !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  .onb-role-tags {
+    margin-top: 4px !important;
+    gap: 4px !important;
+  }
+
+  .onb-role-tag {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+  }
+
+  /* ── Step 8: Current Location Map ── */
+  .onb--loc-step {
+    height: calc(100dvh - var(--onb-topbar-height, 54px)) !important;
+    max-height: calc(100dvh - var(--onb-topbar-height, 54px)) !important;
+  }
+
+  .onb-loc-side {
+    width: 400px !important;
+  }
+
+  .onb-loc-side-scroll {
+    padding: 16px 20px !important;
+  }
+
+  .onb-loc-side-scroll .onb-h1 {
+    font-size: 21px !important;
+  }
+
+  .onb-loc-side-scroll .onb-sub {
+    font-size: 12.5px !important;
+  }
+
+  .onb-loc-chip {
+    padding: 8px 12px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .onb-loc-side-actions {
+    padding: 12px 20px !important;
+  }
+
+  /* ── Step 9: Target Locations Twin Panels ── */
+  .onb-step-card--target {
+    max-width: 960px !important;
+    padding: clamp(14px, 2vh, 20px) clamp(20px, 3vw, 32px) !important;
+  }
+
+  .onb-step-card--target .onb-step-card-header {
+    margin-bottom: clamp(10px, 1.5vh, 16px) !important;
+  }
+
+  .onb-target-twin-grid {
+    gap: 16px !important;
+  }
+
+  .onb-target-panel {
+    height: clamp(260px, 36vh, 320px) !important;
+    padding: 12px 14px 12px !important;
+    border-radius: 16px !important;
+  }
+
+  .onb-target-panel-header {
+    margin-bottom: 8px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .onb-target-panel-title {
+    font-size: 13.5px !important;
+  }
+
+  .onb-target-panel-sub {
+    font-size: 11.5px !important;
+  }
+
+  .onb-target-search-bar {
+    margin-bottom: 8px !important;
+  }
+
+  .onb-target-item {
+    padding: 6px 10px !important;
+    border-radius: 10px !important;
+  }
+
+  /* ── Step 10: Work Preferences ── */
+  .onb-step-card--wpref {
+    max-width: 860px !important;
+    padding: clamp(14px, 2vh, 22px) clamp(18px, 2.5vw, 30px) !important;
+  }
+
+  .onb-step-card--wpref .onb-step-card-header {
+    margin-bottom: clamp(10px, 1.5vh, 16px) !important;
+  }
+
+  .onb-step-card--wpref .onb-wpref-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .onb-step-card--wpref .onb-wpref-opt {
+    padding: 12px 14px 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .onb-wpref-top-row {
+    margin-bottom: 6px !important;
+  }
+
+  .onb-wpref-icon-wrap {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .onb-wpref-title {
+    font-size: 14px !important;
+    margin: 4px 0 2px !important;
+  }
+
+  .onb-wpref-desc {
+    font-size: 11.5px !important;
+    line-height: 1.35 !important;
+    margin-bottom: 6px !important;
+  }
+
+  .onb-wpref-bullets {
+    gap: 4px !important;
+  }
+
+  .onb-wpref-bullet-row {
+    gap: 5px !important;
+  }
+
+  .onb-wpref-bullet-text {
+    font-size: 11px !important;
+  }
+
+  /* ── Step 11: Employment Models ── */
+  .onb-step-card--emp {
+    max-width: 820px !important;
+    padding: clamp(14px, 2vh, 20px) clamp(18px, 2.5vw, 28px) !important;
+  }
+
+  .onb-step-card--emp .onb-step-card-header {
+    margin-bottom: clamp(10px, 1.5vh, 14px) !important;
+  }
+
+  .onb-step-card--emp .onb-emp-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .onb-step-card--emp .onb-emp-card {
+    padding: 10px 13px 8px !important;
+    border-radius: 14px !important;
+  }
+
+  .onb-emp-icon-wrap {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .onb-emp-title {
+    font-size: 13.5px !important;
+    margin: 3px 0 2px !important;
+  }
+
+  .onb-emp-desc {
+    font-size: 11.5px !important;
+    line-height: 1.35 !important;
+    margin-bottom: 5px !important;
+  }
+
+  .onb-emp-tags {
+    gap: 4px !important;
+  }
+
+  .onb-emp-tag {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+  }
+
+  /* ── Step 12: Experience Level ── */
+  .onb-step-card--exp {
+    max-width: 860px !important;
+    padding: clamp(14px, 2vh, 20px) clamp(18px, 2.5vw, 30px) !important;
+  }
+
+  .onb-step-card--exp .onb-step-card-header {
+    margin-bottom: clamp(10px, 1.5vh, 16px) !important;
+  }
+
+  .onb-exp-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .onb-exp-card {
+    padding: 12px 14px 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .onb-exp-icon-wrap {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .onb-exp-title {
+    font-size: 13.5px !important;
+  }
+
+  .onb-exp-years-badge {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+  }
+
+  .onb-exp-desc {
+    font-size: 11.5px !important;
+    line-height: 1.35 !important;
+  }
+}
+
+/* ── Ultra-Compact Viewports (e.g. 150% scaling or devtools open: height <= 700px) ── */
+@media (max-height: 700px) {
+  :root,
+  .onb {
+    --onb-topbar-height: 48px;
+    --onb-bottombar-height: 46px;
+  }
+
+  .onb-step-stage {
+    padding: 12px clamp(10px, 2vw, 20px) !important;
+    justify-content: flex-start !important;
+  }
+
+  .onb-step-card {
+    padding: 12px 18px 14px !important;
+  }
+
+  .onb-step-card-header {
+    margin-bottom: 8px !important;
+  }
+
+  .onb-h1 {
+    font-size: 19px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .onb-sub {
+    font-size: 11.5px !important;
+    line-height: 1.3 !important;
+  }
+
+  .onb-step-badge {
+    display: none !important;
+  }
+
+  .onb-footer-continue-btn {
+    min-height: 34px !important;
+    padding: 6px 20px !important;
+    font-size: 12.5px !important;
+  }
+
+  .onb-target-panel {
+    height: 240px !important;
+  }
+}
+
+
+/* ── Step 1: Lock Resume Upload Dropzone Position (Prevent gap disruption on upload) ── */
+.onb-resume-upload-card {
+  justify-content: flex-start !important;
+  gap: 16px !important;
+}
+
+.onb-resume-upload-card .onb-dropzone {
+  margin: 0 !important;
+  flex: 1 1 auto !important;
+}

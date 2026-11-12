@@ -211,8 +211,9 @@
 }
 
 .welcome-float-chip--bottom {
-  bottom: 24px;
-  left: -20px;
+  top: -14px;
+  left: -12px;
+  bottom: auto;
   color: #065f46;
   animation-delay: 1.5s;
 }
@@ -564,5 +565,292 @@
   .welcome-visual {
     width: 100%;
     max-width: 480px;
+  }
+}
+
+/* ── Height-Adaptive Rules for Laptops / Scaled Displays ── */
+@media (max-height: 900px) {
+  .welcome-page {
+    overflow: hidden !important;
+    height: calc(100vh - var(--app-navbar-height, 52px)) !important;
+  }
+
+  /* Hide duplicate footer pillars so the hero gets full screen height & breathing room */
+  .welcome-pillars {
+    display: none !important;
+  }
+
+  .welcome-main {
+    padding: clamp(16px, 2.5vh, 32px) clamp(24px, 3.5vw, 48px) !important;
+    gap: clamp(24px, 4vw, 48px) !important;
+    height: 100% !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
+  /* Left Copy */
+  .welcome-copy {
+    max-width: 600px !important;
+  }
+
+  .welcome-hero-pill {
+    padding: 5px 14px !important;
+    font-size: 12.5px !important;
+    margin-bottom: clamp(12px, 1.8vh, 20px) !important;
+  }
+
+  .welcome-title {
+    font-size: clamp(34px, 4.4vh, 48px) !important;
+    line-height: 1.1 !important;
+    letter-spacing: -1.2px !important;
+  }
+
+  .welcome-highlight {
+    font-size: clamp(26px, 3.2vh, 34px) !important;
+    margin: 6px 0 0 !important;
+  }
+
+  .welcome-subtitle {
+    font-size: clamp(17px, 2.2vh, 22px) !important;
+    margin: 3px 0 0 !important;
+  }
+
+  .welcome-description {
+    font-size: clamp(14px, 1.8vh, 15.5px) !important;
+    line-height: 1.6 !important;
+    margin: clamp(12px, 1.8vh, 20px) 0 clamp(16px, 2.4vh, 26px) !important;
+    max-width: 520px !important;
+  }
+
+  .welcome-actions {
+    gap: 16px !important;
+  }
+
+  .welcome-action-primary {
+    padding: clamp(12px, 1.6vh, 15px) clamp(24px, 2.5vw, 32px) !important;
+    font-size: 15px !important;
+  }
+
+  .welcome-action-secondary {
+    padding: clamp(12px, 1.6vh, 15px) clamp(20px, 2vw, 26px) !important;
+    font-size: 15px !important;
+  }
+
+  .welcome-trust-row {
+    margin-top: clamp(16px, 2.4vh, 24px) !important;
+    padding-top: clamp(14px, 2vh, 20px) !important;
+    gap: 10px !important;
+  }
+
+  .welcome-trust-item {
+    padding: 6px 12px !important;
+    font-size: 12.5px !important;
+  }
+
+  .welcome-trust-item svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* Right Visual / Card Stack */
+  .welcome-visual {
+    max-width: 480px !important;
+    padding-bottom: 24px !important;
+  }
+
+  .welcome-card-stack {
+    min-height: clamp(440px, 54vh, 480px) !important;
+  }
+
+  .welcome-card {
+    padding: clamp(20px, 2.5vh, 26px) clamp(20px, 2.2vw, 28px) !important;
+    border-radius: 24px !important;
+  }
+
+  .welcome-match-badge {
+    top: 18px !important;
+    right: 18px !important;
+    padding: 4px 10px !important;
+    font-size: 12px !important;
+  }
+
+  .welcome-card-header {
+    padding-bottom: 12px !important;
+    gap: 14px !important;
+  }
+
+  .welcome-tech-avatar {
+    width: 46px !important;
+    height: 46px !important;
+    border-radius: 14px !important;
+  }
+
+  .welcome-tech-avatar svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .welcome-tech-name {
+    font-size: 17px !important;
+  }
+
+  .welcome-card-body {
+    padding: 12px 0 !important;
+    gap: 12px !important;
+  }
+
+  .welcome-card-body h2 {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+  }
+
+  .welcome-metadata-grid {
+    gap: 8px !important;
+  }
+
+  .welcome-metadata-grid p {
+    font-size: 12.5px !important;
+    gap: 6px !important;
+  }
+
+  .welcome-metadata-grid svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .welcome-tags {
+    gap: 6px !important;
+    margin-top: 4px !important;
+  }
+
+  .welcome-tag {
+    padding: 3.5px 10px !important;
+    font-size: 11.5px !important;
+  }
+
+  .welcome-card-footer {
+    padding-top: 14px !important;
+    gap: 12px !important;
+  }
+
+  .welcome-btn-pass,
+  .welcome-btn-apply {
+    height: 44px !important;
+    font-size: 13.5px !important;
+    border-radius: 12px !important;
+  }
+
+  .welcome-swipe-hint {
+    margin-top: 14px !important;
+    font-size: 12px !important;
+    color: #64748b !important;
+  }
+
+  .welcome-float-chip {
+    padding: 6px 14px !important;
+    font-size: 11.5px !important;
+  }
+
+  .welcome-float-chip--top {
+    top: -12px !important;
+    right: -10px !important;
+  }
+
+  /* Position symmetrically on top-left shoulder of card - zero overlap with buttons or text */
+  .welcome-float-chip--bottom {
+    top: -12px !important;
+    left: -12px !important;
+    bottom: auto !important;
+  }
+}
+
+/* Ultra-Compact Laptops / 150% Scaling (height <= 680px) */
+@media (max-height: 680px) {
+  .welcome-main {
+    padding: 10px clamp(16px, 2.5vw, 32px) !important;
+    gap: 20px !important;
+  }
+
+  .welcome-hero-pill {
+    padding: 3px 10px !important;
+    font-size: 11px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .welcome-title {
+    font-size: 28px !important;
+  }
+
+  .welcome-highlight {
+    font-size: 22px !important;
+  }
+
+  .welcome-subtitle {
+    font-size: 15px !important;
+  }
+
+  .welcome-description {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    margin: 8px 0 14px !important;
+  }
+
+  .welcome-action-primary,
+  .welcome-action-secondary {
+    padding: 9px 20px !important;
+    font-size: 13.5px !important;
+  }
+
+  .welcome-trust-row {
+    margin-top: 10px !important;
+    padding-top: 10px !important;
+    gap: 8px !important;
+  }
+
+  .welcome-trust-item {
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .welcome-card-stack {
+    min-height: 390px !important;
+  }
+
+  .welcome-card {
+    padding: 14px 18px !important;
+    border-radius: 18px !important;
+  }
+
+  .welcome-tech-avatar {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .welcome-card-body h2 {
+    font-size: 16px !important;
+  }
+
+  .welcome-metadata-grid {
+    gap: 5px !important;
+  }
+
+  .welcome-metadata-grid p {
+    font-size: 11.5px !important;
+  }
+
+  .welcome-btn-pass,
+  .welcome-btn-apply {
+    height: 38px !important;
+    font-size: 12.5px !important;
+  }
+
+  .welcome-swipe-hint {
+    margin-top: 8px !important;
+    font-size: 11px !important;
+  }
+
+  .welcome-float-chip {
+    padding: 4px 10px !important;
+    font-size: 10.5px !important;
   }
 }
