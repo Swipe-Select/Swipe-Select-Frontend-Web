@@ -106,6 +106,15 @@ export function JobSwipePage() {
   const [refreshBusy, setRefreshBusy] = useState(false);
   const [swipeBusy, setSwipeBusy] = useState(false);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
+
+  // Auto-dismiss banner message after 3.5 seconds
+  useEffect(() => {
+    if (!bannerMessage) return;
+    const timer = setTimeout(() => {
+      setBannerMessage(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [bannerMessage]);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [refreshOffset, setRefreshOffset] = useState(0);
   const [fakeJobResults, setFakeJobResults] = useState<Record<string, FakeJobPrediction>>({});
