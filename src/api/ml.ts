@@ -18,11 +18,18 @@ export type PdfBlockChange = {
   after: string;
 };
 
+export type PdfPagePreview = {
+  image: string;
+  width: number;
+  height: number;
+};
+
 export type ResumeGenResult = {
   generatedText: string;
   section: string;
   engine?: string;
   tailoredPdfBase64?: string | null;
+  pagePreviews?: PdfPagePreview[];
   pdfEdited?: boolean;
   blocksModified?: number;
   pdfChanges?: PdfBlockChange[];

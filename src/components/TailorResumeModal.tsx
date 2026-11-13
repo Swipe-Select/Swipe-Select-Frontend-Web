@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { tailorResumeWithUpload, type PdfBlockChange } from "../api/ml";
+import { tailorResumeWithUpload, type PdfBlockChange, type PdfPagePreview } from "../api/ml";
 import { useAuth } from "../context/AuthContext";
 import { readSession } from "../auth/storage";
 import {
@@ -68,6 +68,7 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
     extractedTextLength?: number;
   } | null>(null);
   const [tailoredPdfBase64, setTailoredPdfBase64] = useState<string | null>(null);
+  const [pagePreviews, setPagePreviews] = useState<PdfPagePreview[]>([]);
   const [blocksModified, setBlocksModified] = useState<number>(0);
   const [pdfChanges, setPdfChanges] = useState<PdfBlockChange[]>([]);
   const [afterViewMode, setAfterViewMode] = useState<"pdf" | "paper">("pdf");
@@ -176,6 +177,7 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
     setErrorMessage(null);
     setCopied(false);
     setTailoredPdfBase64(null);
+    setPagePreviews([]);
     setBlocksModified(0);
     setPdfChanges([]);
 
@@ -210,6 +212,7 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
 
         const hasEditedPdf = Boolean(res.data.pdfEdited && res.data.tailoredPdfBase64);
         setTailoredPdfBase64(hasEditedPdf ? res.data.tailoredPdfBase64 || null : null);
+        setPagePreviews(hasEditedPdf ? res.data.pagePreviews || [] : []);
         setBlocksModified(res.data.blocksModified || 0);
         setPdfChanges(res.data.pdfChanges || []);
         setAfterViewMode(hasEditedPdf ? "pdf" : "paper");
@@ -722,7 +725,9 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                     <div className="tailor-split-header">
                       <div className="tailor-split-title-wrap">
                         <span className="tailor-split-badge tailor-split-badge--after">AFTER</span>
-                        <span className="tailor-split-title">Tailored ATS Resume</span>
+                        <span className="tailor-split-title">
+                          {tailoredPdfBase64 ? "Your PDF, updated" : "Tailored ATS Resume"}
+                        </span>
                       </div>
                       <span className="tailor-split-match-badge">
                         🎯 Targeted for {job.company}
@@ -731,7 +736,7 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
 
                     <div className="tailor-split-body tailor-split-body--paper">
                       <TailoredResultPane
-                        pdfBase64={tailoredPdfBase64} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={`tailored-${job.company || "resume"}.pdf`}
+                        pdfBase64={tailoredPdfBase64} pagePreviews={pagePreviews} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={`tailored-${job.company || "resume"}.pdf`}
                           rawMarkdown={generatedText}
                           targetJobTitle={job.title}
                           targetCompany={job.company}
@@ -746,7 +751,7 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
               {/* VIEW 2: TAILORED (AFTER) ONLY */}
               {activeView === "after" && (
                 <TailoredResultPane
-                  pdfBase64={tailoredPdfBase64} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={`tailored-${job.company || "resume"}.pdf`}
+                  pdfBase64={tailoredPdfBase64} pagePreviews={pagePreviews} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={`tailored-${job.company || "resume"}.pdf`}
                     rawMarkdown={generatedText}
                     targetJobTitle={job.title}
                     targetCompany={job.company}

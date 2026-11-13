@@ -7,6 +7,7 @@ import {
   predictFakeJob,
   type FakeJobPrediction,
   type PdfBlockChange,
+  type PdfPagePreview,
 } from "../api/ml";
 import { readSession } from "../auth/storage";
 import { useAuth } from "../context/AuthContext";
@@ -89,6 +90,7 @@ export function AiToolsPage() {
   const [extractedResumeText, setExtractedResumeText] = useState<string>("");
   const [engine, setEngine] = useState<"local" | "ai">("local");
   const [tailoredPdfBase64, setTailoredPdfBase64] = useState<string | null>(null);
+  const [pagePreviews, setPagePreviews] = useState<PdfPagePreview[]>([]);
   const [blocksModified, setBlocksModified] = useState<number>(0);
   const [pdfChanges, setPdfChanges] = useState<PdfBlockChange[]>([]);
   const [afterViewMode, setAfterViewMode] = useState<"pdf" | "paper">("pdf");
@@ -134,6 +136,7 @@ export function AiToolsPage() {
     setResumeError(null);
     setCopiedResume(false);
     setTailoredPdfBase64(null);
+    setPagePreviews([]);
     setBlocksModified(0);
     setPdfChanges([]);
 
@@ -158,6 +161,7 @@ export function AiToolsPage() {
             setExtractedResumeText(res.data.extractedText || res.data.extractedTextPreview || "");
             const hasEditedPdf = Boolean(res.data.pdfEdited && res.data.tailoredPdfBase64);
             setTailoredPdfBase64(hasEditedPdf ? res.data.tailoredPdfBase64 || null : null);
+            setPagePreviews(hasEditedPdf ? res.data.pagePreviews || [] : []);
             setBlocksModified(res.data.blocksModified || 0);
             setPdfChanges(res.data.pdfChanges || []);
             setAfterViewMode(hasEditedPdf ? "pdf" : "paper");
@@ -605,13 +609,15 @@ export function AiToolsPage() {
                       <div className="tailor-split-header">
                         <div className="tailor-split-title-wrap">
                           <span className="tailor-split-badge tailor-split-badge--after">AFTER</span>
-                          <span className="tailor-split-title">Tailored ATS Resume</span>
+                          <span className="tailor-split-title">
+                            {tailoredPdfBase64 ? "Your PDF, updated" : "Tailored ATS Resume"}
+                          </span>
                         </div>
                         <span className="tailor-split-match-badge">🎯 ATS Optimized</span>
                       </div>
                       <div className="tailor-split-body tailor-split-body--paper">
                         <TailoredResultPane
-                          pdfBase64={tailoredPdfBase64} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={baseResume?.meta?.fileName ? `tailored-${baseResume.meta.fileName}` : "tailored-resume.pdf"}
+                          pdfBase64={tailoredPdfBase64} pagePreviews={pagePreviews} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={baseResume?.meta?.fileName ? `tailored-${baseResume.meta.fileName}` : "tailored-resume.pdf"}
                             rawMarkdown={generatedResume}
                             targetJobTitle={jobTitle || "Tailored Role"}
                             targetCompany=""
@@ -635,7 +641,7 @@ export function AiToolsPage() {
                 ) : outputView === "pdf" ? (
                   <div className="ai-resume-template-container">
                     <TailoredResultPane
-                      pdfBase64={tailoredPdfBase64} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={baseResume?.meta?.fileName ? `tailored-${baseResume.meta.fileName}` : "tailored-resume.pdf"}
+                      pdfBase64={tailoredPdfBase64} pagePreviews={pagePreviews} viewMode={afterViewMode} onViewModeChange={setAfterViewMode} blocksModified={blocksModified} changes={pdfChanges} filename={baseResume?.meta?.fileName ? `tailored-${baseResume.meta.fileName}` : "tailored-resume.pdf"}
                         rawMarkdown={generatedResume}
                         targetJobTitle={jobTitle || "Tailored Role"}
                         targetCompany=""

@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Download, BookmarkCheck, Check, FileText, ChevronDown, ChevronUp, FileCheck2 } from "lucide-react";
-import type { PdfBlockChange } from "../api/ml";
+import type { PdfBlockChange, PdfPagePreview } from "../api/ml";
 import { saveBaseResume } from "../auth/resumeStorage";
 import { ResumePaperTemplate } from "./ResumePaperTemplate";
 import { ResumeErrorBoundary } from "./ResumeErrorBoundary";
 
 interface TailoredPdfPreviewProps {
   pdfBase64: string;
+  pagePreviews?: PdfPagePreview[];
   filename?: string;
   blocksModified?: number;
   changes?: PdfBlockChange[];
@@ -30,6 +31,7 @@ function base64ToPdfBlob(base64: string): Blob {
  */
 export const TailoredPdfPreview: React.FC<TailoredPdfPreviewProps> = ({
   pdfBase64,
+  pagePreviews = [],
   filename = "tailored-resume.pdf",
   blocksModified,
   changes = [],
@@ -105,7 +107,7 @@ export const TailoredPdfPreview: React.FC<TailoredPdfPreviewProps> = ({
               borderRadius: "999px",
             }}
           >
-            Original Template Preserved · {editedCount} block{editedCount === 1 ? "" : "s"} updated
+            Your original PDF · {editedCount} block{editedCount === 1 ? "" : "s"} updated
           </span>
           {changes.length > 0 && (
             <button
@@ -193,7 +195,26 @@ export const TailoredPdfPreview: React.FC<TailoredPdfPreviewProps> = ({
         </div>
       )}
 
-      {blobUrl && (
+      {pagePreviews.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {pagePreviews.map((page, index) => (
+            <img
+              key={`page-${index}`}
+              src={`data:image/jpeg;base64,${page.image}`}
+              alt={`Updated resume page ${index + 1}`}
+              style={{
+                width: "100%",
+                height: "auto",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {blobUrl && pagePreviews.length === 0 && (
         <iframe
           src={blobUrl}
           title="Tailored Resume PDF"
@@ -201,12 +222,26 @@ export const TailoredPdfPreview: React.FC<TailoredPdfPreviewProps> = ({
           style={{ minHeight: "680px", width: "100%" }}
         />
       )}
+      {blobUrl && pagePreviews.length > 0 && (
+        <details>
+          <summary style={{ cursor: "pointer", fontSize: "0.82rem", fontWeight: 650, color: "#0f766e" }}>
+            Open the PDF file
+          </summary>
+          <iframe
+            src={blobUrl}
+            title="Tailored Resume PDF"
+            className="tailor-split-pdf-frame"
+            style={{ minHeight: "680px", width: "100%", marginTop: "8px" }}
+          />
+        </details>
+      )}
     </div>
   );
 };
 
 interface TailoredResultPaneProps {
   pdfBase64: string | null;
+  pagePreviews?: PdfPagePreview[];
   viewMode: "pdf" | "paper";
   onViewModeChange: (mode: "pdf" | "paper") => void;
   blocksModified?: number;
@@ -227,6 +262,7 @@ interface TailoredResultPaneProps {
  */
 export const TailoredResultPane: React.FC<TailoredResultPaneProps> = ({
   pdfBase64,
+  pagePreviews,
   viewMode,
   onViewModeChange,
   blocksModified,
@@ -244,6 +280,7 @@ export const TailoredResultPane: React.FC<TailoredResultPaneProps> = ({
     return (
       <TailoredPdfPreview
         pdfBase64={pdfBase64}
+        pagePreviews={pagePreviews}
         filename={filename}
         blocksModified={blocksModified}
         changes={changes}
@@ -264,7 +301,7 @@ export const TailoredResultPane: React.FC<TailoredResultPaneProps> = ({
             style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}
           >
             <FileCheck2 size={14} />
-            View Edited Original PDF
+            Preview your updated PDF
           </button>
         </div>
       )}
