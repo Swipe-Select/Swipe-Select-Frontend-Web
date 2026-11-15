@@ -222,19 +222,6 @@ export const TailoredPdfPreview: React.FC<TailoredPdfPreviewProps> = ({
           style={{ minHeight: "680px", width: "100%" }}
         />
       )}
-      {blobUrl && pagePreviews.length > 0 && (
-        <details>
-          <summary style={{ cursor: "pointer", fontSize: "0.82rem", fontWeight: 650, color: "#0f766e" }}>
-            Open the PDF file
-          </summary>
-          <iframe
-            src={blobUrl}
-            title="Tailored Resume PDF"
-            className="tailor-split-pdf-frame"
-            style={{ minHeight: "680px", width: "100%", marginTop: "8px" }}
-          />
-        </details>
-      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { fetchMatchedJobs, type JobCard } from "../api/jobs";
+import { fetchMatchedJobs, swipeJob, type JobCard } from "../api/jobs";
 import { useAuth } from "../context/AuthContext";
 import { readSession } from "../auth/storage";
 import { TailorResumeModal } from "../components/TailorResumeModal";
@@ -11,7 +11,8 @@ import {
   MapPin,
   CheckCircle2,
   DollarSign,
-  Briefcase
+  Briefcase,
+  Trash2
 } from "lucide-react";
 import "./MatchesPage.css";
 
@@ -19,10 +20,14 @@ type TabFilter = "all" | "liked" | "applied";
 
 function MatchCard({ 
   job, 
-  onTailor
+  onTailor,
+  onRemove,
+  isRemoving
 }: { 
   job: JobCard; 
   onTailor: (job: JobCard) => void;
+  onRemove: (job: JobCard) => void;
+  isRemoving?: boolean;
 }) {
   const isApplied = job.status === "applied";
   const openListing = () => {
@@ -133,6 +138,16 @@ function MatchCard({
             <ExternalLink size={13} />
           </button>
         )}
+
+        <button
+          type="button"
+          className="match-card-remove-btn"
+          onClick={() => onRemove(job)}
+          title="Remove from matches"
+          disabled={isRemoving}
+        >
+          <Trash2 size={14} />
+        </button>
       </div>
     </div>
   );
@@ -145,6 +160,31 @@ export function MatchesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tailorJob, setTailorJob] = useState<JobCard | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const handleRemove = async (jobToRemove: JobCard) => {
+    const token = session?.token?.trim() || readSession()?.token?.trim();
+    if (!token) return;
+
+    // Optimistically remove from state for instant UI responsiveness
+    setRemovingId(jobToRemove.id);
+    const previousJobs = [...jobs];
+    setJobs((prev) => prev.filter((j) => j.id !== jobToRemove.id));
+
+    try {
+      const res = await swipeJob(jobToRemove.id, "pass", token);
+      if (!res.ok) {
+        // Revert state if failed
+        setJobs(previousJobs);
+        setError("Could not remove saved match. Please try again.");
+      }
+    } catch {
+      setJobs(previousJobs);
+      setError("Could not remove saved match. Please try again.");
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   // Tab Filter state
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
@@ -263,6 +303,8 @@ export function MatchesPage() {
                 key={job.id} 
                 job={job} 
                 onTailor={setTailorJob}
+                onRemove={handleRemove}
+                isRemoving={removingId === job.id}
               />
             ))}
           </div>

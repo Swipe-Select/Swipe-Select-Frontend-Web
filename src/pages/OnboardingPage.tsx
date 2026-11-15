@@ -182,7 +182,6 @@ export function OnboardingPage() {
     import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim() ??
     "";
   const locationMapRef = useRef<OnboardingLocationMapHandle>(null);
-  const targetMapRef = useRef<OnboardingLocationMapHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Live-data refs (always current, avoids stale closures) ──
@@ -283,14 +282,14 @@ export function OnboardingPage() {
   const [selectedBaseLocation, setSelectedBaseLocation] = useState<string>(() => _draft.selectedBaseLocation ?? "New York, New York, US");
   const [baseMapLngLat, setBaseMapLngLat] = useState(DEFAULT_BASE_MAP_LNG_LAT);
   const [locationBusy, setLocationBusy] = useState(false);
-  const [locationErr, setLocationErr] = useState<string | null>(null);
+  const [_locationErr, setLocationErr] = useState<string | null>(null);
   const [locationResults, setLocationResults] = useState<LocationListRow[]>([]);
   const [targetLocations, setTargetLocations] = useState<Array<{ city: string; country: string }>>(() => _draft.targetLocations ?? []);
   const [targetLocationSearch, setTargetLocationSearch] = useState("");
   const [targetSuggestBusy, setTargetSuggestBusy] = useState(false);
-  const [targetSuggestErr, setTargetSuggestErr] = useState<string | null>(null);
+  const [_targetSuggestErr, setTargetSuggestErr] = useState<string | null>(null);
   const [targetSuggestRows, setTargetSuggestRows] = useState<LocationListRow[]>([]);
-  const [targetMapLngLat, setTargetMapLngLat] = useState(DEFAULT_BASE_MAP_LNG_LAT);
+  const [_targetMapLngLat, _setTargetMapLngLat] = useState(DEFAULT_BASE_MAP_LNG_LAT);
 
   // ── Keep refs in sync with state (runs every render) ──
   workExperiencesRef.current = workExperiences;
@@ -635,6 +634,7 @@ export function OnboardingPage() {
     };
   }, [locationSearch, finalizeLocationResults, mapboxEnvToken]);
 
+  /*
   const selectTypedLocation = useCallback(async () => {
     const q = locationSearch.trim();
     if (!q) return;
@@ -667,6 +667,7 @@ export function OnboardingPage() {
       setLocationBusy(false);
     }
   }, [locationSearch, mapboxEnvToken]);
+  */
 
   useEffect(() => {
     const q = targetLocationSearch.trim();
@@ -1066,6 +1067,7 @@ export function OnboardingPage() {
     );
   };
 
+  /*
   const footer = (variant: "default" | "narrow" = "default") => (
     <footer className={`onb-footer${variant === "narrow" ? " onb-footer--padded" : ""}`}>
       <p className="onb-footer-copy">
@@ -1078,6 +1080,7 @@ export function OnboardingPage() {
       </nav>
     </footer>
   );
+  */
 
   // ── Derived navigation state for TopBar / BottomBar ──────────────────────────
   const isMapStep     = step === 8;

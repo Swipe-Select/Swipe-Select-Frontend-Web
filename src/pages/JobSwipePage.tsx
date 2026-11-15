@@ -367,7 +367,7 @@ export function JobSwipePage() {
   const currentFake = current ? fakeJobResults[current.id] : null;
 
   return (
-    <div className="job-swipe page-fill">
+    <div className="job-swipe">
       {/* Top action toolbar */}
       <div className="job-swipe-toolbar">
         <div className="job-swipe-toolbar-left">
@@ -576,7 +576,7 @@ export function JobSwipePage() {
                   disabled={swipeBusy || isAnimating}
                   onClick={() => void handleSwipe("pass")}
                 >
-                  <X size={22} />
+                  <X size={20} />
                 </button>
 
                 <button
@@ -585,7 +585,7 @@ export function JobSwipePage() {
                   title="Tailor your resume for this position with AI [Space]"
                   onClick={() => setTailorModalOpen(true)}
                 >
-                  <Sparkles size={16} />
+                  <Sparkles size={15} />
                   <span>Tailor Resume</span>
                 </button>
 
@@ -597,7 +597,7 @@ export function JobSwipePage() {
                   disabled={swipeBusy || isAnimating}
                   onClick={() => void handleSwipe("like")}
                 >
-                  <Heart size={22} />
+                  <Heart size={20} />
                 </button>
 
                 <button
@@ -607,7 +607,7 @@ export function JobSwipePage() {
                   disabled={swipeBusy || isAnimating}
                   onClick={() => void handleSwipe("apply")}
                 >
-                  <Send size={16} />
+                  <Send size={15} />
                   <span>Apply Now</span>
                 </button>
               </div>

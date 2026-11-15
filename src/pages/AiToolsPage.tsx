@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   checkMlHealth,
@@ -31,8 +31,11 @@ import {
   ExternalLink,
   FileCheck,
   Split,
+  Maximize2,
 } from "lucide-react";
 import { TailoredResultPane } from "../components/TailoredPdfPreview";
+import { ResumePaperTemplate } from "../components/ResumePaperTemplate";
+import { ResumeErrorBoundary } from "../components/ResumeErrorBoundary";
 
 import "./AiToolsPage.css";
 import "../components/TailorResumeModal.css";
@@ -94,11 +97,60 @@ export function AiToolsPage() {
   const [blocksModified, setBlocksModified] = useState<number>(0);
   const [pdfChanges, setPdfChanges] = useState<PdfBlockChange[]>([]);
   const [afterViewMode, setAfterViewMode] = useState<"pdf" | "paper">("pdf");
+  const [beforeViewMode, setBeforeViewMode] = useState<"paper" | "pdf">("pdf");
 
   // Stored Base Resume State (from Settings)
   const [baseResume, setBaseResume] = useState<{ dataUrl: string; meta: ResumeMeta } | null>(null);
   const [useBaseResume, setUseBaseResume] = useState<boolean>(true);
   const [showResumePreview, setShowResumePreview] = useState<boolean>(false);
+  const [showCompareModal, setShowCompareModal] = useState<boolean>(false);
+  const [compareModalLayout, setCompareModalLayout] = useState<"split" | "after" | "before">("split");
+
+  // Memoized Blob URL for base resume with PDF open parameters
+  const baseResumeBlobUrl = useMemo(() => {
+    if (!baseResume?.dataUrl) return "";
+    try {
+      const parts = baseResume.dataUrl.split(",");
+      if (parts.length < 2) return baseResume.dataUrl;
+      const byteString = atob(parts[1]);
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      const mimeType = mimeMatch ? mimeMatch[1] : "application/pdf";
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeType });
+      return URL.createObjectURL(blob);
+    } catch {
+      return baseResume.dataUrl;
+    }
+  }, [baseResume?.dataUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (baseResumeBlobUrl && baseResumeBlobUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(baseResumeBlobUrl);
+      }
+    };
+  }, [baseResumeBlobUrl]);
+
+  const candidateDisplayName =
+    baseResume?.meta?.fileName
+      ?.replace(/[-_]?(?:latest|lastest|resume|cv|\.pdf)/gi, "")
+      ?.replace(/[-_]/g, " ")
+      ?.trim() || session?.name || "Candidate";
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowCompareModal(false);
+        setShowResumePreview(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Fake Job Detector State
   const [detectorTitle, setDetectorTitle] = useState("");
@@ -165,7 +217,10 @@ export function AiToolsPage() {
             setBlocksModified(res.data.blocksModified || 0);
             setPdfChanges(res.data.pdfChanges || []);
             setAfterViewMode(hasEditedPdf ? "pdf" : "paper");
+            setBeforeViewMode("pdf");
             setOutputView("split");
+            setCompareModalLayout("split");
+            setShowCompareModal(true);
             setGeneratingResume(false);
             return;
           } else if (res.message) {
@@ -553,6 +608,19 @@ export function AiToolsPage() {
                         📝 Raw Text
                       </button>
                     </div>
+
+                    {outputView === "split" && baseResume && (
+                      <button
+                        type="button"
+                        className="ai-btn-compare-popout"
+                        onClick={() => setShowCompareModal(true)}
+                        title="Open full-screen side-by-side comparison"
+                      >
+                        <Maximize2 size={13} />
+                        <span>Compare Fullscreen</span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       className="ai-btn ai-btn--secondary ai-btn--sm"
@@ -579,21 +647,71 @@ export function AiToolsPage() {
                 </div>
               ) : generatedResume ? (
                 outputView === "split" && baseResume ? (
-                  <div className="tailor-split-container" style={{ minHeight: 620, marginTop: 12 }}>
+                  <div style={{ display: "flex", flexDirection: "column", marginTop: 12, flex: 1, minHeight: 0 }}>
+                    <div className="ai-compare-inline-banner">
+                      <div className="ai-compare-inline-banner-left">
+                        <Sparkles size={14} className="text-indigo-600" />
+                        <span>Side-by-side comparison (Before & After)</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="ai-compare-inline-banner-btn"
+                        onClick={() => setShowCompareModal(true)}
+                        title="Open full-screen comparison on top of this page"
+                      >
+                        <Maximize2 size={12} />
+                        <span>Open Full Screen View</span>
+                      </button>
+                    </div>
+
+                    <div className="tailor-split-container" style={{ minHeight: 620 }}>
                     <div className="tailor-split-col tailor-split-col--before">
                       <div className="tailor-split-header">
                         <div className="tailor-split-title-wrap">
                           <span className="tailor-split-badge tailor-split-badge--before">BEFORE</span>
                           <span className="tailor-split-title">Original Base Resume</span>
                         </div>
+                        <div className="tailor-pill-toggle">
+                          <button
+                            type="button"
+                            className={`tailor-pill-btn ${beforeViewMode === "paper" ? "tailor-pill-btn--active" : ""}`}
+                            onClick={() => setBeforeViewMode("paper")}
+                            title="Render identical paper sheet format matching tailored version"
+                          >
+                            ATS Paper View
+                          </button>
+                          <button
+                            type="button"
+                            className={`tailor-pill-btn ${beforeViewMode === "pdf" ? "tailor-pill-btn--active" : ""}`}
+                            onClick={() => setBeforeViewMode("pdf")}
+                            title="View original uploaded PDF document"
+                          >
+                            Original PDF
+                          </button>
+                        </div>
                         <span className="tailor-base-ready-pill">
                           <Check size={11} /> Saved in Settings
                         </span>
                       </div>
-                      <div className="tailor-split-body">
-                        {baseResume.dataUrl ? (
+                      <div className={`tailor-split-body ${beforeViewMode === "paper" ? "tailor-split-body--paper" : ""}`}>
+                        {beforeViewMode === "paper" && extractedResumeText ? (
+                          <ResumeErrorBoundary
+                            fallback={
+                              <div className="tailor-original-doc">
+                                <pre className="tailor-original-doc-content">{extractedResumeText}</pre>
+                              </div>
+                            }
+                          >
+                            <ResumePaperTemplate
+                              rawMarkdown={extractedResumeText}
+                              targetJobTitle="Original Profile"
+                              candidateName={candidateDisplayName}
+                              candidateEmail={session?.email || "candidate@swipeselect.io"}
+                            />
+                          </ResumeErrorBoundary>
+                        ) : baseResume.dataUrl ? (
                           <iframe
-                            src={baseResume.dataUrl}
+                            src={`${baseResumeBlobUrl || baseResume.dataUrl}#view=FitH&navpanes=0&toolbar=0`}
                             className="tailor-split-pdf-frame"
                             title="Original Base Resume"
                           />
@@ -638,6 +756,7 @@ export function AiToolsPage() {
                       </div>
                     </div>
                   </div>
+                </div>
                 ) : outputView === "pdf" ? (
                   <div className="ai-resume-template-container">
                     <TailoredResultPane
@@ -930,6 +1049,188 @@ export function AiToolsPage() {
                 title="Base Resume PDF Preview"
                 style={{ width: "100%", height: "100%", border: "1px solid #e2e8f0", borderRadius: 8 }}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expansive Full-Screen Before & After Comparison Modal */}
+      {showCompareModal && baseResume && generatedResume && (
+        <div
+          className="ai-compare-modal-backdrop"
+          onClick={() => setShowCompareModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Before and After Resume Comparison"
+        >
+          <div
+            className="ai-compare-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Top Header Bar */}
+            <div className="ai-compare-modal-header">
+              <div className="ai-compare-header-left">
+                <div className="ai-compare-header-icon-wrap">
+                  <Split size={18} className="text-indigo-600" />
+                </div>
+                <div>
+                  <div className="ai-compare-header-title-row">
+                    <h2 className="ai-compare-modal-title">Before & After Resume Comparison</h2>
+                    <span className="ai-compare-header-badge">
+                      {blocksModified ? `${blocksModified} blocks updated` : "ATS Optimized"}
+                    </span>
+                  </div>
+                  <p className="ai-compare-modal-sub">
+                    Comparing <strong>{baseResume.meta.fileName}</strong> with tailored version for <strong>{jobTitle || "Target Role"}</strong>
+                  </p>
+                </div>
+              </div>
+
+              {/* View Mode Switcher */}
+              <div className="ai-compare-view-switcher">
+                <button
+                  type="button"
+                  className={`ai-compare-switch-btn ${compareModalLayout === "split" ? "ai-compare-switch-btn--active" : ""}`}
+                  onClick={() => setCompareModalLayout("split")}
+                >
+                  <Split size={13} />
+                  <span>Side-by-Side</span>
+                </button>
+                <button
+                  type="button"
+                  className={`ai-compare-switch-btn ${compareModalLayout === "after" ? "ai-compare-switch-btn--active" : ""}`}
+                  onClick={() => setCompareModalLayout("after")}
+                >
+                  <Sparkles size={13} />
+                  <span>After (Tailored)</span>
+                </button>
+                <button
+                  type="button"
+                  className={`ai-compare-switch-btn ${compareModalLayout === "before" ? "ai-compare-switch-btn--active" : ""}`}
+                  onClick={() => setCompareModalLayout("before")}
+                >
+                  <FileText size={13} />
+                  <span>Before (Original)</span>
+                </button>
+              </div>
+
+              {/* Header Right Actions */}
+              <div className="ai-compare-header-right">
+                <button
+                  type="button"
+                  className="ai-compare-close-btn"
+                  onClick={() => setShowCompareModal(false)}
+                  title="Close comparison (Esc)"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Comparison Body */}
+            <div className="ai-compare-modal-body">
+              {/* Left Column: BEFORE */}
+              {(compareModalLayout === "split" || compareModalLayout === "before") && (
+                <div className={`ai-compare-col ai-compare-col--before ${compareModalLayout === "before" ? "ai-compare-col--full" : ""}`}>
+                  <div className="ai-compare-col-header">
+                    <div className="ai-compare-col-title-wrap">
+                      <span className="ai-compare-badge ai-compare-badge--before">BEFORE</span>
+                      <span className="ai-compare-col-title">Original Base Resume</span>
+                    </div>
+                    <div className="tailor-pill-toggle">
+                      <button
+                        type="button"
+                        className={`tailor-pill-btn ${beforeViewMode === "paper" ? "tailor-pill-btn--active" : ""}`}
+                        onClick={() => setBeforeViewMode("paper")}
+                        title="Render identical paper sheet format matching tailored version"
+                      >
+                        ATS Paper View
+                      </button>
+                      <button
+                        type="button"
+                        className={`tailor-pill-btn ${beforeViewMode === "pdf" ? "tailor-pill-btn--active" : ""}`}
+                        onClick={() => setBeforeViewMode("pdf")}
+                        title="View original uploaded PDF document"
+                      >
+                        Original PDF
+                      </button>
+                    </div>
+                    <span className="tailor-base-ready-pill">
+                      <Check size={11} /> Saved in Settings
+                    </span>
+                  </div>
+                  <div className={`ai-compare-col-content ${beforeViewMode === "paper" ? "ai-compare-col-content--paper" : ""}`}>
+                    {beforeViewMode === "paper" && extractedResumeText ? (
+                      <ResumeErrorBoundary
+                        fallback={
+                          <div className="tailor-original-doc" style={{ height: "100%", overflowY: "auto" }}>
+                            <pre className="tailor-original-doc-content">{extractedResumeText}</pre>
+                          </div>
+                        }
+                      >
+                        <ResumePaperTemplate
+                          rawMarkdown={extractedResumeText}
+                          targetJobTitle="Original Profile"
+                          candidateName={candidateDisplayName}
+                          candidateEmail={session?.email || "candidate@swipeselect.io"}
+                        />
+                      </ResumeErrorBoundary>
+                    ) : baseResume.dataUrl ? (
+                      <iframe
+                        src={`${baseResumeBlobUrl || baseResume.dataUrl}#view=FitH&navpanes=0&toolbar=0`}
+                        className="ai-compare-iframe"
+                        title="Original Base Resume (Large View)"
+                      />
+                    ) : (
+                      <div className="tailor-original-doc" style={{ height: "100%", overflowY: "auto" }}>
+                        <pre className="tailor-original-doc-content">{extractedResumeText || "Original resume text"}</pre>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Right Column: AFTER */}
+              {(compareModalLayout === "split" || compareModalLayout === "after") && (
+                <div className={`ai-compare-col ai-compare-col--after ${compareModalLayout === "after" ? "ai-compare-col--full" : ""}`}>
+                  <div className="ai-compare-col-header">
+                    <div className="ai-compare-col-title-wrap">
+                      <span className="ai-compare-badge ai-compare-badge--after">AFTER</span>
+                      <span className="ai-compare-col-title">
+                        {tailoredPdfBase64 ? "Your PDF, updated" : "Tailored ATS Resume"}
+                      </span>
+                    </div>
+                    <span className="tailor-split-match-badge">🎯 ATS Optimized</span>
+                  </div>
+                  <div className="ai-compare-col-content ai-compare-col-content--paper">
+                    <TailoredResultPane
+                      pdfBase64={tailoredPdfBase64}
+                      pagePreviews={pagePreviews}
+                      viewMode={afterViewMode}
+                      onViewModeChange={setAfterViewMode}
+                      blocksModified={blocksModified}
+                      changes={pdfChanges}
+                      filename={baseResume?.meta?.fileName ? `tailored-${baseResume.meta.fileName}` : "tailored-resume.pdf"}
+                      rawMarkdown={generatedResume}
+                      targetJobTitle={jobTitle || "Tailored Role"}
+                      targetCompany=""
+                      candidateName={
+                        baseResume?.meta?.fileName
+                          ?.replace(/[-_]?(?:latest|lastest|resume|cv|\.pdf)/gi, "")
+                          ?.replace(/[-_]/g, " ")
+                          ?.trim() || session?.name || "Candidate"
+                      }
+                      candidateEmail={session?.email || "candidate@swipeselect.io"}
+                      onTextChange={setGeneratedResume}
+                      onSavedAsBaseResume={() => {
+                        const updated = getBaseResume();
+                        if (updated) setBaseResume(updated);
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

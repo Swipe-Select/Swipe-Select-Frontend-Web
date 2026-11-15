@@ -4,7 +4,6 @@ import {
   Compass, 
   Heart, 
   Sparkles, 
-  User, 
   LogOut, 
   ChevronLeft, 
   ChevronRight,

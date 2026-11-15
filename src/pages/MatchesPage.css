@@ -332,6 +332,33 @@
   transform: translateY(-1px);
 }
 
+.match-card-remove-btn {
+  height: 38px;
+  width: 38px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.match-card-remove-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #ef4444;
+  transform: translateY(-1px);
+}
+
+.match-card-remove-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ─── Empty & Skeleton Loading States ─── */
 .matches-preview-grid {
   display: grid;

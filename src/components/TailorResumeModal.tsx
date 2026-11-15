@@ -20,12 +20,7 @@ import {
   EyeOff,
   UploadCloud,
   Check,
-  Copy,
-  Download,
   Split,
-  ArrowRight,
-  RotateCcw,
-  SlidersHorizontal,
 } from "lucide-react";
 import "./TailorResumeModal.css";
 
