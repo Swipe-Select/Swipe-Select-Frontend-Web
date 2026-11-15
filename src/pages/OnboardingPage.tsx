@@ -11,7 +11,7 @@ import { asUserPreferences, asUserProfile } from "../auth/normalizeSession";
 import { useAuth } from "../context/AuthContext";
 import type { ProfileEducation, ProfileProject, ProfileCertification } from "../api/types";
 import { readDraft, writeDraft, clearDraft } from "../auth/onboardingDraft";
-import { User, Mail, Phone, ShieldCheck, Lock, CheckCircle2, Briefcase, GraduationCap, FolderGit2, Sparkles, Award, Heart, Plus, Edit2, Trash2, Check, ExternalLink, ArrowRight, X, Search, MapPin, MapPinOff, FileText, Clock } from "lucide-react";
+import { User, Mail, Phone, ShieldCheck, Lock, CheckCircle2, Briefcase, GraduationCap, FolderGit2, Sparkles, Award, Heart, Plus, Edit2, Trash2, Check, ExternalLink, ArrowRight, X, Search, MapPin, MapPinOff, FileText, Clock, Zap, Eye } from "lucide-react";
 import { OnboardingTopBar } from "../components/onboarding/OnboardingTopBar";
 import "./OnboardingPage.css";
 
@@ -1101,7 +1101,7 @@ export function OnboardingPage() {
 
   return (
     <div
-      className={`onb page-fill${step === 8 ? " onb--loc-step" : ""}`}
+      className={`onb page-fill${step === 8 ? " onb--loc-step" : ""}${step === 9 ? " onb--target-step" : ""}`}
       style={
         step === 8
           ? {
@@ -1292,89 +1292,63 @@ export function OnboardingPage() {
                 ) : null}
               </div>
               <div className="onb-card onb-resume-benefit-card">
-                <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Why build your profile?</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-                  <div className="onb-flex-gap" style={{ alignItems: "flex-start" }}>
-                    <div
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 9999,
-                        background: "rgba(57,184,253,0.2)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <img src={ast.resume.iconFast} alt="" width={14} height={19} />
+                <div className="onb-benefit-card-header">
+                  <div className="onb-benefit-title-wrap">
+                    <div className="onb-benefit-title-icon">
+                      <Sparkles size={18} />
                     </div>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 400 }}>Lightning Fast Setup</p>
-                      <p className="onb-muted-sm" style={{ margin: "4px 0 0", lineHeight: 1.4 }}>
+                    <h3 className="onb-benefit-title">Why build your profile?</h3>
+                  </div>
+                </div>
+
+                <div className="onb-benefit-list">
+                  {/* Item 1: Lightning Fast Setup */}
+                  <div className="onb-benefit-item">
+                    <div className="onb-benefit-icon-wrap">
+                      <Zap size={20} />
+                    </div>
+                    <div className="onb-benefit-text">
+                      <h4 className="onb-benefit-item-title">Lightning Fast Setup</h4>
+                      <p className="onb-benefit-item-desc">
                         Save hours of manual data entry. Our AI parses your resume instantly.
                       </p>
                     </div>
                   </div>
-                  <div className="onb-flex-gap" style={{ alignItems: "flex-start" }}>
-                    <div
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 9999,
-                        background: "rgba(181,93,0,0.1)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <img src={ast.resume.iconVisibility} alt="" width={21} height={14} />
+
+                  {/* Item 2: Increased Visibility */}
+                  <div className="onb-benefit-item">
+                    <div className="onb-benefit-icon-wrap">
+                      <Eye size={20} />
                     </div>
-                    <div>
-                      <p style={{ margin: 0 }}>Increased Visibility</p>
-                      <p className="onb-muted-sm" style={{ margin: "4px 0 0", lineHeight: 1.4 }}>
+                    <div className="onb-benefit-text">
+                      <h4 className="onb-benefit-item-title">Increased Visibility</h4>
+                      <p className="onb-benefit-item-desc">
                         Stand out to recruiters with a rich, structured professional profile.
                       </p>
                     </div>
                   </div>
-                  <div className="onb-flex-gap" style={{ alignItems: "flex-start" }}>
-                    <div
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 9999,
-                        background: "rgba(70,72,212,0.1)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <img src={ast.resume.iconMatch} alt="" width={20} height={20} />
+
+                  {/* Item 3: Smart Matching */}
+                  <div className="onb-benefit-item">
+                    <div className="onb-benefit-icon-wrap">
+                      <Sparkles size={20} />
                     </div>
-                    <div>
-                      <p style={{ margin: 0 }}>Smart Matching</p>
-                      <p className="onb-muted-sm" style={{ margin: "4px 0 0", lineHeight: 1.4 }}>
+                    <div className="onb-benefit-text">
+                      <h4 className="onb-benefit-item-title">Smart Matching</h4>
+                      <p className="onb-benefit-item-desc">
                         Get tailored job recommendations based on your skills and experience.
                       </p>
                     </div>
                   </div>
                 </div>
-                <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 25, marginTop: 8 }}>
-                  <div
-                    style={{
-                      background: "#f0fdf4",
-                      border: "1px solid #dcfce7",
-                      borderRadius: 32,
-                      padding: 17,
-                      display: "flex",
-                      gap: 12,
-                      alignItems: "flex-start",
-                    }}
-                  >
-                    <img src={ast.resume.shield} alt="" width={13} height={16} />
-                    <p style={{ margin: 0, fontSize: 12, color: "#166534", lineHeight: 1.6 }}>
+
+                {/* Bottom Security Banner - ALL PURPLE */}
+                <div className="onb-benefit-security-wrap">
+                  <div className="onb-benefit-security-box">
+                    <div className="onb-benefit-security-icon">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <p className="onb-benefit-security-text">
                       Your data is completely secure. We use enterprise-grade encryption and will never share your information without explicit permission.
                     </p>
                   </div>

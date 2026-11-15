@@ -616,7 +616,7 @@ export function ProfilePage() {
             </div>
             <div className="prof-resume-preview-body">
               <iframe
-                src={resumePreviewUrl}
+                src={`${resumePreviewUrl}#view=FitH&navpanes=0`}
                 title="Resume preview"
                 className="prof-resume-preview-iframe"
               />

@@ -73,7 +73,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="login-page page-fill">
+    <div className="login-page">
       {/* Background radial glow */}
       <div className="login-bg-glow" aria-hidden />
 
@@ -104,7 +104,7 @@ export function LoginPage() {
           {HAS_GOOGLE ? (
             <>
               <div style={{ display: "flex", justifyContent: "center" }}>
-                <GoogleSignInButton uxMode="login" width={356} onSignedIn={afterGoogleSignIn} />
+                <GoogleSignInButton uxMode="login" width={380} onSignedIn={afterGoogleSignIn} />
               </div>
               <div className="login-divider" aria-hidden="true">
                 <div className="login-divider-inner">

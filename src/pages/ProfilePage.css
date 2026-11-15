@@ -1098,14 +1098,15 @@
 
 /* Resume Preview Modal */
 .prof-resume-preview-modal {
-  width: 90vw;
-  max-width: 920px;
-  height: 85vh;
+  width: 98vw;
+  max-width: 1750px;
+  height: 96vh;
+  max-height: 96vh;
   background: #ffffff;
   border-radius: 20px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.3);
+  box-shadow: 0 24px 60px -15px rgba(15, 23, 42, 0.4);
   animation: modalScaleUp 200ms ease-out both;
   overflow: hidden;
   padding: 16px 20px;

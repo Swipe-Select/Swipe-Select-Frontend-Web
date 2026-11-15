@@ -35,6 +35,7 @@ import {
   MapPin,
   Briefcase,
   DollarSign,
+  Download,
 } from "lucide-react";
 import { TailoredResultPane } from "../components/TailoredPdfPreview";
 import { ResumePaperTemplate } from "../components/ResumePaperTemplate";
@@ -248,6 +249,14 @@ export function AiToolsPage() {
     } catch {
       // fallback
     }
+  };
+
+  const handleDownloadBaseResume = () => {
+    if (!baseResume) return;
+    const link = document.createElement("a");
+    link.href = baseResume.dataUrl;
+    link.download = baseResume.meta.fileName;
+    link.click();
   };
 
   const scanJobsAuthenticity = useCallback(
@@ -1110,38 +1119,60 @@ export function AiToolsPage() {
         </div>
       )}
 
-      {/* Base Resume Preview Modal */}
+      {/* Full-Screen Base Resume Preview Modal */}
       {showResumePreview && baseResume && (
-        <div className="prof-modal-backdrop" onClick={() => setShowResumePreview(false)}>
+        <div
+          className="ai-base-preview-backdrop"
+          onClick={() => setShowResumePreview(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Base Resume Fullscreen Preview"
+        >
           <div
-            className="prof-modal-card"
-            style={{ maxWidth: 840, width: "95%", height: "85vh", display: "flex", flexDirection: "column" }}
+            className="ai-base-preview-modal"
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="prof-modal-header"
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <FileCheck size={20} className="text-emerald-600" />
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0f172a" }}>
-                  Base Resume Preview — {baseResume.meta.fileName}
-                </h3>
+            <div className="ai-base-preview-header">
+              <div className="ai-base-preview-header-left">
+                <div className="ai-base-preview-icon-wrap">
+                  <FileCheck size={18} />
+                </div>
+                <div>
+                  <h3 className="ai-base-preview-title">
+                    Base Resume Preview — {baseResume.meta.fileName}
+                  </h3>
+                  <span className="ai-base-preview-size-badge">
+                    {(baseResume.meta.fileSize / 1024).toFixed(1)} KB · Stored for AI Tailoring
+                  </span>
+                </div>
               </div>
-              <button
-                type="button"
-                className="prof-modal-close"
-                onClick={() => setShowResumePreview(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
-              >
-                <X size={20} />
-              </button>
+
+              <div className="ai-base-preview-header-right">
+                <button
+                  type="button"
+                  className="ai-base-preview-download-btn"
+                  onClick={handleDownloadBaseResume}
+                  title="Download PDF"
+                >
+                  <Download size={14} />
+                  <span>Download PDF</span>
+                </button>
+                <button
+                  type="button"
+                  className="ai-base-preview-close-btn"
+                  onClick={() => setShowResumePreview(false)}
+                  aria-label="Close Preview"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
-            <div style={{ flex: 1, padding: 12 }}>
+
+            <div className="ai-base-preview-body">
               <iframe
-                src={baseResume.dataUrl}
-                title="Base Resume PDF Preview"
-                style={{ width: "100%", height: "100%", border: "1px solid #e2e8f0", borderRadius: 8 }}
+                src={`${baseResumeBlobUrl || baseResume.dataUrl}#view=FitH&navpanes=0`}
+                title="Base Resume PDF Full Preview"
+                className="ai-base-preview-iframe"
               />
             </div>
           </div>

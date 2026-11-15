@@ -110,8 +110,8 @@
 }
 
 
-/* ── Height-Adaptive Queries for Laptops / Scaled Displays ── */
-@media (max-height: 860px) {
+/* ── Height-Adaptive Queries for Very Small Displays ── */
+@media (max-height: 560px) {
   :root {
     --app-navbar-height: 52px;
   }
@@ -143,28 +143,5 @@
   .app-navbar-logout {
     padding: 6px 14px !important;
     font-size: 12px !important;
-  }
-}
-
-@media (max-height: 700px) {
-  :root {
-    --app-navbar-height: 46px;
-  }
-
-  .app-navbar {
-    height: 46px !important;
-  }
-
-  .app-navbar-logo {
-    width: 24px !important;
-    height: 24px !important;
-  }
-
-  .app-navbar-title {
-    font-size: 15.5px !important;
-  }
-
-  .app-navbar-cta-text {
-    display: none !important;
   }
 }
