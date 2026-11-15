@@ -381,7 +381,7 @@ export function AiToolsPage() {
             onClick={() => setActiveTab("resume")}
           >
             <Sparkles size={15} />
-            <span>AI Resume Studio (Qwen2.5)</span>
+            <span>AI Resume Studio</span>
           </button>
 
           <button
@@ -390,7 +390,7 @@ export function AiToolsPage() {
             onClick={() => setActiveTab("detector")}
           >
             <ShieldCheck size={15} />
-            <span>Fake Job Authenticity Verifier (ModernBERT)</span>
+            <span>Job Authenticity Verifier</span>
           </button>
         </div>
 
@@ -401,20 +401,20 @@ export function AiToolsPage() {
               className={`ai-status-pill ${
                 healthStatus.fakeJobLoaded ? "ai-status-pill--active" : "ai-status-pill--offline"
               }`}
-              title="ModernBERT Sequence Classifier for Fake Job Detection"
+              title="AI Sequence Classifier for Job Authenticity"
             >
               <span className="ai-status-dot" />
-              <span>ModernBERT: {healthStatus.fakeJobLoaded ? "Ready" : "Standby"}</span>
+              <span>Authenticity Scanner: {healthStatus.fakeJobLoaded ? "Ready" : "Standby"}</span>
             </span>
 
             <span
               className={`ai-status-pill ${
                 healthStatus.resumeLoaded ? "ai-status-pill--active" : "ai-status-pill--offline"
               }`}
-              title="Qwen2.5-3B Instruct GGUF Model for Resume Generation"
+              title="AI Engine for Resume Generation"
             >
               <span className="ai-status-dot" />
-              <span>Qwen2.5-3B: {healthStatus.resumeLoaded ? "Ready" : "Standby"}</span>
+              <span>Resume Tailor: {healthStatus.resumeLoaded ? "Ready" : "Standby"}</span>
             </span>
           </div>
 
@@ -828,7 +828,7 @@ export function AiToolsPage() {
                   <h2 className="ai-auth-heading">Screen Matched Roles Authenticity</h2>
                   <span className="ai-auth-model-pill">
                     <ShieldCheck size={12} className="text-emerald-600" />
-                    Fine-tuned ModernBERT
+                    Scam & Fraud Shield
                   </span>
                 </div>
                 <p className="ai-auth-sub">
@@ -884,7 +884,7 @@ export function AiToolsPage() {
                   className="ai-auth-rescan-btn"
                   onClick={() => void loadMatchedJobs()}
                   disabled={loadingMatchedJobs}
-                  title="Re-run ModernBERT authenticity verification on all matched positions"
+                  title="Re-run authenticity verification on all matched positions"
                 >
                   <RotateCcw size={12} className={loadingMatchedJobs ? "ai-spinner" : ""} />
                   <span>{loadingMatchedJobs ? "Scanning…" : "Rescan"}</span>
@@ -906,7 +906,7 @@ export function AiToolsPage() {
                   <div className="ai-pulse-loader" />
                   <p className="ai-placeholder-text">Analyzing matched jobs authenticity…</p>
                   <span className="ai-placeholder-sub">
-                    Evaluating roles against ModernBERT sequence classification models
+                    Evaluating roles against neural authenticity verification models
                   </span>
                 </div>
               ) : matchedJobs.length === 0 ? (
@@ -916,7 +916,7 @@ export function AiToolsPage() {
                   </div>
                   <h3 className="ai-auth-empty-title">No Matched Jobs Yet</h3>
                   <p className="ai-auth-empty-desc">
-                    You haven't swiped right on or saved any jobs yet. When you like positions in the Discover feed, they will appear here with automatic real-time ModernBERT authenticity checks.
+                    You haven't swiped right on or saved any jobs yet. When you like positions in the Discover feed, they will appear here with automatic real-time job authenticity checks.
                   </p>
                   <Link to="/dashboard/swipe" className="ai-auth-empty-btn">
                     <Sparkles size={13} /> Go to Discover & Swipe Jobs
@@ -992,7 +992,7 @@ export function AiToolsPage() {
                             )}
                             <span className="ai-auth-banner-title">
                               {isLoading
-                                ? "ModernBERT Screening…"
+                                ? "Authenticity Screening…"
                                 : isFake
                                 ? "SUSPICIOUS POSTING"
                                 : "VERIFIED AUTHENTIC"}
@@ -1064,7 +1064,7 @@ export function AiToolsPage() {
                           {/* Security Breakdown Box */}
                           <div className="ai-auth-breakdown">
                             <div className="ai-auth-bar-row">
-                              <span>ModernBERT Authenticity Index</span>
+                              <span>Authenticity Confidence Index</span>
                               <span>{confidencePct !== null ? `${confidencePct}%` : "Analyzing…"}</span>
                             </div>
                             <div className="ai-auth-bar-track">

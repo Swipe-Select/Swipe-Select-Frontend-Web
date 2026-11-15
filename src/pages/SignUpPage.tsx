@@ -90,7 +90,7 @@ export function SignUpPage() {
                 <div className="signup-feature-body">
                   <h3>Tailored for You</h3>
                   <p>
-                    Qwen2.5-3B model tailors your experience bullets to perfectly match target job requirements.
+                    AI Resume Engine tailors your experience bullets to perfectly match target job requirements.
                   </p>
                 </div>
               </div>
@@ -100,7 +100,7 @@ export function SignUpPage() {
                   <ShieldCheck size={22} />
                 </div>
                 <div className="signup-feature-body">
-                  <h3>ModernBERT Fraud Guard</h3>
+                  <h3>Scam & Fraud Shield</h3>
                   <p>
                     State-of-the-art classifier screens phantom postings and recruitment scams in real time.
                   </p>

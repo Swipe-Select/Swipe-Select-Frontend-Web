@@ -226,7 +226,7 @@ export function WelcomePage() {
           <p className="welcome-subtitle">Curated live jobs are waiting for you</p>
 
           <p className="welcome-description">
-            Experience the Tinder of job search. Powered by <strong>ModernBERT</strong> to screen out fake postings and <strong>Qwen2.5-3B</strong> to tailor ATS-optimized resumes in seconds.
+            Experience the Tinder of job search. Powered by <strong>Real-Time Authenticity Screening</strong> to eliminate scam postings and <strong>Instant Resume Tailoring</strong> to generate ATS-optimized resumes in seconds.
           </p>
 
           <div className="welcome-actions">
@@ -243,11 +243,11 @@ export function WelcomePage() {
           <div className="welcome-trust-row">
             <div className="welcome-trust-item">
               <ShieldCheck size={18} className="text-emerald-500" />
-              <span>ModernBERT Fraud Detection</span>
+              <span>Real-Time Fraud Detection</span>
             </div>
             <div className="welcome-trust-item">
               <Bot size={18} className="text-indigo-500" />
-              <span>Qwen2.5-3B Edge AI Model</span>
+              <span>AI Resume Tailoring Engine</span>
             </div>
             <div className="welcome-trust-item">
               <Zap size={18} className="text-amber-500" />
@@ -414,8 +414,8 @@ export function WelcomePage() {
               <ShieldCheck size={22} />
             </div>
             <div className="welcome-pillar-content">
-              <h3>ModernBERT Authenticity Guard</h3>
-              <p>Transformer AI screens phantom jobs, suspicious recruitment scams, and salary traps.</p>
+              <h3>Job Authenticity Guard</h3>
+              <p>Advanced AI screens phantom jobs, suspicious recruitment scams, and salary traps.</p>
             </div>
           </div>
 
@@ -424,7 +424,7 @@ export function WelcomePage() {
               <Bot size={22} />
             </div>
             <div className="welcome-pillar-content">
-              <h3>Qwen2.5-3B Resume Tailor</h3>
+              <h3>AI Resume Tailor</h3>
               <p>Instantly align your resume and cover letter with the exact job description.</p>
             </div>
           </div>

@@ -22,7 +22,7 @@ export function PostOnboardingPage() {
             </div>
             <h1 className="post-onb-title">You&apos;re All Set!</h1>
             <p className="post-onb-sub">
-              Your preferences, skills, and resume have been processed. Our ML matching engine and ModernBERT fraud scanner are primed for your feed.
+              Your preferences, skills, and resume have been processed. Our smart matching engine and fraud detection scanner are primed for your feed.
             </p>
           </div>
 

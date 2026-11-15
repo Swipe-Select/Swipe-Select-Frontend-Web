@@ -240,9 +240,9 @@ export function ProfilePage() {
               <div className="prof-user-meta">
                 <div className="prof-user-title-row">
                   <h2 className="prof-user-name">{name}</h2>
-                  <span className="prof-verified-badge" title="Profile verified by ModernBERT AI screening">
+                  <span className="prof-verified-badge" title="Profile verified by AI authenticity screening">
                     <ShieldCheck size={13} className="text-emerald-600" />
-                    <span>ModernBERT Screened</span>
+                    <span>Authenticity Verified</span>
                   </span>
                 </div>
 

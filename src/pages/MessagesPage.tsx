@@ -60,7 +60,7 @@ const INITIAL_CONVERSATIONS: Conversation[] = [
     role: "Senior Product Designer",
     avatarColor: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
     unread: 0,
-    lastMessage: "Your application was screened through our ModernBERT authentic intake.",
+    lastMessage: "Your application was screened through our verified authentic intake.",
     lastTime: "2h ago",
     messages: [
       {

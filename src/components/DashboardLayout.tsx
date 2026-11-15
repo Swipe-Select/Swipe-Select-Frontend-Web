@@ -148,7 +148,7 @@ export function DashboardLayout() {
 
           <div className="dash-topbar-right">
             {/* Live Model Status Pill */}
-            <div className="dash-topbar-status-pill" title="ModernBERT & Qwen2.5-3B microservices operational">
+            <div className="dash-topbar-status-pill" title="Job Authenticity & Resume Tailoring AI operational">
               <span className="dash-status-dot" aria-hidden />
               <span>AI Models Active</span>
             </div>

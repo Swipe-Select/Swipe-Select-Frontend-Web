@@ -473,11 +473,11 @@ export function JobSwipePage() {
                     ) : null}
                   </div>
 
-                  {/* ModernBERT Fake Job Detection Badge */}
+                  {/* AI Fake Job Detection Badge */}
                   {currentFake ? (
                     <div
                       className={`job-swipe-badge job-swipe-badge--${currentFake.label.toLowerCase()}`}
-                      title={`ModernBERT Model: ${currentFake.label} with ${Math.round(currentFake.confidence * 100)}% confidence`}
+                      title={`Authenticity Verification: ${currentFake.label} with ${Math.round(currentFake.confidence * 100)}% confidence`}
                     >
                       {currentFake.label === "Real" ? (
                         <>
@@ -494,7 +494,7 @@ export function JobSwipePage() {
                   ) : fakeCheckBusy ? (
                     <div className="job-swipe-badge job-swipe-badge--checking">
                       <span className="job-swipe-checking-dot" />
-                      <span>Checking with ModernBERT…</span>
+                      <span>Verifying Authenticity…</span>
                     </div>
                   ) : null}
                 </div>

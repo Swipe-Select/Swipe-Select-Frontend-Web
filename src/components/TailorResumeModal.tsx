@@ -493,11 +493,11 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                 onClick={() => setEngine("ai")}
               >
                 <div className="tailor-engine-card-top">
-                  <span className="tailor-engine-title">✨ Cloud Gemini AI</span>
+                  <span className="tailor-engine-title">✨ Cloud AI Engine</span>
                   <span className="tailor-engine-badge">Optional</span>
                 </div>
                 <p className="tailor-engine-desc">
-                  Uses Google Gemini API in the cloud to tailor sections and rewrite PDF text blocks while preserving your original PDF layout.
+                  Uses high-accuracy cloud intelligence to tailor sections and rewrite PDF text blocks while preserving your original PDF layout.
                 </p>
               </button>
 
@@ -507,11 +507,11 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                 onClick={() => setEngine("local")}
               >
                 <div className="tailor-engine-card-top">
-                  <span className="tailor-engine-title">⚡ Local Qwen2.5-3B Model (GGUF)</span>
-                  <span className="tailor-engine-badge tailor-engine-badge--local">Recommended · Offline</span>
+                  <span className="tailor-engine-title">⚡ On-Device AI Engine</span>
+                  <span className="tailor-engine-badge tailor-engine-badge--local">Recommended · Private & Offline</span>
                 </div>
                 <p className="tailor-engine-desc">
-                  Runs locally offline on your machine (port 8000) using your quantized Qwen2.5-3B GGUF weights — edits PDFs in-place or writes structured Markdown.
+                  Runs locally and privately on your machine (offline) — edits PDFs in-place with zero data leaving your device.
                 </p>
               </button>
             </div>
@@ -569,8 +569,8 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
               <>
                 <span className="tailor-spinner" />
                 {engine === "ai"
-                  ? `Tailoring for ${job.company} with Cloud Gemini AI…`
-                  : `Tailoring for ${job.company} with Local Qwen2.5-3B…`}
+                  ? `Tailoring for ${job.company} with Cloud AI Engine…`
+                  : `Tailoring for ${job.company} with On-Device AI…`}
 
               </>
             ) : (
@@ -602,9 +602,8 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                 {generationMeta?.engine && (
                   <div className="tailor-engine-tag">
                     {generationMeta.engine === "ai_pro" || generationMeta.engine === "ai"
-                      ? "✨ Cloud Gemini AI (Template Preserved)"
-                      : "⚡ Local Qwen2.5-3B (GGUF)"}
-
+                      ? "✨ Cloud AI Engine (Template Preserved)"
+                      : "⚡ On-Device AI Engine (Private)"}
                   </div>
                 )}
               </div>
