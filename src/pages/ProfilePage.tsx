@@ -29,32 +29,11 @@ import {
   Download,
   Trash2,
   Eye,
+  Phone,
+  SlidersHorizontal,
+  Award,
 } from "lucide-react";
 import "./ProfilePage.css";
-
-function StatCard({ 
-  label, 
-  value, 
-  icon, 
-  gradient 
-}: Readonly<{ 
-  label: string; 
-  value: string | number; 
-  icon: React.ReactNode; 
-  gradient?: string; 
-}>) {
-  return (
-    <div className="prof-stat-card">
-      <div className="prof-stat-top">
-        <span className="prof-stat-icon" style={{ background: gradient }}>
-          {icon}
-        </span>
-        <span className="prof-stat-value">{value}</span>
-      </div>
-      <span className="prof-stat-label">{label}</span>
-    </div>
-  );
-}
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -85,6 +64,9 @@ export function ProfilePage() {
   const education = profile?.education ?? [];
   const [jobTitles, setJobTitles] = useState<string[]>(prefs?.jobTitles ?? []);
   const [workModes, setWorkModes] = useState<string[]>(prefs?.workMode ?? []);
+
+  // Active tab for right bottom card: "skills" or "experience"
+  const [activeTab, setActiveTab] = useState<"skills" | "experience">("skills");
 
   // Live Stats State
   const [stats, setStats] = useState<UserStatsPayload>({
@@ -240,310 +222,394 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="prof-page page-fill">
-      <div className="prof-inner">
-        {/* Profile Header Card */}
-        <div className="prof-header-card">
-          <div className="prof-avatar-wrap">
-            <div className="prof-avatar" aria-hidden>{initials}</div>
-            <div className="prof-avatar-ring" aria-hidden />
-          </div>
+    <div className="prof-page">
+      <div className="prof-container">
+        {/* ─── Left Column: Profile Hero, Live Activity, Search Calibration ─── */}
+        <div className="prof-col prof-col--left">
+          {/* Executive Profile Card */}
+          <div className="prof-card prof-card--user">
+            <div className="prof-user-banner" aria-hidden />
+            <div className="prof-user-body">
+              <div className="prof-avatar-wrap">
+                <div className="prof-avatar" aria-hidden>{initials}</div>
+                <span className="prof-avatar-ring" aria-hidden />
+                <span className="prof-avatar-dot" title="Active Account" />
+              </div>
 
-          <div className="prof-header-info">
-            <div className="prof-header-top">
-              <h2 className="prof-name">{name}</h2>
-              <span className="prof-status-badge">
-                <ShieldCheck size={13} className="text-emerald-600" />
-                <span>ModernBERT Screened</span>
-              </span>
-            </div>
-
-            <p className="prof-email">
-              <Mail size={14} />
-              <span>{email}</span>
-            </p>
-
-            {(profile?.gender || profile?.phone) && (
-              <p className="prof-meta">
-                {[profile?.gender, profile?.phone].filter(Boolean).join(" · ")}
-              </p>
-            )}
-          </div>
-
-          <div className="prof-header-actions">
-            <button
-              type="button"
-              className="prof-edit-btn"
-              onClick={() => setEditModalOpen(true)}
-              aria-label="Edit job preferences"
-            >
-              <Edit3 size={15} />
-              <span>Edit Preferences</span>
-            </button>
-            <Link to="/dashboard/ai-tools" className="prof-ai-tools-btn">
-              <Sparkles size={15} />
-              <span>Resume Studio</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Live Metrics Row */}
-        <div className="prof-stats-row">
-          <StatCard 
-            label="Jobs Evaluated" 
-            value={statsLoading ? "…" : stats.swiped} 
-            icon={<Layers size={18} />}
-            gradient="rgba(79, 70, 229, 0.12)"
-          />
-          <StatCard 
-            label="Saved / Liked" 
-            value={statsLoading ? "…" : stats.liked} 
-            icon={<Heart size={18} className="text-pink-500" />}
-            gradient="rgba(236, 72, 153, 0.12)"
-          />
-          <StatCard 
-            label="Applications" 
-            value={statsLoading ? "…" : stats.applied} 
-            icon={<Send size={18} className="text-emerald-500" />}
-            gradient="rgba(16, 185, 129, 0.12)"
-          />
-          <StatCard 
-            label="AI Matches" 
-            value={statsLoading ? "…" : stats.matches} 
-            icon={<Sparkles size={18} className="text-amber-500" />}
-            gradient="rgba(245, 158, 11, 0.12)"
-          />
-        </div>
-
-        {/* ─── Resume Storage Section ─── */}
-        <div className="prof-section prof-resume-section">
-          <div className="prof-section-header">
-            <h3 className="prof-section-title">
-              <FileText size={18} style={{ marginRight: 8, verticalAlign: "middle" }} />
-              Base Resume (PDF)
-            </h3>
-            {resumeStored && (
-              <span className="prof-resume-stored-badge">
-                <CheckCircle2 size={13} />
-                <span>Saved</span>
-              </span>
-            )}
-          </div>
-
-          <p className="prof-resume-desc">
-            Upload your base resume once. It will be stored locally and used automatically 
-            when you tailor resumes for specific jobs — no need to re-upload each time.
-          </p>
-
-          {resumeStored && resumeMeta ? (
-            <div className="prof-resume-card">
-              <div className="prof-resume-card-info">
-                <div className="prof-resume-file-icon">
-                  <FileText size={24} />
-                </div>
-                <div className="prof-resume-file-details">
-                  <span className="prof-resume-file-name">{resumeMeta.fileName}</span>
-                  <span className="prof-resume-file-meta">
-                    {formatFileSize(resumeMeta.fileSize)} · Uploaded{" "}
-                    {new Date(resumeMeta.uploadedAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+              <div className="prof-user-meta">
+                <div className="prof-user-title-row">
+                  <h2 className="prof-user-name">{name}</h2>
+                  <span className="prof-verified-badge" title="Profile verified by ModernBERT AI screening">
+                    <ShieldCheck size={13} className="text-emerald-600" />
+                    <span>ModernBERT Screened</span>
                   </span>
                 </div>
+
+                <div className="prof-user-contact">
+                  <span className="prof-contact-item" title={email}>
+                    <Mail size={13} />
+                    <span>{email}</span>
+                  </span>
+                  {(profile?.gender || profile?.phone) && (
+                    <span className="prof-contact-item">
+                      <Phone size={13} />
+                      <span>{[profile?.gender, profile?.phone].filter(Boolean).join(" · ")}</span>
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="prof-resume-card-actions">
+
+              <div className="prof-user-actions">
                 <button
                   type="button"
-                  className="prof-resume-action-btn"
-                  onClick={handleResumePreview}
-                  title="Preview resume"
+                  className="prof-btn prof-btn--outline"
+                  onClick={() => setEditModalOpen(true)}
+                  aria-label="Edit job preferences"
                 >
-                  <Eye size={14} />
-                  <span>Preview</span>
+                  <Edit3 size={14} />
+                  <span>Edit Preferences</span>
                 </button>
-                <button
-                  type="button"
-                  className="prof-resume-action-btn"
-                  onClick={handleResumeDownload}
-                  title="Download resume"
-                >
-                  <Download size={14} />
-                  <span>Download</span>
-                </button>
-                <button
-                  type="button"
-                  className="prof-resume-action-btn prof-resume-action-btn--replace"
-                  onClick={() => resumeInputRef.current?.click()}
-                  title="Replace with new resume"
-                >
-                  <Upload size={14} />
-                  <span>Replace</span>
-                </button>
-                <button
-                  type="button"
-                  className="prof-resume-action-btn prof-resume-action-btn--danger"
-                  onClick={handleResumeRemove}
-                  title="Remove saved resume"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <Link to="/dashboard/ai-tools" className="prof-btn prof-btn--primary">
+                  <Sparkles size={14} />
+                  <span>Resume Studio</span>
+                </Link>
               </div>
             </div>
-          ) : (
-            <div
-              className="prof-resume-upload-zone"
-              onClick={() => resumeInputRef.current?.click()}
-            >
-              <div className="prof-resume-upload-icon">
-                <Upload size={28} />
+          </div>
+
+          {/* Activity Metrics Grid */}
+          <div className="prof-card prof-card--stats">
+            <div className="prof-card-header prof-card-header--compact">
+              <span className="prof-card-title-sm">Candidate Activity</span>
+              <span className="prof-card-pill">Live Synced</span>
+            </div>
+            <div className="prof-stats-matrix">
+              <div className="prof-stat-box prof-stat-box--indigo">
+                <div className="prof-stat-icon-wrap">
+                  <Layers size={17} />
+                </div>
+                <div className="prof-stat-info">
+                  <span className="prof-stat-num">{statsLoading ? "…" : stats.swiped}</span>
+                  <span className="prof-stat-sub">Evaluated</span>
+                </div>
               </div>
-              <span className="prof-resume-upload-primary">
-                {resumeUploading ? "Saving resume…" : "Click to upload your base resume (PDF)"}
-              </span>
-              <span className="prof-resume-upload-sub">
-                Max 10 MB · Stored locally for instant tailoring
-              </span>
+
+              <div className="prof-stat-box prof-stat-box--pink">
+                <div className="prof-stat-icon-wrap">
+                  <Heart size={17} />
+                </div>
+                <div className="prof-stat-info">
+                  <span className="prof-stat-num">{statsLoading ? "…" : stats.liked}</span>
+                  <span className="prof-stat-sub">Saved / Liked</span>
+                </div>
+              </div>
+
+              <div className="prof-stat-box prof-stat-box--emerald">
+                <div className="prof-stat-icon-wrap">
+                  <Send size={17} />
+                </div>
+                <div className="prof-stat-info">
+                  <span className="prof-stat-num">{statsLoading ? "…" : stats.applied}</span>
+                  <span className="prof-stat-sub">Applications</span>
+                </div>
+              </div>
+
+              <div className="prof-stat-box prof-stat-box--amber">
+                <div className="prof-stat-icon-wrap">
+                  <Sparkles size={17} />
+                </div>
+                <div className="prof-stat-info">
+                  <span className="prof-stat-num">{statsLoading ? "…" : stats.matches}</span>
+                  <span className="prof-stat-sub">AI Matches</span>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
 
-          <input
-            ref={resumeInputRef}
-            type="file"
-            accept=".pdf,application/pdf"
-            onChange={handleResumeUpload}
-            style={{ display: "none" }}
-          />
-
-          {resumeUploadSuccess && (
-            <div className="prof-resume-success-toast">
-              <CheckCircle2 size={15} />
-              <span>Resume saved successfully! It will be used for future tailoring.</span>
-            </div>
-          )}
-        </div>
-
-        {/* Details Sections */}
-        <div className="prof-sections">
-          {/* Target Preferences */}
-          <div className="prof-section">
-            <div className="prof-section-header">
-              <h3 className="prof-section-title">Job Search Calibration</h3>
+          {/* Job Search Calibration Card */}
+          <div className="prof-card prof-card--calibration">
+            <div className="prof-card-header">
+              <div className="prof-card-title-group">
+                <SlidersHorizontal size={15} className="text-indigo-600" />
+                <h3 className="prof-card-title">Job Search Calibration</h3>
+              </div>
               <button
                 type="button"
-                className="prof-section-edit-link"
+                className="prof-link-btn"
                 onClick={() => setEditModalOpen(true)}
               >
                 Modify
               </button>
             </div>
 
-            <div className="prof-pref-grid">
-              <div className="prof-pref-block">
-                <span className="prof-pref-key">Target Job Titles</span>
-                <div className="prof-pref-tags">
+            <div className="prof-calib-grid">
+              <div className="prof-calib-block">
+                <span className="prof-calib-label">Target Job Titles</span>
+                <div className="prof-tag-list">
                   {jobTitles.length > 0 ? (
                     jobTitles.map((t, i) => (
-                      <span key={`${i}-${t}`} className="prof-pref-tag prof-pref-tag--title">
+                      <span key={`${i}-${t}`} className="prof-tag prof-tag--title">
                         {t}
                       </span>
                     ))
                   ) : (
-                    <span className="prof-text-muted">No titles selected yet.</span>
+                    <span className="prof-empty-text">No target titles selected</span>
                   )}
                 </div>
               </div>
 
-              <div className="prof-pref-block">
-                <span className="prof-pref-key">Preferred Work Mode</span>
-                <div className="prof-pref-tags">
+              <div className="prof-calib-block">
+                <span className="prof-calib-label">Preferred Work Mode</span>
+                <div className="prof-tag-list">
                   {workModes.length > 0 ? (
                     workModes.map((m, i) => (
-                      <span key={`${i}-${m}`} className="prof-pref-tag prof-pref-tag--mode">
+                      <span key={`${i}-${m}`} className="prof-tag prof-tag--mode">
                         {m}
                       </span>
                     ))
                   ) : (
-                    <span className="prof-text-muted">Any mode</span>
+                    <span className="prof-empty-text">Any work mode</span>
                   )}
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Skills */}
-          <div className="prof-section">
-            <div className="prof-section-header">
-              <h3 className="prof-section-title">Verified Skills & Tools</h3>
-              <span className="prof-section-count">{skills.length} skills listed</span>
+        {/* ─── Right Column: Base Resume & Credentials Hub ─── */}
+        <div className="prof-col prof-col--right">
+          {/* Base Resume Command Center */}
+          <div className="prof-card prof-card--resume">
+            <div className="prof-card-header">
+              <div className="prof-card-title-group">
+                <FileText size={16} className="text-indigo-600" />
+                <h3 className="prof-card-title">Base Resume (PDF)</h3>
+              </div>
+              {resumeStored && (
+                <span className="prof-status-pill prof-status-pill--ready">
+                  <CheckCircle2 size={13} />
+                  <span>AI Tailoring Ready</span>
+                </span>
+              )}
             </div>
 
-            {skills.length > 0 ? (
-              <div className="prof-skills-wrap">
-                {skills.map((skill, i) => (
-                  <span key={`${i}-${skill}`} className="prof-skill-pill">
-                    {skill}
-                  </span>
-                ))}
+            <p className="prof-resume-hint">
+              Stored locally to power 1-click tailoring in AI Resume Studio. Your original formatting
+              is preserved while targeted role keywords are seamlessly synthesized.
+            </p>
+
+            {resumeStored && resumeMeta ? (
+              <div className="prof-resume-badge-card">
+                <div className="prof-resume-badge-left">
+                  <div className="prof-pdf-icon-badge">
+                    <FileText size={22} />
+                    <span className="prof-pdf-label">PDF</span>
+                  </div>
+                  <div className="prof-resume-meta-info">
+                    <span className="prof-resume-file-name" title={resumeMeta.fileName}>
+                      {resumeMeta.fileName}
+                    </span>
+                    <span className="prof-resume-meta-sub">
+                      {formatFileSize(resumeMeta.fileSize)} · Uploaded{" "}
+                      {new Date(resumeMeta.uploadedAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="prof-resume-badge-actions">
+                  <button
+                    type="button"
+                    className="prof-resume-btn prof-resume-btn--preview"
+                    onClick={handleResumePreview}
+                    title="Preview resume"
+                  >
+                    <Eye size={14} />
+                    <span>Preview</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="prof-resume-btn"
+                    onClick={handleResumeDownload}
+                    title="Download resume"
+                  >
+                    <Download size={14} />
+                    <span>Download</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="prof-resume-btn prof-resume-btn--accent"
+                    onClick={() => resumeInputRef.current?.click()}
+                    title="Replace with new PDF"
+                  >
+                    <Upload size={14} />
+                    <span>Replace</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="prof-resume-btn prof-resume-btn--danger"
+                    onClick={handleResumeRemove}
+                    title="Remove saved resume"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             ) : (
-              <p className="prof-empty-hint">No skills on file. Complete onboarding or add some via edit.</p>
+              <div
+                className="prof-resume-dropzone"
+                onClick={() => resumeInputRef.current?.click()}
+              >
+                <div className="prof-dropzone-icon">
+                  <Upload size={24} />
+                </div>
+                <div className="prof-dropzone-text">
+                  <span className="prof-dropzone-main">
+                    {resumeUploading ? "Saving base resume…" : "Upload Base Resume (PDF)"}
+                  </span>
+                  <span className="prof-dropzone-sub">
+                    Max 10 MB · Stored locally for instant tailoring
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <input
+              ref={resumeInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={handleResumeUpload}
+              style={{ display: "none" }}
+            />
+
+            {resumeUploadSuccess && (
+              <div className="prof-resume-toast">
+                <CheckCircle2 size={14} />
+                <span>Base resume saved! Ready for instant 1-click tailoring.</span>
+              </div>
             )}
           </div>
 
-          {/* Work Experience */}
-          {workExp.length > 0 && (
-            <div className="prof-section">
-              <h3 className="prof-section-title">Work Experience</h3>
-              <div className="prof-timeline">
-                {workExp.map((w, i) => (
-                  <div key={i} className="prof-timeline-item">
-                    <div className="prof-timeline-icon"><Briefcase size={15} /></div>
-                    <div className="prof-timeline-content">
-                      <p className="prof-timeline-role">{w.title}</p>
-                      <p className="prof-timeline-org">{w.company}{w.location ? ` · ${w.location}` : ""}</p>
-                      <p className="prof-timeline-dates">
-                        {[w.startDate, w.endDate].filter(Boolean).join(" → ")}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* Credentials & Profile Hub (Skills & Experience) */}
+          <div className="prof-card prof-card--credentials">
+            <div className="prof-cred-tabs">
+              <button
+                type="button"
+                className={`prof-cred-tab ${activeTab === "skills" ? "prof-cred-tab--active" : ""}`}
+                onClick={() => setActiveTab("skills")}
+              >
+                <Award size={14} />
+                <span>Verified Skills</span>
+                <span className="prof-tab-badge">{skills.length}</span>
+              </button>
+              {(workExp.length > 0 || education.length > 0) && (
+                <button
+                  type="button"
+                  className={`prof-cred-tab ${activeTab === "experience" ? "prof-cred-tab--active" : ""}`}
+                  onClick={() => setActiveTab("experience")}
+                >
+                  <Briefcase size={14} />
+                  <span>Experience & Education</span>
+                  <span className="prof-tab-badge">{workExp.length + education.length}</span>
+                </button>
+              )}
+              <div className="prof-cred-tab-spacer" />
+              <button
+                type="button"
+                className="prof-link-btn"
+                onClick={() => setEditModalOpen(true)}
+              >
+                + Add Skill
+              </button>
             </div>
-          )}
 
-          {/* Education */}
-          {education.length > 0 && (
-            <div className="prof-section">
-              <h3 className="prof-section-title">Education</h3>
-              <div className="prof-timeline">
-                {education.map((e, i) => (
-                  <div key={i} className="prof-timeline-item">
-                    <div className="prof-timeline-icon"><GraduationCap size={15} /></div>
-                    <div className="prof-timeline-content">
-                      <p className="prof-timeline-role">{e.degree}</p>
-                      <p className="prof-timeline-org">{e.school}</p>
-                      {e.date ? <p className="prof-timeline-dates">{e.date}</p> : null}
+            <div className="prof-cred-body">
+              {activeTab === "skills" ? (
+                <div className="prof-skills-container">
+                  {skills.length > 0 ? (
+                    <div className="prof-skills-grid">
+                      {skills.map((skill, i) => (
+                        <span key={`${i}-${skill}`} className="prof-skill-chip">
+                          <span className="prof-skill-chip-dot" />
+                          <span>{skill}</span>
+                        </span>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ) : (
+                    <div className="prof-empty-box">
+                      <p>No skills on file yet. Click &quot;+ Add Skill&quot; to calibrate matching.</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="prof-timeline-container">
+                  {workExp.length > 0 && (
+                    <div className="prof-timeline-section">
+                      <span className="prof-timeline-header">Work Experience</span>
+                      <div className="prof-timeline-list">
+                        {workExp.map((w, i) => (
+                          <div key={i} className="prof-timeline-card">
+                            <div className="prof-timeline-icon-box">
+                              <Briefcase size={14} />
+                            </div>
+                            <div className="prof-timeline-info">
+                              <span className="prof-timeline-title">{w.title}</span>
+                              <span className="prof-timeline-company">
+                                {w.company}{w.location ? ` · ${w.location}` : ""}
+                              </span>
+                              <span className="prof-timeline-date">
+                                {[w.startDate, w.endDate].filter(Boolean).join(" → ")}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {education.length > 0 && (
+                    <div className="prof-timeline-section">
+                      <span className="prof-timeline-header">Education</span>
+                      <div className="prof-timeline-list">
+                        {education.map((e, i) => (
+                          <div key={i} className="prof-timeline-card">
+                            <div className="prof-timeline-icon-box prof-timeline-icon-box--edu">
+                              <GraduationCap size={14} />
+                            </div>
+                            <div className="prof-timeline-info">
+                              <span className="prof-timeline-title">{e.degree}</span>
+                              <span className="prof-timeline-company">{e.school}</span>
+                              {e.date ? <span className="prof-timeline-date">{e.date}</span> : null}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
 
-      {/* Resume Preview Modal */}
+      {/* ─── Resume Preview Modal ─── */}
       {resumePreviewUrl && (
         <div className="prof-modal-backdrop" onClick={() => setResumePreviewUrl(null)}>
           <div className="prof-resume-preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="prof-modal-header">
-              <h3>Resume Preview — {resumeMeta?.fileName}</h3>
+              <div className="prof-modal-header-left">
+                <FileText size={18} className="text-indigo-600" />
+                <h3>Resume Preview — {resumeMeta?.fileName}</h3>
+              </div>
               <button 
                 type="button" 
                 className="prof-modal-close"
                 onClick={() => setResumePreviewUrl(null)}
+                aria-label="Close modal"
               >
                 <X size={18} />
               </button>
@@ -559,16 +625,20 @@ export function ProfilePage() {
         </div>
       )}
 
-      {/* Edit Preferences Modal */}
+      {/* ─── Edit Preferences Modal ─── */}
       {editModalOpen && (
         <div className="prof-modal-backdrop" onClick={() => setEditModalOpen(false)}>
           <div className="prof-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="prof-modal-header">
-              <h3>Edit Career Preferences</h3>
+              <div className="prof-modal-header-left">
+                <Edit3 size={18} className="text-indigo-600" />
+                <h3>Edit Career Preferences</h3>
+              </div>
               <button 
                 type="button" 
                 className="prof-modal-close"
                 onClick={() => setEditModalOpen(false)}
+                aria-label="Close modal"
               >
                 <X size={18} />
               </button>
@@ -576,18 +646,18 @@ export function ProfilePage() {
 
             <form onSubmit={handleSavePreferences} className="prof-modal-form">
               <div className="prof-modal-field">
-                <label>Job Titles (comma separated)</label>
+                <label>Target Job Titles (comma separated)</label>
                 <input
                   type="text"
                   className="prof-modal-input"
                   value={jobTitles.join(", ")}
                   onChange={(e) => setJobTitles(e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-                  placeholder="e.g. Software Engineer, Frontend Developer"
+                  placeholder="e.g. Software Engineer, Motion Designer"
                 />
               </div>
 
               <div className="prof-modal-field">
-                <label>Work Mode Preferences</label>
+                <label>Preferred Work Mode</label>
                 <div className="prof-modal-mode-buttons">
                   {["Remote", "Hybrid", "In Person"].map((mode) => (
                     <button
@@ -603,7 +673,7 @@ export function ProfilePage() {
               </div>
 
               <div className="prof-modal-field">
-                <label>Add Skill</label>
+                <label>Add Skill to Profile</label>
                 <div className="prof-modal-skill-row">
                   <input
                     type="text"
@@ -623,7 +693,7 @@ export function ProfilePage() {
                   </button>
                 </div>
                 <div className="prof-skills-wrap" style={{ marginTop: 8 }}>
-                  {skills.slice(0, 10).map((s) => (
+                  {skills.slice(0, 12).map((s) => (
                     <span key={s} className="prof-skill-pill">
                       {s}
                       <button type="button" onClick={() => handleRemoveSkill(s)} className="prof-remove-skill-btn">×</button>
