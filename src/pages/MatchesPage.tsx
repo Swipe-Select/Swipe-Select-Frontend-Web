@@ -4,11 +4,11 @@ import { fetchMatchedJobs, swipeJob, type JobCard } from "../api/jobs";
 import { useAuth } from "../context/AuthContext";
 import { readSession } from "../auth/storage";
 import { TailorResumeModal } from "../components/TailorResumeModal";
+import { LocationPinIcon } from "../components/LocationPinIcon";
 import {
   Heart,
   Sparkles,
   ExternalLink,
-  MapPin,
   CheckCircle2,
   DollarSign,
   Briefcase,
@@ -87,7 +87,7 @@ function MatchCard({
         )}
         {job.location && (
           <span className="match-chip match-chip--location">
-            <MapPin size={11} />
+            <LocationPinIcon size={13} />
             <span>{job.location}</span>
           </span>
         )}

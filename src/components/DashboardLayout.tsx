@@ -61,7 +61,7 @@ export function DashboardLayout() {
         {/* Logo + collapse button */}
         <div className="dash-logo">
           <Link to="/" className="dash-logo-icon-wrap" title="Go to home">
-            <SwipeSelectLogo size={26} showText={false} />
+            <SwipeSelectLogo size={32} showText={false} />
           </Link>
           <span className="dash-logo-name">{BRAND_NAME}</span>
           <button

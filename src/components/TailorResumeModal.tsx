@@ -12,6 +12,7 @@ import type { JobCard } from "../api/jobs";
 
 
 import { TailoredResultPane } from "./TailoredPdfPreview";
+import { LocationPinIcon } from "./LocationPinIcon";
 import {
   Sparkles,
   FileText,
@@ -265,7 +266,12 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
             </span>
             <h2 className="tailor-modal-title">Tailor Resume for {job.title}</h2>
             <p className="tailor-modal-company">
-              at <strong>{job.company}</strong> {job.location ? `• ${job.location}` : ""}
+              at <strong>{job.company}</strong>
+              {job.location ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6 }}>
+                  • <LocationPinIcon size={13} /> {job.location}
+                </span>
+              ) : ""}
             </p>
           </div>
           <button

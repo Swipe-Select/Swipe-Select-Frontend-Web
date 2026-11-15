@@ -11,8 +11,8 @@ import { readSession } from "../auth/storage";
 import { ONBOARDING_COMPLETE_STEP } from "../auth/onboardingStep";
 import { useAuth } from "../context/AuthContext";
 import { TailorResumeModal } from "../components/TailorResumeModal";
+import { LocationPinIcon } from "../components/LocationPinIcon";
 import {
-  MapPin,
   DollarSign,
   Clock,
   Building2,
@@ -505,7 +505,7 @@ export function JobSwipePage() {
               <div className="job-swipe-meta">
                 {current.location ? (
                   <span className="job-swipe-chip">
-                    <MapPin size={14} />
+                    <LocationPinIcon size={15} />
                     <span>{current.location}</span>
                   </span>
                 ) : null}

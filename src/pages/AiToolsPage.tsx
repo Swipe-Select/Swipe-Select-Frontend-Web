@@ -32,7 +32,6 @@ import {
   FileCheck,
   Split,
   Maximize2,
-  MapPin,
   Briefcase,
   DollarSign,
   Download,
@@ -40,6 +39,7 @@ import {
 import { TailoredResultPane } from "../components/TailoredPdfPreview";
 import { ResumePaperTemplate } from "../components/ResumePaperTemplate";
 import { ResumeErrorBoundary } from "../components/ResumeErrorBoundary";
+import { LocationPinIcon } from "../components/LocationPinIcon";
 
 import "./AiToolsPage.css";
 import "../components/TailorResumeModal.css";
@@ -1046,7 +1046,7 @@ export function AiToolsPage() {
                           <div className="ai-auth-meta-tags">
                             {job.location && (
                               <span className="ai-auth-meta-chip">
-                                <MapPin size={10} /> {job.location}
+                                <LocationPinIcon size={12} /> {job.location}
                               </span>
                             )}
                             {job.jobType && (

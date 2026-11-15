@@ -11,7 +11,8 @@ import { asUserPreferences, asUserProfile } from "../auth/normalizeSession";
 import { useAuth } from "../context/AuthContext";
 import type { ProfileEducation, ProfileProject, ProfileCertification } from "../api/types";
 import { readDraft, writeDraft, clearDraft } from "../auth/onboardingDraft";
-import { User, Mail, Phone, ShieldCheck, Lock, CheckCircle2, Briefcase, GraduationCap, FolderGit2, Sparkles, Award, Heart, Plus, Edit2, Trash2, Check, ExternalLink, ArrowRight, X, Search, MapPin, MapPinOff, FileText, Clock, Zap, Eye } from "lucide-react";
+import { User, Mail, Phone, ShieldCheck, Lock, CheckCircle2, Briefcase, GraduationCap, FolderGit2, Sparkles, Award, Heart, Plus, Edit2, Trash2, Check, ExternalLink, ArrowRight, X, Search, MapPinOff, FileText, Clock, Zap, Eye } from "lucide-react";
+import { LocationPinIcon } from "../components/LocationPinIcon";
 import { OnboardingTopBar } from "../components/onboarding/OnboardingTopBar";
 import "./OnboardingPage.css";
 
@@ -2479,7 +2480,7 @@ export function OnboardingPage() {
                         >
                           <div className="onb-flex-gap" style={{ minWidth: 0, flex: 1 }}>
                             <div className={`onb-loc-icon-badge${sel ? " onb-loc-icon-badge--sel" : ""}`}>
-                              <MapPin size={18} />
+                              <LocationPinIcon size={24} />
                             </div>
                             <div style={{ minWidth: 0, flex: 1 }}>
                               <p style={{ margin: 0, fontSize: 15.5, fontWeight: 600, color: sel ? "#4648d4" : "#0f172a" }}>{city as string}</p>
@@ -2528,7 +2529,7 @@ export function OnboardingPage() {
                             >
                               <div className="onb-flex-gap" style={{ minWidth: 0, flex: 1 }}>
                                 <div className={`onb-loc-icon-badge${sel ? " onb-loc-icon-badge--sel" : ""}`}>
-                                  <MapPin size={18} />
+                                  <LocationPinIcon size={24} />
                                 </div>
                                 <div style={{ minWidth: 0, flex: 1 }}>
                                   <p style={{ margin: 0, fontSize: 15.5, fontWeight: 600, color: sel ? "#4648d4" : "#0f172a" }}>{city}</p>
@@ -2665,7 +2666,7 @@ export function OnboardingPage() {
                         >
                           <div className="onb-flex-gap" style={{ minWidth: 0, flex: 1 }}>
                             <div className="onb-target-opt-pin">
-                              <MapPin size={15} />
+                              <LocationPinIcon size={24} />
                             </div>
                             <div style={{ minWidth: 0, flex: 1 }}>
                               <p className="onb-target-opt-city">{city}</p>
@@ -2712,7 +2713,7 @@ export function OnboardingPage() {
                           >
                             <div className="onb-flex-gap" style={{ minWidth: 0, flex: 1 }}>
                               <div className="onb-target-opt-pin">
-                                <MapPin size={15} />
+                                <LocationPinIcon size={24} />
                               </div>
                               <div style={{ minWidth: 0, flex: 1 }}>
                                 <p className="onb-target-opt-city">{r.city}</p>
@@ -2752,7 +2753,7 @@ export function OnboardingPage() {
                   {targetLocations.length === 0 ? (
                     <div className="onb-target-panel-empty">
                       <div className="onb-target-panel-empty-icon">
-                        <MapPin size={22} />
+                        <LocationPinIcon size={44} />
                       </div>
                       <p className="onb-target-panel-empty-title">No locations selected yet</p>
                       <p className="onb-target-panel-empty-desc">
@@ -2764,7 +2765,7 @@ export function OnboardingPage() {
                       <div key={`${city}-${country}`} className="onb-target-selected-card">
                         <div className="onb-flex-gap" style={{ minWidth: 0, flex: 1 }}>
                           <div className="onb-target-selected-pin">
-                            <MapPin size={15} />
+                            <LocationPinIcon size={24} />
                           </div>
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <p className="onb-target-selected-city">{city}</p>

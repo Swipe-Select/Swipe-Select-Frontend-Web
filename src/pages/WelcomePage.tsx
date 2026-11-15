@@ -8,11 +8,11 @@ import {
   CheckCircle2, 
   Flame, 
   Briefcase, 
-  Compass, 
   Zap,
   ThumbsUp,
   X
 } from "lucide-react";
+import { LocationPinIcon } from "../components/LocationPinIcon";
 import "./WelcomePage.css";
 
 type SwipeDirection = "left" | "right";
@@ -337,7 +337,7 @@ export function WelcomePage() {
                       <h2>{card.role}</h2>
                       <div className="welcome-metadata-grid">
                         <p>
-                          <Compass size={15} />
+                          <LocationPinIcon size={16} />
                           {card.location}
                         </p>
                         <p>

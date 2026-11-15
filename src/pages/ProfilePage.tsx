@@ -11,6 +11,7 @@ import {
   clearBaseResume,
   type ResumeMeta,
 } from "../auth/resumeStorage";
+import { LocationPinIcon } from "../components/LocationPinIcon";
 import {
   Edit3,
   Sparkles,
@@ -254,6 +255,12 @@ export function ProfilePage() {
                     <span className="prof-contact-item">
                       <Phone size={13} />
                       <span>{[profile?.gender, profile?.phone].filter(Boolean).join(" · ")}</span>
+                    </span>
+                  )}
+                  {prefs?.baseLocation && (
+                    <span className="prof-contact-item" title={prefs.baseLocation}>
+                      <LocationPinIcon size={14} />
+                      <span>{prefs.baseLocation}</span>
                     </span>
                   )}
                 </div>
@@ -558,7 +565,12 @@ export function ProfilePage() {
                             <div className="prof-timeline-info">
                               <span className="prof-timeline-title">{w.title}</span>
                               <span className="prof-timeline-company">
-                                {w.company}{w.location ? ` · ${w.location}` : ""}
+                                {w.company}
+                                {w.location ? (
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 6 }}>
+                                    · <LocationPinIcon size={12} /> {w.location}
+                                  </span>
+                                ) : ""}
                               </span>
                               <span className="prof-timeline-date">
                                 {[w.startDate, w.endDate].filter(Boolean).join(" → ")}
