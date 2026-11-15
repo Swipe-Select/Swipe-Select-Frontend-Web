@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   checkMlHealth,
@@ -9,6 +9,7 @@ import {
   type PdfBlockChange,
   type PdfPagePreview,
 } from "../api/ml";
+import { fetchMatchedJobs, type JobCard } from "../api/jobs";
 import { readSession } from "../auth/storage";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -20,7 +21,6 @@ import {
   Sparkles,
   ShieldCheck,
   AlertTriangle,
-  Bot,
   FileText,
   Check,
   Copy,
@@ -32,6 +32,9 @@ import {
   FileCheck,
   Split,
   Maximize2,
+  MapPin,
+  Briefcase,
+  DollarSign,
 } from "lucide-react";
 import { TailoredResultPane } from "../components/TailoredPdfPreview";
 import { ResumePaperTemplate } from "../components/ResumePaperTemplate";
@@ -42,30 +45,6 @@ import "../components/TailorResumeModal.css";
 
 type Tab = "resume" | "detector";
 type ResumeSection = "tailored_resume" | "summary" | "experience" | "cover_letter";
-
-const PRESET_REAL_JOB = {
-  title: "Senior Full Stack Engineer",
-  company: "Stripe",
-  location: "San Francisco, CA (Hybrid)",
-  description: "We are looking for a Senior Full Stack Engineer to join our Core Payments team. You will architect robust distributed payment APIs, integrate real-time fraud mitigation, and collaborate with UX teams on developer dashboards. Requirements: 5+ years with TypeScript, React, Go or Node.js, distributed database scaling, and strong automated testing methodologies.",
-};
-
-const PRESET_FAKE_JOB = {
-  title: "Remote Data Entry Assistant - Immediate Start",
-  company: "Global Logistics VIP Services",
-  location: "Remote / Anywhere",
-  description: "URGENT HIRING: Earn $85/hour working from home! No experience needed! Must have personal laptop and smartphone. You will receive payments into your personal account and transfer to clients via cryptocurrency wire. Immediate start without interview. Contact manager on Telegram @hr_direct_vip to receive home office check for $4,500 equipment purchase.",
-};
-
-const PRESET_RESUME_1 = {
-  jobTitle: "Senior Frontend Engineer",
-  jobDescription: "Looking for an expert in React, TypeScript, state management, web performance optimization, and accessible component libraries.",
-};
-
-const PRESET_RESUME_2 = {
-  jobTitle: "AI & ML Application Developer",
-  jobDescription: "Seeking an engineer to build production web applications integrating Large Language Models (LLMs), quantized GGUF inference, and transformer embeddings.",
-};
 
 export function AiToolsPage() {
   const { session } = useAuth();
@@ -91,7 +70,7 @@ export function AiToolsPage() {
   const [copiedResume, setCopiedResume] = useState(false);
   const [outputView, setOutputView] = useState<"pdf" | "split" | "markdown">("pdf");
   const [extractedResumeText, setExtractedResumeText] = useState<string>("");
-  const [engine, setEngine] = useState<"local" | "ai">("local");
+  const [engine] = useState<"local" | "ai">("local");
   const [tailoredPdfBase64, setTailoredPdfBase64] = useState<string | null>(null);
   const [pagePreviews, setPagePreviews] = useState<PdfPagePreview[]>([]);
   const [blocksModified, setBlocksModified] = useState<number>(0);
@@ -152,14 +131,15 @@ export function AiToolsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Fake Job Detector State
-  const [detectorTitle, setDetectorTitle] = useState("");
-  const [detectorCompany, setDetectorCompany] = useState("");
-  const [detectorLocation, setDetectorLocation] = useState("");
-  const [detectorDescription, setDetectorDescription] = useState("");
-  const [detectorResult, setDetectorResult] = useState<FakeJobPrediction | null>(null);
-  const [detecting, setDetecting] = useState(false);
-  const [detectorError, setDetectorError] = useState<string | null>(null);
+  // Matched Jobs Authenticity State
+  const [matchedJobs, setMatchedJobs] = useState<JobCard[]>([]);
+  const [loadingMatchedJobs, setLoadingMatchedJobs] = useState<boolean>(false);
+  const [matchedJobsError, setMatchedJobsError] = useState<string | null>(null);
+  const [jobAuthenticity, setJobAuthenticity] = useState<
+    Record<string, { loading: boolean; prediction?: FakeJobPrediction; error?: string }>
+  >({});
+  const [authenticityFilter, setAuthenticityFilter] = useState<"all" | "real" | "fake">("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const fetchHealth = async () => {
     setCheckingHealth(true);
@@ -182,6 +162,10 @@ export function AiToolsPage() {
     e.preventDefault();
     if (!token) {
       setResumeError("Please log in to generate resume content.");
+      return;
+    }
+    if (!jobTitle.trim()) {
+      setResumeError("Target Job Title is required.");
       return;
     }
     setGeneratingResume(true);
@@ -266,59 +250,116 @@ export function AiToolsPage() {
     }
   };
 
-  const handleDetectFakeJob = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) {
-      setDetectorError("Please log in to analyze job postings.");
-      return;
-    }
-    if (!detectorTitle.trim() || !detectorDescription.trim()) {
-      setDetectorError("Job Title and Job Description are required.");
-      return;
-    }
+  const scanJobsAuthenticity = useCallback(
+    async (jobsList: JobCard[]) => {
+      if (!token || jobsList.length === 0) return;
 
-    setDetecting(true);
-    setDetectorError(null);
-    setDetectorResult(null);
+      setJobAuthenticity((prev) => {
+        const next = { ...prev };
+        for (const j of jobsList) {
+          if (!next[j.id]?.prediction) {
+            next[j.id] = { loading: true };
+          }
+        }
+        return next;
+      });
 
-    try {
-      const res = await predictFakeJob(
-        {
-          title: detectorTitle.trim(),
-          company: detectorCompany.trim(),
-          location: detectorLocation.trim(),
-          description: detectorDescription.trim(),
-        },
-        token,
+      await Promise.allSettled(
+        jobsList.map(async (job) => {
+          try {
+            const res = await predictFakeJob(
+              {
+                title: job.title,
+                company: job.company,
+                description: job.description || "",
+                location: job.location || "",
+              },
+              token,
+            );
+            if (res.ok && res.data) {
+              setJobAuthenticity((prev) => ({
+                ...prev,
+                [job.id]: { loading: false, prediction: res.data! },
+              }));
+            } else {
+              setJobAuthenticity((prev) => ({
+                ...prev,
+                [job.id]: { loading: false, error: res.message || "Screening failed" },
+              }));
+            }
+          } catch {
+            setJobAuthenticity((prev) => ({
+              ...prev,
+              [job.id]: { loading: false, error: "ML server offline" },
+            }));
+          }
+        }),
       );
+    },
+    [token],
+  );
 
-      if (res.ok && res.data) {
-        setDetectorResult(res.data);
-      } else {
-        setDetectorError(res.message || "Failed to analyze job posting.");
+  const loadMatchedJobs = useCallback(async () => {
+    if (!token) return;
+    setLoadingMatchedJobs(true);
+    setMatchedJobsError(null);
+    try {
+      const res = await fetchMatchedJobs(token);
+      if (res.success && res.jobs) {
+        setMatchedJobs(res.jobs);
+        void scanJobsAuthenticity(res.jobs);
+      } else if (res.message) {
+        setMatchedJobsError(res.message);
       }
     } catch {
-      setDetectorError("Network error or ML service offline on port 8000.");
+      setMatchedJobsError("Could not retrieve matched jobs from server.");
     } finally {
-      setDetecting(false);
+      setLoadingMatchedJobs(false);
     }
+  }, [token, scanJobsAuthenticity]);
+
+  useEffect(() => {
+    if (activeTab === "detector") {
+      void loadMatchedJobs();
+    }
+  }, [activeTab, loadMatchedJobs]);
+
+  const handleTailorJob = (job: JobCard) => {
+    setJobTitle(job.title);
+    setJobDescription(job.description || "");
+    setActiveTab("resume");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const loadFakeJobPreset = (preset: typeof PRESET_REAL_JOB) => {
-    setDetectorTitle(preset.title);
-    setDetectorCompany(preset.company);
-    setDetectorLocation(preset.location);
-    setDetectorDescription(preset.description);
-    setDetectorResult(null);
-    setDetectorError(null);
-  };
+  const totalMatchesCount = matchedJobs.length;
+  const authenticMatchesCount = useMemo(() => {
+    return matchedJobs.filter(
+      (j) => jobAuthenticity[j.id]?.prediction && !jobAuthenticity[j.id]?.prediction?.isFake,
+    ).length;
+  }, [matchedJobs, jobAuthenticity]);
 
-  const loadResumePreset = (preset: typeof PRESET_RESUME_1) => {
-    setJobTitle(preset.jobTitle);
-    setJobDescription(preset.jobDescription);
-    setGeneratedResume("");
-    setResumeError(null);
-  };
+  const suspiciousMatchesCount = useMemo(() => {
+    return matchedJobs.filter(
+      (j) => jobAuthenticity[j.id]?.prediction && jobAuthenticity[j.id]?.prediction?.isFake,
+    ).length;
+  }, [matchedJobs, jobAuthenticity]);
+
+  const filteredMatchedJobs = useMemo(() => {
+    return matchedJobs.filter((job) => {
+      const auth = jobAuthenticity[job.id]?.prediction;
+      if (authenticityFilter === "real" && (!auth || auth.isFake)) return false;
+      if (authenticityFilter === "fake" && (!auth || !auth.isFake)) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesQuery =
+          job.title.toLowerCase().includes(q) ||
+          job.company.toLowerCase().includes(q) ||
+          job.location.toLowerCase().includes(q);
+        if (!matchesQuery) return false;
+      }
+      return true;
+    });
+  }, [matchedJobs, jobAuthenticity, authenticityFilter, searchQuery]);
 
   return (
     <div className="ai-tools-page page-fill">
@@ -450,27 +491,6 @@ export function AiToolsPage() {
 
 
 
-              {/* Demo Presets Row */}
-              <div className="ai-preset-row">
-                <span className="ai-preset-label">
-                  <Sparkles size={13} className="text-indigo-500" /> 1-Click Role Presets:
-                </span>
-                <button
-                  type="button"
-                  className="ai-preset-btn"
-                  onClick={() => loadResumePreset(PRESET_RESUME_1)}
-                >
-                  Frontend Engineer
-                </button>
-                <button
-                  type="button"
-                  className="ai-preset-btn"
-                  onClick={() => loadResumePreset(PRESET_RESUME_2)}
-                >
-                  AI / ML Developer
-                </button>
-              </div>
-
               {/* Select Output Section (2 options only) */}
               <div className="ai-form-group">
                 <label className="ai-label">Select Output Section</label>
@@ -496,32 +516,9 @@ export function AiToolsPage() {
                 </div>
               </div>
 
-              {/* Tailoring Engine (shuffled below output section) */}
-              {useBaseResume && baseResume && (
-                <div className="ai-form-group">
-                  <label className="ai-label">Tailoring Engine</label>
-                  <div className="ai-pill-selector">
-                    <button
-                      type="button"
-                      className={`ai-selector-pill ${engine === "local" ? "ai-selector-pill--active" : ""}`}
-                      onClick={() => setEngine("local")}
-                    >
-                      <Bot size={14} /> Local Qwen2.5-3B (GGUF)
-                    </button>
-                    <button
-                      type="button"
-                      className={`ai-selector-pill ${engine === "ai" ? "ai-selector-pill--active" : ""}`}
-                      onClick={() => setEngine("ai")}
-                    >
-                      <Sparkles size={14} /> Cloud Gemini AI
-                    </button>
-                  </div>
-                </div>
-              )}
-
               <div className="ai-form-group">
                 <label htmlFor="target-job-title" className="ai-label">
-                  Target Job Title <span className="ai-label-opt">(Optional)</span>
+                  Target Job Title <span className="ai-label-req">*</span>
                 </label>
                 <input
                   id="target-job-title"
@@ -530,6 +527,7 @@ export function AiToolsPage() {
                   placeholder="e.g. Senior Full-Stack Developer"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
+                  required
                 />
               </div>
 
@@ -799,9 +797,9 @@ export function AiToolsPage() {
               ) : (
                 <div className="ai-placeholder-state">
                   <div className="ai-placeholder-icon"><FileText size={40} className="text-indigo-400" /></div>
-                  <p className="ai-placeholder-text">Awaiting prompt</p>
+                  <p className="ai-placeholder-text">Awaiting input</p>
                   <span className="ai-placeholder-sub">
-                    Click one of the demo presets or enter a role above to generate and export your tailored resume PDF.
+                    Enter your target job title on the left to synthesize and format your tailored ATS resume PDF.
                   </span>
                 </div>
               )}
@@ -810,205 +808,301 @@ export function AiToolsPage() {
         </div>
       )}
 
-      {/* Tab 2: Fake Job Authenticity Verifier */}
+      {/* Tab 2: Fake Job Authenticity Verifier (Matched Jobs Authenticity Center) */}
       {activeTab === "detector" && (
         <div className="ai-tab-content">
-          <div className="ai-resume-grid">
-            {/* Form */}
-            <form className="ai-card ai-resume-form ai-detector-form" onSubmit={handleDetectFakeJob}>
-              <div className="ai-card-header-row">
-                <div>
-                  <h2 className="ai-card-title">Screen Job Posting Authenticity</h2>
-                  <p className="ai-card-desc">
-                    Evaluates postings against 50,000+ known fraudulent patterns using fine-tuned ModernBERT.
-                  </p>
-                </div>
-              </div>
-
-
-
-              {/* Demo Presets Card */}
-              <div className="ai-preset-card">
-                <span className="ai-preset-label"><ShieldCheck size={13} /> 1-Click Tests:</span>
-                <div className="ai-preset-grid">
-                  <button
-                    type="button"
-                    className="ai-preset-btn ai-preset-btn--real"
-                    onClick={() => loadFakeJobPreset(PRESET_REAL_JOB)}
-                  >
-                    ✓ Test Authentic (Stripe)
-                  </button>
-                  <button
-                    type="button"
-                    className="ai-preset-btn ai-preset-btn--fake"
-                    onClick={() => loadFakeJobPreset(PRESET_FAKE_JOB)}
-                  >
-                    ⚠ Test Fake Scam ($85/hr)
-                  </button>
-                </div>
-              </div>
-
-              <div className="ai-form-group">
-                <label htmlFor="det-title" className="ai-label">
-                  Job Title <span className="ai-label-req">*</span>
-                </label>
-                <input
-                  id="det-title"
-                  type="text"
-                  className="ai-input"
-                  placeholder="e.g. Senior Software Engineer"
-                  value={detectorTitle}
-                  onChange={(e) => setDetectorTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="ai-form-row">
-                <div className="ai-form-group ai-form-group--half">
-                  <label htmlFor="det-company" className="ai-label">Company Name</label>
-                  <input
-                    id="det-company"
-                    type="text"
-                    className="ai-input"
-                    placeholder="e.g. Google, Acme"
-                    value={detectorCompany}
-                    onChange={(e) => setDetectorCompany(e.target.value)}
-                  />
-                </div>
-
-                <div className="ai-form-group ai-form-group--half">
-                  <label htmlFor="det-location" className="ai-label">Location</label>
-                  <input
-                    id="det-location"
-                    type="text"
-                    className="ai-input"
-                    placeholder="e.g. Remote / New York, NY"
-                    value={detectorLocation}
-                    onChange={(e) => setDetectorLocation(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="ai-form-group">
-                <label htmlFor="det-desc" className="ai-label">
-                  Job Description <span className="ai-label-req">*</span>
-                </label>
-                <textarea
-                  id="det-desc"
-                  className="ai-textarea"
-                  rows={4}
-                  placeholder="Paste the full job posting description, requirements, or responsibilities…"
-                  value={detectorDescription}
-                  onChange={(e) => setDetectorDescription(e.target.value)}
-                  required
-                />
-              </div>
-
-              {detectorError && (
-                <div className="ai-alert ai-alert--error">{detectorError}</div>
-              )}
-
-              <button
-                type="submit"
-                className="ai-btn ai-btn--primary"
-                disabled={detecting}
-              >
-                {detecting ? (
-                  <>
-                    <span className="ai-spinner" /> Running ModernBERT Classifier…
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck size={16} />
-                    <span>Verify Job Authenticity</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* Detection Result Box */}
-            <div className="ai-card ai-resume-preview">
-              <h3 className="ai-card-title">Verification Analysis</h3>
-
-              {detecting ? (
-                <div className="ai-placeholder-state">
-                  <div className="ai-pulse-loader" />
-                  <p className="ai-placeholder-text">Running ModernBERT Sequence Classifier…</p>
-                  <span className="ai-placeholder-sub">
-                    Scanning for suspicious compensation ratios, linguistic anomalies, and recruitment phishing
+          <div className="ai-auth-container">
+            {/* Sleek, Presentable Header Bar */}
+            <div className="ai-auth-compact-bar">
+              <div className="ai-auth-bar-left">
+                <div className="ai-auth-title-line">
+                  <h2 className="ai-auth-heading">Screen Matched Roles Authenticity</h2>
+                  <span className="ai-auth-model-pill">
+                    <ShieldCheck size={12} className="text-emerald-600" />
+                    Fine-tuned ModernBERT
                   </span>
                 </div>
-              ) : detectorResult ? (
-                <div className="ai-detector-result">
-                  <div
-                    className={`ai-verdict-box ${
-                      detectorResult.isFake ? "ai-verdict-box--fake" : "ai-verdict-box--real"
-                    }`}
+                <p className="ai-auth-sub">
+                  Real-time neural fraud screening of your saved job postings against 50,000+ scam patterns.
+                </p>
+              </div>
+
+              <div className="ai-auth-bar-right">
+                {/* Inline Compact KPI Counters */}
+                <div className="ai-auth-mini-kpis">
+                  <span className="ai-auth-mini-kpi ai-auth-mini-kpi--total">
+                    <Briefcase size={12} />
+                    <span><strong>{totalMatchesCount}</strong> Matched</span>
+                  </span>
+                  <span className="ai-auth-mini-kpi ai-auth-mini-kpi--real">
+                    <CheckCircle2 size={12} />
+                    <span><strong>{authenticMatchesCount}</strong> Authentic</span>
+                  </span>
+                  <span className="ai-auth-mini-kpi ai-auth-mini-kpi--fake">
+                    <AlertTriangle size={12} />
+                    <span><strong>{suspiciousMatchesCount}</strong> Suspicious</span>
+                  </span>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="ai-auth-tabs">
+                  <button
+                    type="button"
+                    className={`ai-auth-tab ${authenticityFilter === "all" ? "ai-auth-tab--active" : ""}`}
+                    onClick={() => setAuthenticityFilter("all")}
                   >
-                    <div className="ai-verdict-icon">
-                      {detectorResult.isFake ? (
-                        <AlertTriangle size={28} className="text-rose-600" />
-                      ) : (
-                        <CheckCircle2 size={28} className="text-emerald-600" />
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="ai-verdict-title">
-                        {detectorResult.isFake ? "Suspicious Listing Detected" : "Verified Authentic Listing"}
-                      </h4>
-                      <p className="ai-verdict-sub">
-                        ModernBERT Output: <strong>{detectorResult.label}</strong> with{" "}
-                        <strong>{Math.round(detectorResult.confidence * 100)}% Confidence</strong>
-                      </p>
-                    </div>
-                  </div>
+                    All ({totalMatchesCount})
+                  </button>
+                  <button
+                    type="button"
+                    className={`ai-auth-tab ${authenticityFilter === "real" ? "ai-auth-tab--active" : ""}`}
+                    onClick={() => setAuthenticityFilter("real")}
+                  >
+                    ✓ Authentic ({authenticMatchesCount})
+                  </button>
+                  <button
+                    type="button"
+                    className={`ai-auth-tab ${authenticityFilter === "fake" ? "ai-auth-tab--active" : ""}`}
+                    onClick={() => setAuthenticityFilter("fake")}
+                  >
+                    ⚠ Suspicious ({suspiciousMatchesCount})
+                  </button>
+                </div>
 
-                  {/* Confidence Meter */}
-                  <div className="ai-meter-group">
-                    <div className="ai-meter-labels">
-                      <span>Model Confidence Index</span>
-                      <span>{Math.round(detectorResult.confidence * 100)}%</span>
-                    </div>
-                    <div className="ai-meter-track">
-                      <div
-                        className={`ai-meter-bar ${
-                          detectorResult.isFake ? "ai-meter-bar--fake" : "ai-meter-bar--real"
-                        }`}
-                        style={{ width: `${Math.round(detectorResult.confidence * 100)}%` }}
-                      />
-                    </div>
-                  </div>
+                {/* Rescan Button */}
+                <button
+                  type="button"
+                  className="ai-auth-rescan-btn"
+                  onClick={() => void loadMatchedJobs()}
+                  disabled={loadingMatchedJobs}
+                  title="Re-run ModernBERT authenticity verification on all matched positions"
+                >
+                  <RotateCcw size={12} className={loadingMatchedJobs ? "ai-spinner" : ""} />
+                  <span>{loadingMatchedJobs ? "Scanning…" : "Rescan"}</span>
+                </button>
+              </div>
+            </div>
 
-                  {/* Advice Card */}
-                  <div className="ai-advice-card">
-                    <h5 className="ai-advice-title">
-                      {detectorResult.isFake ? "🚨 Cautionary Flags & Recommendations" : "💡 Security Assessment"}
-                    </h5>
-                    <ul className="ai-advice-list">
-                      {detectorResult.isFake ? (
-                        <>
-                          <li>Never pay fees for background checks, equipment, or training materials.</li>
-                          <li>Legitimate recruiters do not conduct hiring solely via Telegram or WhatsApp.</li>
-                          <li>Watch out for unrealistic hourly rates relative to job experience.</li>
-                          <li>Verify whether the company has an official registered career domain.</li>
-                        </>
-                      ) : (
-                        <>
-                          <li>Language structure and compensation expectations align with valid employer standards.</li>
-                          <li>Proceed with your application safely through Swipe Select.</li>
-                          <li>You can use the AI Resume Studio to generate tailored bullet points for this role!</li>
-                        </>
-                      )}
-                    </ul>
+            {/* Error Message if API failed */}
+            {matchedJobsError && (
+              <div className="ai-alert ai-alert--error" style={{ margin: 0, padding: "8px 14px", fontSize: "12px" }}>
+                {matchedJobsError}
+              </div>
+            )}
+
+            {/* Main Content Area: Fits 100% on screen with zero scrolling */}
+            <div className="ai-auth-content-area">
+              {loadingMatchedJobs && matchedJobs.length === 0 ? (
+                <div className="ai-placeholder-state" style={{ height: "100%", minHeight: 0 }}>
+                  <div className="ai-pulse-loader" />
+                  <p className="ai-placeholder-text">Analyzing matched jobs authenticity…</p>
+                  <span className="ai-placeholder-sub">
+                    Evaluating roles against ModernBERT sequence classification models
+                  </span>
+                </div>
+              ) : matchedJobs.length === 0 ? (
+                <div className="ai-auth-empty">
+                  <div className="ai-auth-empty-icon">
+                    <ShieldCheck size={26} />
                   </div>
+                  <h3 className="ai-auth-empty-title">No Matched Jobs Yet</h3>
+                  <p className="ai-auth-empty-desc">
+                    You haven't swiped right on or saved any jobs yet. When you like positions in the Discover feed, they will appear here with automatic real-time ModernBERT authenticity checks.
+                  </p>
+                  <Link to="/dashboard/swipe" className="ai-auth-empty-btn">
+                    <Sparkles size={13} /> Go to Discover & Swipe Jobs
+                  </Link>
+                </div>
+              ) : filteredMatchedJobs.length === 0 ? (
+                <div className="ai-auth-empty">
+                  <div className="ai-auth-empty-icon">
+                    <CheckCircle2 size={26} className="text-emerald-500" />
+                  </div>
+                  <h3 className="ai-auth-empty-title">No Postings Match Filter</h3>
+                  <p className="ai-auth-empty-desc">
+                    {authenticityFilter === "fake"
+                      ? "Great news! None of your matched roles are flagged as fraudulent or suspicious."
+                      : "No positions match the current filter."}
+                  </p>
+                  <button
+                    type="button"
+                    className="ai-selector-pill ai-selector-pill--active"
+                    style={{ padding: "6px 14px", fontSize: "12px" }}
+                    onClick={() => {
+                      setAuthenticityFilter("all");
+                      setSearchQuery("");
+                    }}
+                  >
+                    Reset Filter to All
+                  </button>
                 </div>
               ) : (
-                <div className="ai-placeholder-state">
-                  <div className="ai-placeholder-icon"><ShieldCheck size={40} className="text-emerald-500" /></div>
-                  <p className="ai-placeholder-text">Awaiting input</p>
-                  <span className="ai-placeholder-sub">
-                    Click one of the 1-click test buttons on the left to immediately test ModernBERT.
-                  </span>
+                <div className="ai-auth-grid">
+                  {filteredMatchedJobs.map((job) => {
+                    const authState = jobAuthenticity[job.id];
+                    const isLoading = authState?.loading;
+                    const pred = authState?.prediction;
+                    const isFake = pred?.isFake;
+                    const confidencePct = pred ? Math.round(pred.confidence * 100) : null;
+
+                    const initials = (job.company || "SS")
+                      .split(/\s+/)
+                      .map((w) => w[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase();
+
+                    return (
+                      <div
+                        key={job.id}
+                        className={`ai-auth-card ${
+                          isLoading
+                            ? "ai-auth-card--scanning"
+                            : isFake
+                            ? "ai-auth-card--fake"
+                            : "ai-auth-card--real"
+                        }`}
+                      >
+                        {/* Compact Top Authenticity Ribbon */}
+                        <div
+                          className={`ai-auth-card-banner ${
+                            isLoading
+                              ? "ai-auth-card-banner--scanning"
+                              : isFake
+                              ? "ai-auth-card-banner--fake"
+                              : "ai-auth-card-banner--real"
+                          }`}
+                        >
+                          <div className="ai-auth-banner-left">
+                            {isLoading ? (
+                              <RotateCcw size={14} className="text-indigo-600 ai-spinner" />
+                            ) : isFake ? (
+                              <AlertTriangle size={15} className="text-rose-600" />
+                            ) : (
+                              <CheckCircle2 size={15} className="text-emerald-600" />
+                            )}
+                            <span className="ai-auth-banner-title">
+                              {isLoading
+                                ? "ModernBERT Screening…"
+                                : isFake
+                                ? "SUSPICIOUS POSTING"
+                                : "VERIFIED AUTHENTIC"}
+                            </span>
+                            <span className="ai-auth-banner-sub">
+                              {isLoading
+                                ? "Evaluating…"
+                                : isFake
+                                ? "High caution advised"
+                                : "Legitimate employer structure"}
+                            </span>
+                          </div>
+
+                          {confidencePct !== null && (
+                            <span
+                              className={`ai-auth-banner-pill ${
+                                isFake ? "ai-auth-banner-pill--fake" : "ai-auth-banner-pill--real"
+                              }`}
+                            >
+                              {isFake ? `${confidencePct}% Scam Risk` : `${confidencePct}% Authentic`}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Company & Title Block */}
+                        <div className="ai-auth-card-body">
+                          <div className="ai-auth-company-row">
+                            <div className="ai-auth-company-avatar">{initials}</div>
+                            <div className="ai-auth-company-meta">
+                              <span className="ai-auth-company-name">{job.company || "Company"}</span>
+                              {job.source && (
+                                <span className="ai-auth-source-tag">via {job.source}</span>
+                              )}
+                            </div>
+                            <span
+                              className={`match-card-badge ${
+                                job.status === "applied"
+                                  ? "match-card-badge--applied"
+                                  : "match-card-badge--saved"
+                              }`}
+                              style={{ marginLeft: "auto" }}
+                            >
+                              {job.status === "applied" ? "Applied" : "Saved Match"}
+                            </span>
+                          </div>
+
+                          <h3 className="ai-auth-job-title" title={job.title}>
+                            {job.title}
+                          </h3>
+
+                          <div className="ai-auth-meta-tags">
+                            {job.location && (
+                              <span className="ai-auth-meta-chip">
+                                <MapPin size={10} /> {job.location}
+                              </span>
+                            )}
+                            {job.jobType && (
+                              <span className="ai-auth-meta-chip">
+                                <Briefcase size={10} /> {job.jobType}
+                              </span>
+                            )}
+                            {job.salaryRange && (
+                              <span className="ai-auth-meta-chip">
+                                <DollarSign size={10} /> {job.salaryRange}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Security Breakdown Box */}
+                          <div className="ai-auth-breakdown">
+                            <div className="ai-auth-bar-row">
+                              <span>ModernBERT Authenticity Index</span>
+                              <span>{confidencePct !== null ? `${confidencePct}%` : "Analyzing…"}</span>
+                            </div>
+                            <div className="ai-auth-bar-track">
+                              <div
+                                className={`ai-auth-bar-fill ${
+                                  isFake ? "ai-auth-bar-fill--fake" : "ai-auth-bar-fill--real"
+                                }`}
+                                style={{ width: `${confidencePct ?? (isLoading ? 50 : 100)}%` }}
+                              />
+                            </div>
+                            <p className="ai-auth-summary-text">
+                              {isLoading
+                                ? "Running neural classification across hiring phrases…"
+                                : isFake
+                                ? "⚠️ Caution: Detected non-standard hiring channels or phantom posting patterns. Do not transfer funds or share financial credentials."
+                                : "✓ Safe to apply: Passed sequence classification against payroll scams and advance-fee hallmarks."}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="ai-auth-actions">
+                          <button
+                            type="button"
+                            className="ai-auth-btn-tailor"
+                            onClick={() => handleTailorJob(job)}
+                            title="Generate a custom tailored resume matching this job description"
+                          >
+                            <Sparkles size={12} />
+                            <span>Tailor Resume for this Job</span>
+                          </button>
+
+                          {job.sourceUrl && (
+                            <button
+                              type="button"
+                              className="ai-auth-btn-view"
+                              onClick={() => window.open(job.sourceUrl, "_blank", "noopener,noreferrer")}
+                              title="Open original posting"
+                            >
+                              <ExternalLink size={12} />
+                              <span>View Listing</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
