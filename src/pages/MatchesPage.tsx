@@ -153,11 +153,14 @@ function MatchCard({
   );
 }
 
+// In-memory cache across dashboard tab navigation (Discover <-> Matches)
+let cachedMatchedJobs: JobCard[] | null = null;
+
 export function MatchesPage() {
   const navigate = useNavigate();
   const { session, logout } = useAuth();
-  const [jobs, setJobs] = useState<JobCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState<JobCard[]>(() => cachedMatchedJobs ?? []);
+  const [loading, setLoading] = useState<boolean>(() => cachedMatchedJobs === null);
   const [error, setError] = useState<string | null>(null);
   const [tailorJob, setTailorJob] = useState<JobCard | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -169,17 +172,21 @@ export function MatchesPage() {
     // Optimistically remove from state for instant UI responsiveness
     setRemovingId(jobToRemove.id);
     const previousJobs = [...jobs];
-    setJobs((prev) => prev.filter((j) => j.id !== jobToRemove.id));
+    const updated = previousJobs.filter((j) => j.id !== jobToRemove.id);
+    setJobs(updated);
+    cachedMatchedJobs = updated;
 
     try {
       const res = await swipeJob(jobToRemove.id, "pass", token);
       if (!res.ok) {
         // Revert state if failed
         setJobs(previousJobs);
+        cachedMatchedJobs = previousJobs;
         setError("Could not remove saved match. Please try again.");
       }
     } catch {
       setJobs(previousJobs);
+      cachedMatchedJobs = previousJobs;
       setError("Could not remove saved match. Please try again.");
     } finally {
       setRemovingId(null);
@@ -197,7 +204,10 @@ export function MatchesPage() {
         navigate("/login", { replace: true });
         return;
       }
-      setLoading(true);
+      // If we don't have matches cached yet, show loading skeleton
+      if (!cachedMatchedJobs) {
+        setLoading(true);
+      }
       setError(null);
       const result = await fetchMatchedJobs(token);
       if (cancelled) return;
@@ -209,6 +219,7 @@ export function MatchesPage() {
       if (!result.success && result.message) {
         setError(result.message);
       } else {
+        cachedMatchedJobs = result.jobs;
         setJobs(result.jobs);
       }
       setLoading(false);

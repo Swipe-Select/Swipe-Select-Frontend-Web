@@ -1,14 +1,16 @@
-/* Tailor Resume Modal */
+/* Tailor Resume Modal — Full Screen & Edge-to-Edge */
 .tailor-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.65);
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.7);
   backdrop-filter: blur(4px);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
   z-index: 1000;
-  padding: 20px;
+  padding: 0;
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -19,36 +21,34 @@
 
 .tailor-modal {
   background: #ffffff;
-  border-radius: 20px;
-  width: min(940px, 96vw);
-  max-width: 940px;
-  max-height: 92vh;
+  border-radius: 0;
+  width: 100vw;
+  max-width: 100vw;
+  min-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
   overflow: hidden;
-  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: Manrope, system-ui, sans-serif;
   color: #0f172a;
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tailor-modal--wide {
-  width: min(1280px, 98vw);
-  max-width: 1280px;
-}
-
-@keyframes scaleUp {
-  from { transform: scale(0.96); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  width: 100vw;
+  max-width: 100vw;
 }
 
 .tailor-modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  padding: 22px 28px 16px;
+  align-items: center;
+  padding: 18px 48px;
   border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  flex-shrink: 0;
 }
 
 .tailor-modal-title-wrap {
@@ -64,24 +64,25 @@
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: #4648d4;
-  background: #edeefb;
-  padding: 3px 8px;
-  border-radius: 6px;
+  color: #6366f1;
+  background: #ede9fe;
+  border: 1px solid #ddd6fe;
+  padding: 3px 11px;
+  border-radius: 9999px;
   width: fit-content;
   margin-bottom: 4px;
 }
 
 .tailor-modal-title {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.4px;
   margin: 0;
   color: #0f172a;
 }
 
 .tailor-modal-company {
-  font-size: 13px;
+  font-size: 13.5px;
   color: #64748b;
   margin: 0;
 }
@@ -91,8 +92,8 @@
   border: none;
   font-size: 16px;
   color: #64748b;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -102,26 +103,35 @@
 }
 
 .tailor-modal-close:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: #ede9fe;
+  color: #6366f1;
 }
 
 /* Job snippet banner */
 .tailor-job-banner {
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 12px 28px;
+  background: #faf8ff;
+  border-bottom: 1px solid #ede9fe;
+  padding: 11px 48px;
+  flex-shrink: 0;
 }
 
 .tailor-job-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
 }
 
-.tailor-job-icon {
-  font-size: 20px;
+.tailor-job-icon-wrap {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .tailor-job-info {
@@ -132,26 +142,33 @@
 
 .tailor-job-match-target {
   font-size: 11px;
-  font-weight: 600;
-  color: #94a3b8;
+  font-weight: 700;
+  color: #6366f1;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
 }
 
 .tailor-job-name {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #1e293b;
+  color: #0f172a;
 }
 
 .tailor-job-toggle {
   background: none;
   border: none;
-  color: #4648d4;
+  color: #6366f1;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.tailor-job-toggle:hover {
+  background: #ede9fe;
+  color: #4f46e5;
 }
 
 .tailor-job-desc-box {
@@ -174,29 +191,42 @@
 
 /* Modal Body */
 .tailor-modal-body {
-  padding: 22px 28px;
+  padding: 28px 48px 36px;
   overflow-y: auto;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+}
+
+.tailor-modal-container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.tailor-modal-container--wide {
+  max-width: 1600px;
 }
 
 .tailor-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .tailor-section-label {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #334155;
+  color: #1e293b;
+  letter-spacing: -0.15px;
 }
 
 .tailor-source-tabs {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 4px;
   flex-wrap: wrap;
 }
@@ -204,27 +234,30 @@
 .tailor-source-tab {
   flex: 1;
   min-width: 140px;
-  padding: 9px 12px;
-  border-radius: 8px;
-  font-size: 12px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 12.5px;
   font-weight: 600;
-  background: #f1f5f9;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   color: #475569;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: center;
 }
 
 .tailor-source-tab:hover {
-  background: #e2e8f0;
+  background: #f5f3ff;
+  border-color: #c7d2fe;
+  color: #4f46e5;
 }
 
 .tailor-source-tab--active {
-  background: #4648d4;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
   color: #ffffff;
-  border-color: #4648d4;
-  box-shadow: 0 2px 4px rgba(70, 72, 212, 0.2);
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28);
+  font-weight: 700;
 }
 
 /* Base Resume Card */
@@ -236,13 +269,21 @@
 
 .tailor-base-resume-card {
   background: #ffffff;
-  border: 1.5px solid #c7d2fe;
-  border-radius: 12px;
-  padding: 16px 18px;
+  border: 1.5px solid #e0e7ff;
+  border-radius: 14px;
+  padding: 16px 22px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  box-shadow: 0 2px 8px rgba(70, 72, 212, 0.06);
+  gap: 12px;
+  box-shadow: 0 3px 12px rgba(99, 102, 241, 0.04);
+}
+
+.tailor-base-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .tailor-base-card-main {
@@ -252,14 +293,15 @@
 }
 
 .tailor-base-icon-badge {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: #edeefb;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: #f5f3ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4648d4;
+  color: #6366f1;
+  border: 1px solid #ede9fe;
   flex-shrink: 0;
 }
 
@@ -278,7 +320,7 @@
 .tailor-base-name-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -292,11 +334,11 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #15803d;
   background: #dcfce7;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 9999px;
 }
 
@@ -309,30 +351,30 @@
 .tailor-base-card-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 10px;
+  gap: 12px;
+  border-top: none;
+  padding-top: 0;
 }
 
 .tailor-btn-ghost {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 9px;
   font-size: 12px;
   font-weight: 600;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  color: #4f46e5;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .tailor-btn-ghost:hover {
-  background: #f1f5f9;
-  color: #1e293b;
-  border-color: #cbd5e1;
+  background: #ede9fe;
+  color: #4338ca;
+  border-color: #c4b5fd;
 }
 
 .tailor-btn-upload-label {
@@ -396,36 +438,37 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 9px 16px;
   border-radius: 8px;
   font-size: 12.5px;
   font-weight: 700;
-  background: #4648d4;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
   color: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(70, 72, 212, 0.2);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
 }
 
 .tailor-btn-upload-direct:hover {
-  background: #393bb3;
+  filter: brightness(1.06);
+  transform: translateY(-1px);
 }
 
 /* Upload zone */
 .tailor-upload-zone {
   position: relative;
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-  padding: 20px;
+  border: 2px dashed #c7d2fe;
+  border-radius: 14px;
+  padding: 24px;
   text-align: center;
-  background: #f8fafc;
+  background: #faf8ff;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .tailor-upload-zone:hover {
-  border-color: #4648d4;
-  background: #f5f6ff;
+  border-color: #6366f1;
+  background: #f5f3ff;
 }
 
 .tailor-file-input {
@@ -473,7 +516,7 @@
 .tailor-file-name {
   font-size: 14px;
   font-weight: 700;
-  color: #4648d4;
+  color: #6366f1;
 }
 
 .tailor-file-size {
@@ -497,8 +540,8 @@
 .tailor-textarea:focus {
   outline: none;
   background: #ffffff;
-  border-color: #4648d4;
-  box-shadow: 0 0 0 3px rgba(70, 72, 212, 0.15);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
 }
 
 .tailor-profile-notice {
@@ -541,7 +584,7 @@
 .tailor-engine-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 16px;
 }
 
 @media (max-width: 640px) {
@@ -551,62 +594,86 @@
 }
 
 .tailor-engine-card {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 14px;
+  padding: 18px 22px;
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   font-family: inherit;
+  position: relative;
+  min-height: 104px;
 }
 
 .tailor-engine-card:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  border-color: #c7d2fe;
+  background: #fafaff;
+  transform: translateY(-1px);
 }
 
 .tailor-engine-card--active {
-  background: #f5f4fd;
-  border-color: #4648d4;
-  box-shadow: 0 0 0 1px #4648d4;
+  background: #fcfaff;
+  border: 2px solid #6366f1;
+  box-shadow: 0 8px 24px -4px rgba(99, 102, 241, 0.16);
 }
 
 .tailor-engine-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
 .tailor-engine-title {
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 700;
   color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tailor-engine-icon {
+  flex-shrink: 0;
+}
+
+.tailor-engine-icon--cloud {
+  color: #f59e0b;
+}
+
+.tailor-engine-icon--local {
+  color: #6366f1;
 }
 
 .tailor-engine-badge {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-  background: #dcfce7;
-  color: #166534;
-  padding: 2px 7px;
+  letter-spacing: 0.4px;
+  padding: 3px 9px;
   border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.tailor-engine-badge--optional {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
 }
 
 .tailor-engine-badge--local {
-  background: #edeefb;
-  color: #4648d4;
+  background: #ede9fe;
+  color: #4f46e5;
+  border: 1px solid #ddd6fe;
 }
 
 .tailor-engine-desc {
-  font-size: 11px;
-  line-height: 15px;
+  font-size: 12.5px;
+  line-height: 1.5;
   color: #64748b;
   margin: 0;
 }
@@ -615,49 +682,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #edeefb;
-  color: #4648d4;
-  font-size: 11px;
+  background: #ede9fe;
+  color: #6366f1;
+  font-size: 11.5px;
   font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  border: 1px solid #ddd6fe;
   width: fit-content;
-}
-
-/* Mode selector */
-.tailor-mode-pills {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-@media (max-width: 640px) {
-  .tailor-mode-pills {
-    grid-template-columns: 1fr;
-  }
-}
-
-.tailor-mode-pill {
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  color: #334155;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-}
-
-.tailor-mode-pill:hover {
-  background: #f1f5f9;
-}
-
-.tailor-mode-pill--active {
-  background: #edeefb;
-  color: #4648d4;
-  border-color: #4648d4;
 }
 
 .tailor-error-alert {
@@ -671,26 +703,32 @@
 
 /* Submit button */
 .tailor-submit-btn {
-  background: #4648d4;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: #ffffff;
   border: none;
-  padding: 14px 20px;
-  border-radius: 10px;
+  padding: 15px 32px;
+  border-radius: 12px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 6px -1px rgba(70, 72, 212, 0.2);
+  gap: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 22px -3px rgba(79, 70, 229, 0.38);
+  margin-top: 4px;
 }
 
 .tailor-submit-btn:hover:not(:disabled) {
-  background: #393bb3;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -4px rgba(79, 70, 229, 0.5);
+  filter: brightness(1.06);
+}
+
+.tailor-submit-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
 }
 
 .tailor-submit-btn:disabled {
@@ -803,7 +841,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #edeefb;
+  background: #f5f3ff;
+  border: 1px solid #ede9fe;
   padding: 4px;
   border-radius: 10px;
   width: fit-content;
@@ -831,9 +870,9 @@
 
 .tailor-view-tab--active {
   background: #ffffff;
-  color: #4648d4;
+  color: #6366f1;
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.12);
 }
 
 /* ========================================================================= */
@@ -868,8 +907,8 @@
 }
 
 .tailor-split-col--after {
-  border-top: 3px solid #4648d4;
-  box-shadow: 0 4px 12px rgba(70, 72, 212, 0.08);
+  border-top: 3px solid #6366f1;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
 }
 
 .tailor-split-header {
@@ -904,7 +943,7 @@
 }
 
 .tailor-split-badge--after {
-  background: #4648d4;
+  background: #6366f1;
   color: #ffffff;
 }
 

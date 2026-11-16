@@ -47,8 +47,12 @@ function AppRoutes() {
     const prevTop = "/" + (prevPath.split("/")[1] ?? "");
     const prevOrder = ROUTE_ORDER[prevTop] ?? 0;
     const nextOrder = ROUTE_ORDER[topKey] ?? 0;
+    const isSameTop = prevTop === topKey;
     const isBack = navigationType === "POP" || nextOrder < prevOrder;
     prevPathRef.current = location.pathname;
+    // Suppress route transitions between sub-routes of the same parent (e.g. within /dashboard)
+    // to avoid flickering/blinking when switching dashboard tabs.
+    if (isSameTop) return "";
     return isBack ? "route-transition-back" : "route-transition-forward";
   }, [location.pathname, navigationType, topKey]);
 

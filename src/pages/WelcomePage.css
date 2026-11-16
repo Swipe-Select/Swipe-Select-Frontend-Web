@@ -182,56 +182,25 @@
 .welcome-visual {
   flex: 0.95;
   min-width: 0;
-  max-width: 520px;
+  max-width: 480px;
   position: relative;
-  padding-bottom: 24px;
-}
-
-.welcome-float-chip {
-  position: absolute;
-  z-index: 10;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.12);
-  animation: floatSlow 3s ease-in-out infinite;
-}
-
-.welcome-float-chip--top {
-  top: -14px;
-  right: -10px;
-  color: #4338ca;
-}
-
-.welcome-float-chip--bottom {
-  top: -14px;
-  left: -12px;
-  bottom: auto;
-  color: #065f46;
-  animation-delay: 1.5s;
+  padding-bottom: 20px;
 }
 
 .welcome-card-stack {
   --swipeProgress: 0;
   position: relative;
-  min-height: 520px;
+  min-height: 490px;
 }
 
 .welcome-card {
   position: absolute;
   inset: 0;
-  border-radius: 28px;
-  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   background: #ffffff;
-  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.08);
-  padding: 32px;
+  box-shadow: 0 14px 34px -8px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+  padding: 26px 28px;
   display: flex;
   flex-direction: column;
   transition: transform var(--motion-duration-section, 240ms) var(--motion-ease-standard),
@@ -239,16 +208,16 @@
 }
 
 .welcome-card-layer-1 {
-  transform: translateY(calc(14px - (var(--swipeProgress) * 8px)))
+  transform: translateY(calc(12px - (var(--swipeProgress) * 7px)))
              scale(calc(0.97 + (var(--swipeProgress) * 0.02)));
-  opacity: 0.8;
+  opacity: 0.85;
   z-index: 2;
 }
 
 .welcome-card-layer-2 {
-  transform: translateY(calc(28px - (var(--swipeProgress) * 6px)))
+  transform: translateY(calc(24px - (var(--swipeProgress) * 5px)))
              scale(calc(0.94 + (var(--swipeProgress) * 0.02)));
-  opacity: 0.55;
+  opacity: 0.6;
   z-index: 1;
 }
 
@@ -262,8 +231,8 @@
   cursor: grab;
   user-select: none;
   touch-action: none;
-  box-shadow: 0 20px 40px -8px rgba(15, 23, 42, 0.16);
-  border-color: rgba(99, 102, 241, 0.18);
+  box-shadow: 0 20px 45px -10px rgba(99, 102, 241, 0.16), 0 8px 24px -4px rgba(15, 23, 42, 0.08);
+  border-color: rgba(99, 102, 241, 0.22);
 }
 
 .welcome-card-front.is-dragging {
@@ -298,95 +267,114 @@
 
 .welcome-swipe-cue {
   position: absolute;
-  top: 24px;
-  border: 2px solid currentColor;
-  border-radius: 10px;
-  padding: 4px 12px;
-  font-size: 16px;
+  top: 22px;
+  border: 2.5px solid currentColor;
+  border-radius: 12px;
+  padding: 4px 14px;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   pointer-events: none;
+  z-index: 20;
 }
 
 .welcome-swipe-cue-pass {
-  left: 20px;
-  color: #ef4444;
-  transform: rotate(-10deg);
+  left: 24px;
+  color: #f43f5e;
+  transform: rotate(-12deg);
   opacity: var(--passOpacity);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
 }
 
 .welcome-swipe-cue-apply {
-  right: 20px;
-  color: #10b981;
-  transform: rotate(10deg);
-  opacity: var(--applyOpacity);
-}
-
-.welcome-match-badge {
-  position: absolute;
-  top: 24px;
   right: 24px;
-  border-radius: 9999px;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  padding: 4px 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #065f46;
-  font-size: 13px;
-  font-weight: 700;
+  color: #10b981;
+  transform: rotate(12deg);
+  opacity: var(--applyOpacity);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .welcome-card-header {
-  padding-bottom: 20px;
+  padding-bottom: 16px;
   border-bottom: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
-.welcome-tech-avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: rgba(79, 70, 229, 0.08);
+.welcome-company-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(79, 70, 229, 0.12);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 20px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  flex-shrink: 0;
 }
 
-.welcome-tech-label {
-  margin: 0;
-  color: #64748b;
+.welcome-tech-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.welcome-tech-category {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: #6366f1;
 }
 
 .welcome-tech-name {
-  margin: 2px 0 0;
+  margin: 0;
   color: #0f172a;
   font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.welcome-verified-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  color: #047857;
+  font-size: 12px;
   font-weight: 700;
+  flex-shrink: 0;
+}
+
+.welcome-verified-icon {
+  color: #059669;
 }
 
 .welcome-card-body {
-  padding: 20px 0;
+  padding: 18px 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   flex: 1;
 }
 
-.welcome-card-body h2 {
+.welcome-card-role {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.4px;
   margin: 0;
+  line-height: 1.25;
 }
 
 .welcome-metadata-grid {
@@ -395,95 +383,148 @@
   gap: 10px;
 }
 
-.welcome-metadata-grid p {
-  margin: 0;
+.welcome-meta-pill {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+  border-radius: 12px;
   font-size: 13px;
-  color: #475569;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 150ms ease;
+}
+
+.welcome-meta-pill:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.welcome-meta-pill span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.welcome-meta-pill--salary {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #047857;
+  font-weight: 700;
 }
 
 .welcome-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .welcome-tag {
-  background: #f1f5f9;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   color: #475569;
   border-radius: 9999px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
+  transition: all 150ms ease;
 }
 
 .welcome-tag.active {
-  background: rgba(79, 70, 229, 0.08);
+  background: rgba(99, 102, 241, 0.08);
   color: #4f46e5;
-  border: 1px solid rgba(79, 70, 229, 0.15);
+  border-color: rgba(99, 102, 241, 0.22);
+  font-weight: 700;
 }
 
 .welcome-card-footer {
+  position: relative;
+  z-index: 10;
   display: flex;
-  gap: 14px;
+  align-items: center;
+  gap: 12px;
   padding-top: 16px;
   border-top: 1px solid #f1f5f9;
+  margin-top: auto;
+  pointer-events: auto;
 }
 
 .welcome-btn-pass {
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  user-select: none;
   flex: 1;
   height: 48px;
-  border-radius: 12px;
-  border: 1px solid #fecdd3;
-  background: #fff1f2;
+  border-radius: 14px;
+  border: 1.5px solid #fecdd3;
+  background: #ffffff;
   color: #e11d48;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 14.5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: all 160ms ease;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(225, 29, 72, 0.04);
 }
 
-.welcome-btn-pass:hover {
-  background: #ffe4e6;
+.welcome-btn-pass:hover:not(:disabled) {
+  background: #fff1f2;
   border-color: #fda4af;
-  transform: translateY(-1px);
+  color: #be123c;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px -2px rgba(225, 29, 72, 0.16);
+}
+
+.welcome-btn-pass:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .welcome-btn-apply {
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  user-select: none;
   flex: 1.4;
   height: 48px;
-  border-radius: 12px;
-  border: 1px solid #a7f3d0;
-  background: #ecfdf5;
-  color: #059669;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: #ffffff;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 14.5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: all 160ms ease;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 20px -3px rgba(79, 70, 229, 0.38);
 }
 
-.welcome-btn-apply:hover {
-  background: #d1fae5;
-  border-color: #6ee7b7;
-  transform: translateY(-1px);
+.welcome-btn-apply:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -3px rgba(79, 70, 229, 0.48);
+  filter: brightness(1.05);
+}
+
+.welcome-btn-apply:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .welcome-swipe-hint {
   text-align: center;
   font-size: 13px;
   color: #64748b;
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
 /* Feature Pillars Section */
@@ -561,10 +602,124 @@
   .welcome-main {
     flex-direction: column;
     padding-top: 32px;
+    gap: 36px;
+  }
+  .welcome-copy {
+    max-width: 100%;
+    text-align: center;
+  }
+  .welcome-actions {
+    justify-content: center;
+  }
+  .welcome-trust-row {
+    justify-content: center;
   }
   .welcome-visual {
     width: 100%;
     max-width: 480px;
+    margin: 0 auto;
+  }
+}
+
+/* ── Mobile Responsive Rules ── */
+@media (max-width: 640px) {
+  .welcome-main {
+    padding: 20px 16px !important;
+    gap: 28px !important;
+  }
+
+  .welcome-hero-pill {
+    margin-bottom: 16px !important;
+  }
+
+  .welcome-title {
+    font-size: 32px !important;
+    letter-spacing: -1px !important;
+  }
+
+  .welcome-highlight {
+    font-size: 24px !important;
+  }
+
+  .welcome-subtitle {
+    font-size: 16px !important;
+  }
+
+  .welcome-description {
+    font-size: 14px !important;
+    margin: 14px 0 20px !important;
+  }
+
+  .welcome-visual {
+    max-width: 100% !important;
+  }
+
+  .welcome-card-stack {
+    min-height: 460px !important;
+  }
+
+  .welcome-card {
+    padding: 20px 18px !important;
+    border-radius: 20px !important;
+  }
+
+  .welcome-company-avatar {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 18px !important;
+    border-radius: 12px !important;
+  }
+
+  .welcome-tech-name {
+    font-size: 16px !important;
+  }
+
+  .welcome-verified-badge {
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .welcome-card-role {
+    font-size: 18px !important;
+  }
+
+  .welcome-metadata-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .welcome-meta-pill {
+    padding: 7px 10px !important;
+    font-size: 12px !important;
+    border-radius: 10px !important;
+  }
+
+  .welcome-tags {
+    gap: 6px !important;
+  }
+
+  .welcome-tag {
+    padding: 3.5px 10px !important;
+    font-size: 11.5px !important;
+  }
+
+  .welcome-card-footer {
+    padding-top: 14px !important;
+    gap: 10px !important;
+  }
+
+  .welcome-btn-pass,
+  .welcome-btn-apply {
+    height: 46px !important;
+    font-size: 13.5px !important;
+    border-radius: 12px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .welcome-metadata-grid {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
   }
 }
 
@@ -659,19 +814,12 @@
   }
 
   .welcome-card-stack {
-    min-height: clamp(440px, 54vh, 480px) !important;
+    min-height: clamp(430px, 52vh, 470px) !important;
   }
 
   .welcome-card {
-    padding: clamp(20px, 2.5vh, 26px) clamp(20px, 2.2vw, 28px) !important;
-    border-radius: 24px !important;
-  }
-
-  .welcome-match-badge {
-    top: 18px !important;
-    right: 18px !important;
-    padding: 4px 10px !important;
-    font-size: 12px !important;
+    padding: clamp(18px, 2.2vh, 24px) clamp(18px, 2vw, 26px) !important;
+    border-radius: 22px !important;
   }
 
   .welcome-card-header {
@@ -679,19 +827,20 @@
     gap: 14px !important;
   }
 
-  .welcome-tech-avatar {
-    width: 46px !important;
-    height: 46px !important;
-    border-radius: 14px !important;
-  }
-
-  .welcome-tech-avatar svg {
-    width: 22px !important;
-    height: 22px !important;
+  .welcome-company-avatar {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 18px !important;
+    border-radius: 12px !important;
   }
 
   .welcome-tech-name {
     font-size: 17px !important;
+  }
+
+  .welcome-verified-badge {
+    padding: 4px 10px !important;
+    font-size: 11.5px !important;
   }
 
   .welcome-card-body {
@@ -699,28 +848,24 @@
     gap: 12px !important;
   }
 
-  .welcome-card-body h2 {
+  .welcome-card-role {
     font-size: 18px !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
   }
 
   .welcome-metadata-grid {
     gap: 8px !important;
   }
 
-  .welcome-metadata-grid p {
-    font-size: 12.5px !important;
-    gap: 6px !important;
-  }
-
-  .welcome-metadata-grid svg {
-    width: 15px !important;
-    height: 15px !important;
+  .welcome-meta-pill {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    border-radius: 10px !important;
   }
 
   .welcome-tags {
     gap: 6px !important;
-    margin-top: 4px !important;
+    margin-top: 2px !important;
   }
 
   .welcome-tag {
@@ -729,7 +874,7 @@
   }
 
   .welcome-card-footer {
-    padding-top: 14px !important;
+    padding-top: 12px !important;
     gap: 12px !important;
   }
 
@@ -741,26 +886,9 @@
   }
 
   .welcome-swipe-hint {
-    margin-top: 14px !important;
+    margin-top: 12px !important;
     font-size: 12px !important;
     color: #64748b !important;
-  }
-
-  .welcome-float-chip {
-    padding: 6px 14px !important;
-    font-size: 11.5px !important;
-  }
-
-  .welcome-float-chip--top {
-    top: -12px !important;
-    right: -10px !important;
-  }
-
-  /* Position symmetrically on top-left shoulder of card - zero overlap with buttons or text */
-  .welcome-float-chip--bottom {
-    top: -12px !important;
-    left: -12px !important;
-    bottom: auto !important;
   }
 }
 
@@ -813,7 +941,7 @@
   }
 
   .welcome-card-stack {
-    min-height: 390px !important;
+    min-height: 380px !important;
   }
 
   .welcome-card {
@@ -821,12 +949,14 @@
     border-radius: 18px !important;
   }
 
-  .welcome-tech-avatar {
-    width: 38px !important;
-    height: 38px !important;
+  .welcome-company-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 16px !important;
+    border-radius: 10px !important;
   }
 
-  .welcome-card-body h2 {
+  .welcome-card-role {
     font-size: 16px !important;
   }
 
@@ -834,8 +964,10 @@
     gap: 5px !important;
   }
 
-  .welcome-metadata-grid p {
-    font-size: 11.5px !important;
+  .welcome-meta-pill {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
   }
 
   .welcome-btn-pass,
@@ -847,10 +979,5 @@
   .welcome-swipe-hint {
     margin-top: 8px !important;
     font-size: 11px !important;
-  }
-
-  .welcome-float-chip {
-    padding: 4px 10px !important;
-    font-size: 10.5px !important;
   }
 }

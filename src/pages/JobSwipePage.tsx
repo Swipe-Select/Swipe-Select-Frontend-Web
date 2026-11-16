@@ -98,11 +98,16 @@ function formatCleanDescription(rawText: string) {
   });
 }
 
+// In-memory feed cache across intra-dashboard tab navigation (e.g. Discover <-> Matches)
+// Keeps cards immediately available with zero blanking or re-fetching lag
+let cachedJobsFeed: JobCard[] | null = null;
+let cachedFakeResultsMap: Record<string, FakeJobPrediction> = {};
+
 export function JobSwipePage() {
   const navigate = useNavigate();
-  const { session, logout, refreshSession } = useAuth();
-  const [jobs, setJobs] = useState<JobCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { session, logout } = useAuth();
+  const [jobs, setJobs] = useState<JobCard[]>(() => cachedJobsFeed ?? []);
+  const [loading, setLoading] = useState<boolean>(() => cachedJobsFeed === null);
   const [refreshBusy, setRefreshBusy] = useState(false);
   const [swipeBusy, setSwipeBusy] = useState(false);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
@@ -117,7 +122,7 @@ export function JobSwipePage() {
   }, [bannerMessage]);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [refreshOffset, setRefreshOffset] = useState(0);
-  const [fakeJobResults, setFakeJobResults] = useState<Record<string, FakeJobPrediction>>({});
+  const [fakeJobResults, setFakeJobResults] = useState<Record<string, FakeJobPrediction>>(() => cachedFakeResultsMap);
   const [fakeCheckBusy, setFakeCheckBusy] = useState(false);
   const checkedJobIdsRef = useRef<Set<string>>(new Set());
   const [tailorModalOpen, setTailorModalOpen] = useState(false);
@@ -152,6 +157,7 @@ export function JobSwipePage() {
       return;
     }
     setJobs(result.jobs);
+    cachedJobsFeed = result.jobs;
     if (result.message) setBannerMessage(result.message);
     if (!result.success && result.message) setFeedError(result.message);
   }, [session?.token, navigate, logout]);
@@ -179,7 +185,11 @@ export function JobSwipePage() {
           newResults[job.id] = res.data;
         }
       }
-      setFakeJobResults((prev) => ({ ...prev, ...newResults }));
+      setFakeJobResults((prev) => {
+        const next = { ...prev, ...newResults };
+        cachedFakeResultsMap = next;
+        return next;
+      });
     } catch {
       // Gracefully continue
     }
@@ -189,15 +199,21 @@ export function JobSwipePage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
-      await refreshSession();
-      if (cancelled) return;
-      const t = readSession()?.token?.trim();
+      const t = session?.token?.trim() || readSession()?.token?.trim();
       if (!t) {
         setLoading(false);
         navigate("/login", { replace: true });
         return;
       }
+
+      // If we already have feed jobs cached in memory from earlier in this session,
+      // display them immediately with zero blanking, zero delay, and no spinner!
+      if (cachedJobsFeed && cachedJobsFeed.length > 0) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
       setFeedError(null);
       setBannerMessage(null);
       const result = await fetchRecommendedJobs(t);
@@ -208,6 +224,7 @@ export function JobSwipePage() {
         setLoading(false);
         return;
       }
+      cachedJobsFeed = result.jobs;
       setJobs(result.jobs);
       if (result.message) setBannerMessage(result.message);
       if (!result.success && result.message) setFeedError(result.message);
@@ -233,6 +250,7 @@ export function JobSwipePage() {
       setRefreshBusy(false);
       return;
     }
+    cachedJobsFeed = result.jobs;
     setJobs(result.jobs);
     if (result.message) setBannerMessage(result.message);
     if (!result.success && result.message) setFeedError(result.message);
@@ -244,7 +262,11 @@ export function JobSwipePage() {
   };
 
   const removeTopCard = () => {
-    setJobs((prev) => prev.slice(1));
+    setJobs((prev) => {
+      const next = prev.slice(1);
+      cachedJobsFeed = next;
+      return next;
+    });
     setDragX(0);
     setSwipeDirection(null);
     setIsAnimating(false);

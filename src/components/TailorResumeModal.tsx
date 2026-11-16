@@ -22,6 +22,8 @@ import {
   UploadCloud,
   Check,
   Split,
+  Briefcase,
+  Zap,
 } from "lucide-react";
 import "./TailorResumeModal.css";
 
@@ -31,8 +33,8 @@ interface TailorResumeModalProps {
   onClose: () => void;
 }
 
-type TailorMode = "tailored_resume" | "experience" | "summary" | "cover_letter";
-type SourceMode = "base" | "upload" | "profile" | "paste";
+type TailorMode = "tailored_resume";
+type SourceMode = "base" | "upload" | "profile";
 type EngineChoice = "ai" | "local";
 type ActiveView = "split" | "after" | "before" | "editor";
 
@@ -45,9 +47,8 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
   const [baseResume, setBaseResume] = useState<{ dataUrl: string; meta: ResumeMeta } | null>(null);
   const [showBasePdfPreview, setShowBasePdfPreview] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [pastedResume, setPastedResume] = useState("");
-  const [tailorMode, setTailorMode] = useState<TailorMode>("tailored_resume");
   const [engine, setEngine] = useState<EngineChoice>("local");
+  const tailorMode: TailorMode = "tailored_resume";
 
   // Output & Comparison states
   const [isGenerating, setIsGenerating] = useState(false);
@@ -159,14 +160,6 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
       if (selectedFile.type === "application/pdf" || selectedFile.name.toLowerCase().endsWith(".pdf")) {
         setOriginalPdfUrl(URL.createObjectURL(selectedFile));
       }
-    } else if (sourceMode === "paste") {
-      if (!pastedResume.trim()) {
-        setErrorMessage("Please paste your resume text to tailor.");
-        return;
-      }
-      resumeText = pastedResume.trim();
-      setOriginalPdfUrl(null);
-      setOriginalResumeText(pastedResume);
     }
 
     setIsGenerating(true);
@@ -196,7 +189,6 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
         const extracted =
           res.data.extractedText ||
           res.data.extractedTextPreview ||
-          pastedResume ||
           "";
         setOriginalResumeText(extracted);
 
@@ -287,7 +279,9 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
         {/* Job Snippet Accordion */}
         <div className="tailor-job-banner">
           <div className="tailor-job-summary">
-            <span className="tailor-job-icon">💼</span>
+            <div className="tailor-job-icon-wrap">
+              <Briefcase size={16} />
+            </div>
             <div className="tailor-job-info">
               <span className="tailor-job-match-target">Target Job Posting</span>
               <span className="tailor-job-name">{job.title} — {job.company}</span>
@@ -311,97 +305,93 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
 
         {/* Modal Body */}
         <div className="tailor-modal-body">
-          {/* Step 1: Resume Source */}
-          <div className="tailor-section">
-            <label className="tailor-section-label">
-              1. Provide Your Current Resume
-            </label>
-            <div className="tailor-source-tabs">
-              <button
-                type="button"
-                className={`tailor-source-tab ${sourceMode === "base" ? "tailor-source-tab--active" : ""}`}
-                onClick={() => setSourceMode("base")}
-              >
-                ★ Base Resume {baseResume ? "(Saved)" : ""}
-              </button>
-              <button
-                type="button"
-                className={`tailor-source-tab ${sourceMode === "upload" ? "tailor-source-tab--active" : ""}`}
-                onClick={() => setSourceMode("upload")}
-              >
-                📄 Upload Resume (PDF / TXT)
-              </button>
-              <button
-                type="button"
-                className={`tailor-source-tab ${sourceMode === "paste" ? "tailor-source-tab--active" : ""}`}
-                onClick={() => setSourceMode("paste")}
-              >
-                📋 Paste Resume Text
-              </button>
-              <button
-                type="button"
-                className={`tailor-source-tab ${sourceMode === "profile" ? "tailor-source-tab--active" : ""}`}
-                onClick={() => setSourceMode("profile")}
-              >
-                👤 Use Saved Profile
-              </button>
-            </div>
+          <div className={`tailor-modal-container ${generatedText ? "tailor-modal-container--wide" : ""}`}>
+            {/* Step 1: Resume Source */}
+            <div className="tailor-section">
+              <label className="tailor-section-label">
+                1. Provide Your Current Resume
+              </label>
+              <div className="tailor-source-tabs">
+                <button
+                  type="button"
+                  className={`tailor-source-tab ${sourceMode === "base" ? "tailor-source-tab--active" : ""}`}
+                  onClick={() => setSourceMode("base")}
+                >
+                  ★ Base Resume {baseResume ? "(Saved)" : ""}
+                </button>
+                <button
+                  type="button"
+                  className={`tailor-source-tab ${sourceMode === "upload" ? "tailor-source-tab--active" : ""}`}
+                  onClick={() => setSourceMode("upload")}
+                >
+                  📄 Upload Resume (PDF / TXT)
+                </button>
+                <button
+                  type="button"
+                  className={`tailor-source-tab ${sourceMode === "profile" ? "tailor-source-tab--active" : ""}`}
+                  onClick={() => setSourceMode("profile")}
+                >
+                  👤 Use Saved Profile
+                </button>
+              </div>
 
-            {/* Base Resume Tab Content */}
-            {sourceMode === "base" && (
-              <div className="tailor-base-container">
-                {baseResume ? (
-                  <div className="tailor-base-resume-card">
-                    <div className="tailor-base-card-main">
-                      <div className="tailor-base-icon-badge">
-                        <FileCheck size={26} className="tailor-icon-accent" />
-                      </div>
-                      <div className="tailor-base-meta-wrap">
-                        <div className="tailor-base-name-row">
-                          <strong className="tailor-base-name">{baseResume.meta.fileName}</strong>
-                          <span className="tailor-base-ready-pill">
-                            <Check size={12} /> Ready to Tailor
-                          </span>
+              {/* Base Resume Tab Content */}
+              {sourceMode === "base" && (
+                <div className="tailor-base-container">
+                  {baseResume ? (
+                    <div className="tailor-base-resume-card">
+                      <div className="tailor-base-card-row">
+                        <div className="tailor-base-card-main">
+                          <div className="tailor-base-icon-badge">
+                            <FileCheck size={24} className="tailor-icon-accent" />
+                          </div>
+                          <div className="tailor-base-meta-wrap">
+                            <div className="tailor-base-name-row">
+                              <strong className="tailor-base-name">{baseResume.meta.fileName}</strong>
+                              <span className="tailor-base-ready-pill">
+                                <Check size={12} /> Ready to Tailor
+                              </span>
+                            </div>
+                            <p className="tailor-base-subtext">
+                              {(baseResume.meta.fileSize / 1024).toFixed(1)} KB • Stored in Profile Settings
+                            </p>
+                          </div>
                         </div>
-                        <p className="tailor-base-subtext">
-                          {(baseResume.meta.fileSize / 1024).toFixed(1)} KB • Stored in Profile Settings
-                        </p>
+
+                        <div className="tailor-base-card-actions">
+                          <button
+                            type="button"
+                            className="tailor-btn-ghost"
+                            onClick={() => setShowBasePdfPreview((prev) => !prev)}
+                          >
+                            {showBasePdfPreview ? <EyeOff size={13} /> : <Eye size={13} />}
+                            <span>{showBasePdfPreview ? "Hide PDF" : "Preview PDF"}</span>
+                          </button>
+
+                          <label className="tailor-btn-ghost tailor-btn-upload-label">
+                            <UploadCloud size={13} />
+                            <span>Update Base Resume</span>
+                            <input
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="tailor-hidden-file-input"
+                              onChange={handleUploadNewBase}
+                            />
+                          </label>
+                        </div>
                       </div>
+
+                      {showBasePdfPreview && baseResume.dataUrl && (
+                        <div className="tailor-base-inline-preview">
+                          <iframe
+                            src={baseResume.dataUrl}
+                            className="tailor-base-preview-iframe"
+                            title="Base Resume Preview"
+                          />
+                        </div>
+                      )}
                     </div>
-
-                    <div className="tailor-base-card-actions">
-                      <button
-                        type="button"
-                        className="tailor-btn-ghost"
-                        onClick={() => setShowBasePdfPreview((prev) => !prev)}
-                      >
-                        {showBasePdfPreview ? <EyeOff size={13} /> : <Eye size={13} />}
-                        <span>{showBasePdfPreview ? "Hide PDF" : "Preview PDF"}</span>
-                      </button>
-
-                      <label className="tailor-btn-ghost tailor-btn-upload-label">
-                        <UploadCloud size={13} />
-                        <span>Update Base Resume</span>
-                        <input
-                          type="file"
-                          accept=".pdf,application/pdf"
-                          className="tailor-hidden-file-input"
-                          onChange={handleUploadNewBase}
-                        />
-                      </label>
-                    </div>
-
-                    {showBasePdfPreview && baseResume.dataUrl && (
-                      <div className="tailor-base-inline-preview">
-                        <iframe
-                          src={baseResume.dataUrl}
-                          className="tailor-base-preview-iframe"
-                          title="Base Resume Preview"
-                        />
-                      </div>
-                    )}
-                  </div>
-                ) : (
+                  ) : (
                   <div className="tailor-base-empty-card">
                     <div className="tailor-base-icon-badge tailor-base-icon-badge--muted">
                       <FileText size={24} />
@@ -456,17 +446,6 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
               </div>
             )}
 
-            {/* Paste Text Tab Content */}
-            {sourceMode === "paste" && (
-              <textarea
-                className="tailor-textarea"
-                rows={5}
-                placeholder="Paste your resume sections, skills, and work experience here…"
-                value={pastedResume}
-                onChange={(e) => setPastedResume(e.target.value)}
-              />
-            )}
-
             {/* Profile Tab Content */}
             {sourceMode === "profile" && (
               <div className="tailor-profile-notice">
@@ -481,7 +460,7 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
             )}
           </div>
 
-          {/* Step 2: Choose AI Engine */}
+          {/* Step 2: Select AI Tailoring Engine */}
           <div className="tailor-section">
             <label className="tailor-section-label">
               2. Select AI Tailoring Engine
@@ -493,8 +472,11 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                 onClick={() => setEngine("ai")}
               >
                 <div className="tailor-engine-card-top">
-                  <span className="tailor-engine-title">✨ Cloud AI Engine</span>
-                  <span className="tailor-engine-badge">Optional</span>
+                  <span className="tailor-engine-title">
+                    <Sparkles size={16} className="tailor-engine-icon tailor-engine-icon--cloud" />
+                    Cloud AI Engine
+                  </span>
+                  <span className="tailor-engine-badge tailor-engine-badge--optional">Optional</span>
                 </div>
                 <p className="tailor-engine-desc">
                   Uses high-accuracy cloud intelligence to tailor sections and rewrite PDF text blocks while preserving your original PDF layout.
@@ -507,49 +489,15 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                 onClick={() => setEngine("local")}
               >
                 <div className="tailor-engine-card-top">
-                  <span className="tailor-engine-title">⚡ On-Device AI Engine</span>
+                  <span className="tailor-engine-title">
+                    <Zap size={16} className="tailor-engine-icon tailor-engine-icon--local" />
+                    On-Device AI Engine
+                  </span>
                   <span className="tailor-engine-badge tailor-engine-badge--local">Recommended · Private & Offline</span>
                 </div>
                 <p className="tailor-engine-desc">
                   Runs locally and privately on your machine (offline) — edits PDFs in-place with zero data leaving your device.
                 </p>
-              </button>
-            </div>
-          </div>
-
-          {/* Step 3: Tailor Mode */}
-          <div className="tailor-section">
-            <label className="tailor-section-label">
-              3. What would you like to generate?
-            </label>
-            <div className="tailor-mode-pills">
-              <button
-                type="button"
-                className={`tailor-mode-pill ${tailorMode === "tailored_resume" ? "tailor-mode-pill--active" : ""}`}
-                onClick={() => setTailorMode("tailored_resume")}
-              >
-                ✨ Full Tailored Resume
-              </button>
-              <button
-                type="button"
-                className={`tailor-mode-pill ${tailorMode === "experience" ? "tailor-mode-pill--active" : ""}`}
-                onClick={() => setTailorMode("experience")}
-              >
-                🎯 Tailored Experience Bullets
-              </button>
-              <button
-                type="button"
-                className={`tailor-mode-pill ${tailorMode === "summary" ? "tailor-mode-pill--active" : ""}`}
-                onClick={() => setTailorMode("summary")}
-              >
-                📝 Professional Summary
-              </button>
-              <button
-                type="button"
-                className={`tailor-mode-pill ${tailorMode === "cover_letter" ? "tailor-mode-pill--active" : ""}`}
-                onClick={() => setTailorMode("cover_letter")}
-              >
-                ✉️ Matching Cover Letter
               </button>
             </div>
           </div>
@@ -568,21 +516,17 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
             {isGenerating ? (
               <>
                 <span className="tailor-spinner" />
-                {engine === "ai"
-                  ? `Tailoring for ${job.company} with Cloud AI Engine…`
-                  : `Tailoring for ${job.company} with On-Device AI…`}
-
+                <span>
+                  {engine === "ai"
+                    ? `Tailoring resume with Cloud AI Engine…`
+                    : `Tailoring resume with On-Device AI…`}
+                </span>
               </>
             ) : (
-              `✨ Generate Tailored ${
-                tailorMode === "tailored_resume"
-                  ? "Resume & Compare Before / After"
-                  : tailorMode === "experience"
-                  ? "Bullets"
-                  : tailorMode === "summary"
-                  ? "Summary"
-                  : "Cover Letter"
-              }`
+              <>
+                <Sparkles size={18} />
+                <span>Generate Full Tailored Resume</span>
+              </>
             )}
           </button>
 
@@ -599,13 +543,9 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
                       : ""}
                   </span>
                 </div>
-                {generationMeta?.engine && (
-                  <div className="tailor-engine-tag">
-                    {generationMeta.engine === "ai_pro" || generationMeta.engine === "ai"
-                      ? "✨ Cloud AI Engine (Template Preserved)"
-                      : "⚡ On-Device AI Engine (Private)"}
-                  </div>
-                )}
+                <div className="tailor-engine-tag">
+                  {engine === "ai" ? "✨ Cloud AI Engine" : "⚡ On-Device AI Engine"} • ATS-Optimized
+                </div>
               </div>
 
               {/* Transformation Comparison Summary Banner */}
@@ -844,6 +784,7 @@ export function TailorResumeModal({ job, isOpen, onClose }: TailorResumeModalPro
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

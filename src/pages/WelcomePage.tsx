@@ -1,17 +1,16 @@
 import { type CSSProperties, type PointerEvent, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
-  Sparkles, 
   ShieldCheck, 
   Bot, 
   ArrowRight, 
   CheckCircle2, 
   Flame, 
-  Briefcase, 
   Zap,
   ThumbsUp,
   X
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import { LocationPinIcon } from "../components/LocationPinIcon";
 import "./WelcomePage.css";
 
@@ -19,14 +18,15 @@ type SwipeDirection = "left" | "right";
 
 type WelcomeCard = {
   id: string;
-  match: string;
   company: string;
+  category: string;
   role: string;
   location: string;
   salary: string;
   type: string;
   experience: string;
   tags: string[];
+  avatarBg: string;
 };
 
 const SWIPE_THRESHOLD = 90;
@@ -36,74 +36,83 @@ const DRAG_DEADZONE = 12;
 const dummyCards: WelcomeCard[] = [
   {
     id: "google-designer",
-    match: "98% Match",
     company: "Google",
+    category: "Featured Tech",
     role: "Senior Product Designer",
     location: "Mountain View, CA (Hybrid)",
     salary: "$180k - $240k",
     type: "Full-time",
     experience: "5+ years exp",
     tags: ["Figma", "Design Systems", "Prototyping", "UI/UX"],
+    avatarBg: "linear-gradient(135deg, #4285F4 0%, #34A853 100%)",
   },
   {
     id: "airbnb-ux",
-    match: "96% Match",
     company: "Airbnb",
+    category: "Design & Travel",
     role: "Lead UX Designer",
     location: "San Francisco, CA (Hybrid)",
     salary: "$165k - $225k",
     type: "Full-time",
     experience: "6+ years exp",
     tags: ["User Research", "Design Ops", "Accessibility"],
+    avatarBg: "linear-gradient(135deg, #FF5A5F 0%, #FC642D 100%)",
   },
   {
     id: "spotify-product",
-    match: "95% Match",
     company: "Spotify",
+    category: "Media & Audio",
     role: "Product Design Manager",
     location: "New York, NY (Remote)",
     salary: "$170k - $210k",
     type: "Full-time",
     experience: "7+ years exp",
     tags: ["Mobile UX", "Experimentation", "Mentorship"],
+    avatarBg: "linear-gradient(135deg, #1DB954 0%, #10B981 100%)",
   },
   {
     id: "stripe-designer",
-    match: "94% Match",
     company: "Stripe",
+    category: "Fintech Leader",
     role: "Staff Product Designer",
     location: "Seattle, WA (Hybrid)",
     salary: "$185k - $245k",
     type: "Full-time",
     experience: "8+ years exp",
     tags: ["Payments UX", "Data Viz", "Interaction Design"],
+    avatarBg: "linear-gradient(135deg, #635BFF 0%, #4338CA 100%)",
   },
   {
     id: "notion-visual",
-    match: "93% Match",
     company: "Notion",
+    category: "Productivity",
     role: "Senior Visual Designer",
     location: "Austin, TX (Remote)",
     salary: "$150k - $195k",
     type: "Full-time",
     experience: "5+ years exp",
     tags: ["Brand Systems", "UI Craft", "Motion Design"],
+    avatarBg: "linear-gradient(135deg, #1F2937 0%, #111827 100%)",
   },
   {
     id: "figma-growth",
-    match: "97% Match",
     company: "Figma",
+    category: "Design Systems",
     role: "Growth Product Designer",
     location: "Boston, MA (Hybrid)",
     salary: "$160k - $205k",
     type: "Full-time",
     experience: "4+ years exp",
     tags: ["Growth UX", "A/B Testing", "Onboarding"],
+    avatarBg: "linear-gradient(135deg, #F24E1E 0%, #A259FF 100%)",
   },
 ];
 
 export function WelcomePage() {
   const navigate = useNavigate();
+  const { session } = useAuth();
+  const isAuthenticated = Boolean(session?.token?.trim());
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -114,7 +123,6 @@ export function WelcomePage() {
   const [dragStartY, setDragStartY] = useState<number | null>(null);
   const [activePointerId, setActivePointerId] = useState<number | null>(null);
   const [isHorizontalDrag, setIsHorizontalDrag] = useState(false);
-  const [shouldNavigateAfterSwipe, setShouldNavigateAfterSwipe] = useState(false);
 
   const stackCards = useMemo(() => {
     return [0, 1, 2].map((offset) => {
@@ -127,12 +135,37 @@ export function WelcomePage() {
     if (isAnimating) return;
     setIsAnimating(true);
     setSwipeDirection(direction);
-    setShouldNavigateAfterSwipe(navigateAfter);
+
+    window.setTimeout(() => {
+      setCurrentIndex((prev) => (prev + 1) % dummyCards.length);
+      setSwipeDirection(null);
+      setDragX(0);
+      setIsReturning(false);
+      setIsAnimating(false);
+
+      if (navigateAfter) {
+        if (isAuthenticated) {
+          navigate("/dashboard");
+        } else {
+          navigate("/signup");
+        }
+      }
+    }, 260);
   };
 
   const handleTopCardPointerDown = (event: PointerEvent<HTMLElement>) => {
     if (isAnimating) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    // Prevent pointer capture from hijacking clicks on the footer buttons
+    const target = event.target as HTMLElement | null;
+    if (target && (target.closest("button") || target.closest(".welcome-card-footer"))) {
+      return;
+    }
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // ignore
+    }
     setActivePointerId(event.pointerId);
     setDragStartX(event.clientX);
     setDragStartY(event.clientY);
@@ -169,38 +202,30 @@ export function WelcomePage() {
     if (!isDragging || isAnimating) return;
     if (activePointerId !== null && event.pointerId !== activePointerId) return;
 
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    } catch {
+      // ignore
+    }
     setIsDragging(false);
     setDragStartX(null);
     setDragStartY(null);
     setActivePointerId(null);
 
     if (dragX <= -SWIPE_THRESHOLD) {
-      triggerSwipe("left");
+      triggerSwipe("left", false);
       return;
     }
     if (dragX >= SWIPE_THRESHOLD) {
-      triggerSwipe("right");
+      triggerSwipe("right", true);
       return;
     }
 
     setIsReturning(true);
     setDragX(0);
     window.setTimeout(() => setIsReturning(false), 220);
-  };
-
-  const handleSwipeAnimationEnd = () => {
-    if (!swipeDirection) return;
-    setCurrentIndex((prev) => (prev + 1) % dummyCards.length);
-    setSwipeDirection(null);
-    setDragX(0);
-    setIsReturning(false);
-    setIsAnimating(false);
-
-    if (shouldNavigateAfterSwipe) {
-      setShouldNavigateAfterSwipe(false);
-      navigate("/signup");
-    }
   };
 
   return (
@@ -230,13 +255,19 @@ export function WelcomePage() {
           </p>
 
           <div className="welcome-actions">
-            <Link to="/signup" className="welcome-action-primary">
-              <span>Start Swiping Now</span>
+            <Link to={isAuthenticated ? "/dashboard" : "/signup"} className="welcome-action-primary">
+              <span>{isAuthenticated ? "Go to Dashboard" : "Start Swiping Now"}</span>
               <ArrowRight size={18} />
             </Link>
-            <Link to="/login" className="welcome-action-secondary">
-              Sign In
-            </Link>
+            {!isAuthenticated ? (
+              <Link to="/login" className="welcome-action-secondary">
+                Sign In
+              </Link>
+            ) : (
+              <Link to="/dashboard/profile" className="welcome-action-secondary">
+                My Profile
+              </Link>
+            )}
           </div>
 
           {/* Trust & Model Badges */}
@@ -257,16 +288,6 @@ export function WelcomePage() {
         </section>
 
         <section className="welcome-visual" aria-label="Featured match preview">
-          {/* Floating feature pills */}
-          <div className="welcome-float-chip welcome-float-chip--top">
-            <Sparkles size={14} className="text-indigo-600" />
-            <span>AI Match Score: 98%</span>
-          </div>
-          <div className="welcome-float-chip welcome-float-chip--bottom">
-            <ShieldCheck size={14} className="text-emerald-600" />
-            <span>✓ Verified Safe Employer</span>
-          </div>
-
           <div
             className="welcome-card-stack"
             aria-live="polite"
@@ -310,7 +331,6 @@ export function WelcomePage() {
                     onPointerMove={isTopCard ? handleTopCardPointerMove : undefined}
                     onPointerUp={isTopCard ? handleTopCardPointerEnd : undefined}
                     onPointerCancel={isTopCard ? handleTopCardPointerEnd : undefined}
-                    onAnimationEnd={isTopCard ? handleSwipeAnimationEnd : undefined}
                   >
                     <div className="welcome-swipe-cue welcome-swipe-cue-pass" aria-hidden>
                       PASS
@@ -318,40 +338,43 @@ export function WelcomePage() {
                     <div className="welcome-swipe-cue welcome-swipe-cue-apply" aria-hidden>
                       MATCH
                     </div>
-                    <div className="welcome-match-badge">
-                      <Sparkles size={14} />
-                      <span>{card.match}</span>
-                    </div>
 
                     <header className="welcome-card-header">
-                      <div className="welcome-tech-avatar">
-                        <Briefcase size={24} className="text-indigo-600" />
+                      <div
+                        className="welcome-company-avatar"
+                        style={{ background: card.avatarBg }}
+                      >
+                        <span>{card.company.charAt(0)}</span>
                       </div>
-                      <div>
-                        <p className="welcome-tech-label">Featured Company</p>
-                        <p className="welcome-tech-name">{card.company}</p>
+                      <div className="welcome-tech-info">
+                        <span className="welcome-tech-category">{card.category}</span>
+                        <h3 className="welcome-tech-name">{card.company}</h3>
+                      </div>
+                      <div className="welcome-verified-badge" title="Verified Safe Employer">
+                        <ShieldCheck size={14} className="welcome-verified-icon" />
+                        <span>Verified</span>
                       </div>
                     </header>
 
                     <div className="welcome-card-body">
-                      <h2>{card.role}</h2>
+                      <h2 className="welcome-card-role">{card.role}</h2>
                       <div className="welcome-metadata-grid">
-                        <p>
+                        <div className="welcome-meta-pill">
                           <LocationPinIcon size={16} />
-                          {card.location}
-                        </p>
-                        <p>
-                          <Flame size={15} />
-                          <strong>{card.salary}</strong>
-                        </p>
-                        <p>
-                          <CheckCircle2 size={15} />
-                          {card.type}
-                        </p>
-                        <p>
-                          <Zap size={15} />
-                          {card.experience}
-                        </p>
+                          <span>{card.location}</span>
+                        </div>
+                        <div className="welcome-meta-pill welcome-meta-pill--salary">
+                          <Flame size={14} className="text-emerald-600" />
+                          <span>{card.salary}</span>
+                        </div>
+                        <div className="welcome-meta-pill">
+                          <CheckCircle2 size={14} className="text-slate-400" />
+                          <span>{card.type}</span>
+                        </div>
+                        <div className="welcome-meta-pill">
+                          <Zap size={14} className="text-amber-500" />
+                          <span>{card.experience}</span>
+                        </div>
                       </div>
 
                       <div className="welcome-tags">
@@ -363,36 +386,43 @@ export function WelcomePage() {
                       </div>
                     </div>
 
-                    <footer className="welcome-card-footer">
+                    <footer
+                      className="welcome-card-footer"
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
                       <button
                         type="button"
                         className="welcome-btn-pass"
                         aria-label="Pass this role"
                         disabled={isAnimating}
-                        onClick={() => triggerSwipe("left")}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          triggerSwipe("left", false);
+                        }}
                       >
-                        <X size={18} />
-                        Pass
+                        <X size={18} strokeWidth={2.5} />
+                        <span>Pass</span>
                       </button>
                       <button
                         type="button"
                         className="welcome-btn-apply"
-                        aria-label="Apply for this role"
+                        aria-label="Match and Apply for this role"
                         disabled={isAnimating}
-                        onClick={() => triggerSwipe("right", true)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          triggerSwipe("right", true);
+                        }}
                       >
-                        <ThumbsUp size={18} />
-                        Match & Apply
+                        <ThumbsUp size={18} strokeWidth={2.2} />
+                        <span>Match & Apply</span>
                       </button>
                     </footer>
                   </article>
                 );
               })}
           </div>
-
-          <p className="welcome-swipe-hint">
-            💡 <em>Drag card left/right or click buttons to test swiping</em>
-          </p>
         </section>
       </main>
 
